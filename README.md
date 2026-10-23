@@ -53,7 +53,7 @@ scripts/seed.ts             boshlang'ich ma'lumotlar
 - **Moderatsiya:** profil `draft → pending → approved/rejected`. Tasdiqlangan profilda ism, kasb yoki bloger statistikasi o'zgarsa, profil qayta tekshiruvga tushadi. Yangi rasm va video alohida tekshiriladi.
 - **Bloger statistikasi** har o'zgarishda yangi qator sifatida yoziladi (tarix saqlanadi). Moderator uni Insights skrinshoti bilan solishtiradi. 60 kundan eski statistika "tasdiqlanmagan" deb ko'rsatiladi.
 - **Reklama:** bitta so'rov ichida umumiy tanlovchi ishlaydi, shuning uchun bir sahifada bir kreativ ikki marta chiqmaydi. Pullik kampaniya standartdan oldin tanlanadi, kasb va tuman bo'yicha nishonlash mumkin. Standart Adverto kampaniyasi bor, shuning uchun slot hech qachon bo'sh qolmaydi.
-- **TOP** bepul va avtomatik: `src/lib/rank.ts`, har soatda `/api/cron/rank` (`Authorization: Bearer $CRON_SECRET`).
+- **TOP** bepul va avtomatik: `src/lib/rank.ts`, har kuni 03:15 UTC da `/api/cron/rank` (Vercel Hobby faqat kunlik cron beradi; Pro tarifda soatlik qilish mumkin) (`Authorization: Bearer $CRON_SECRET`).
 - **Fayllar:** `BLOB_READ_WRITE_TOKEN` bo'lsa Vercel Blob, aks holda `public/uploads`. Vercel'da so'rov hajmi 4.5 MB bilan cheklangan, shuning uchun rasm brauzerda kichraytiriladi (2000px, WEBP), server esa yana WEBP'ga o'girib EXIF'ni olib tashlaydi. Video brauzerdan to'g'ridan-to'g'ri Blob'ga yuklanadi (`/api/v1/me/media/upload`).
 - **Migratsiyalar:** PostgreSQL'da `npm run build` ichida (`scripts/migrate.ts`), PGlite'da birinchi so'rovda.
 
