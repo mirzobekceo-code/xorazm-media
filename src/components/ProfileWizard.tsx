@@ -12,6 +12,7 @@ import {
 import { upload as blobUpload } from "@vercel/blob/client";
 import { ProfIcon } from "./Icons";
 import type { UploadLimits } from "@/lib/limits";
+import TelegramButton from "./TelegramButton";
 
 type Prof = { slug: string; nameUz: string; description: string; icon: string; unit: string; fieldsSchema: FieldDef[] };
 type MediaItem = { id: number; url: string; thumbUrl: string | null; type: "image" | "video"; isCover: boolean; isStatScreenshot: boolean; moderationStatus: string };
@@ -28,6 +29,7 @@ export default function ProfileWizard(props: {
   loggedIn: boolean;
   media: MediaItem[];
   limits: UploadLimits;
+  telegram: boolean;
   /** Tahrirlashda: qoralama yoki rad etilgan profil oxirida tekshiruvga yuboriladi */
   submitOnFinish?: boolean;
 }) {
@@ -324,6 +326,12 @@ export default function ProfileWizard(props: {
               <div className="box" style={{ background: "var(--bg)" }}>
                 <b>Telefon raqamingizni tasdiqlang</b>
                 <p className="muted small">Shu raqam bilan keyin kabinetga kirasiz.</p>
+                {props.telegram && (
+                  <>
+                    <TelegramButton mode="login" label="Telegram orqali tasdiqlash" onDone={() => { setLoggedIn(true); router.refresh(); }} />
+                    <p className="muted small">yoki SMS kod orqali:</p>
+                  </>
+                )}
                 <div className="row" style={{ flexWrap: "nowrap" }}>
                   <input className="inp" id="otp-phone" type="tel" autoComplete="tel" placeholder="+998 90 123 45 67" value={otp.phone} onChange={(e) => setOtp({ ...otp, phone: e.target.value })} />
                   <button type="button" className="btn ghost" onClick={sendCode}>{otp.sent ? "Qayta yuborish" : "Kod olish"}</button>

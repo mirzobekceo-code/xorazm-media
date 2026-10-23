@@ -8,6 +8,8 @@ import { deleteAccountAction, logoutAction } from "@/app/actions";
 import { prettyPhone } from "@/lib/format";
 import CabinetToggles from "./CabinetToggles";
 import DeleteAccount from "./DeleteAccount";
+import TelegramLink from "./TelegramLink";
+import { botEnabled } from "@/lib/telegram";
 
 export const metadata = { title: "Kabinet", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -71,7 +73,11 @@ export default async function Cabinet({ searchParams }: { searchParams: Promise<
 
       <div className="box">
         <h3>Telegram bildirishnomalari</h3>
-        <p className="muted small">Tasdiqlash natijasi va haftalik statistikani Telegram orqali olish uchun botni ulang. (Bot ishga tushgach faollashadi.)</p>
+        {user.telegramId
+          ? <p className="ok">✓ Telegram ulangan. Tasdiqlash natijasi va haftalik statistika botga keladi.</p>
+          : botEnabled()
+            ? <><p className="muted small">Tasdiqlash natijasi va haftalik statistikani Telegram orqali oling.</p><TelegramLink /></>
+            : <p className="muted small">Telegram bot tez orada ulanadi.</p>}
       </div>
 
       <div className="row" style={{ justifyContent: "space-between" }}>

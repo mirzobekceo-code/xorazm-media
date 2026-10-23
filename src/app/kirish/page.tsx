@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import LoginForm from "./LoginForm";
+import { botEnabled } from "@/lib/telegram";
 
 export const metadata = { title: "Kirish", robots: { index: false } };
 
@@ -11,7 +12,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   if (user) redirect(safeNext ?? (user.role === "specialist" ? "/kabinet" : "/admin"));
   return (
     <div style={{ maxWidth: 440, margin: "24px auto" }}>
-      <LoginForm next={safeNext} />
+      <LoginForm next={safeNext} telegram={botEnabled()} />
     </div>
   );
 }

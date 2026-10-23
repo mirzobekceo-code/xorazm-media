@@ -43,6 +43,19 @@ Zaxira nusxa: `docker compose exec db pg_dump -U xm xm | gzip > backup-$(date +%
 
 **Vercel'dan VPS'ga ko'chish:** `pg_dump` bilan Neon bazasini olib VPS bazasiga tiklash; Blob'dagi fayllar manzili bazada to'liq URL bo'lib saqlangani uchun ular ishlashda davom etadi (yoki skript bilan diskka ko'chiriladi).
 
+## Telegram bot
+
+Bot uchta vazifani bajaradi:
+- **Kirish va ro'yxatdan o'tish (SMS'siz):** saytda "Telegram orqali kirish" → botda "Raqamni ulashish". Telegram raqam egasini o'zi tasdiqlaydi.
+- **Bildirishnomalar:** profil tasdiqlandi yoki rad etildi, dushanba kunlari haftalik statistika, bloger statistikasi 60 kunlik bo'lganda eslatma. Moderatorlarga yangi profil va shikoyatlar.
+- **Mini App:** bot menyusidagi "Mutaxassislar" tugmasi saytni Telegram ichida ochadi. Telegram'i ulangan foydalanuvchi avtomatik kiradi.
+
+Sozlash:
+1. @BotFather → `/newbot` → tokenni hostingda `TELEGRAM_BOT_TOKEN` ga yozing (ixtiyoriy: `TELEGRAM_BOT_USERNAME`).
+2. Admin panel → **Sozlamalar** → "Botni sozlash" (webhook, buyruqlar, menyu tugmasi). Domen o'zgarsa, qayta bosing.
+
+Xavfsizlik: webhook `secret_token` bilan himoyalangan (tokendan hosil qilinadi). Kirish tokeni 10 daqiqa amal qiladi, bir martalik va faqat uni yaratgan brauzer ishlata oladi. Kontakt faqat yuboruvchining o'z raqami bo'lsa qabul qilinadi. Mini App `initData` imzosi tekshiriladi (`src/lib/tg-verify.ts`).
+
 ## Yuklash limitlari
 
 `.env` orqali sozlanadi, kodni o'zgartirish shart emas:
@@ -63,7 +76,7 @@ Showreel va uzun videolar uchun profilda 5 tagacha havola (YouTube, Instagram, T
 | --- | --- |
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run lint` | TypeScript tekshiruvi |
-| `npm test` | Unit testlar (format, reklama tanlash) |
+| `npm test` | Unit testlar (format, reklama tanlash, Telegram imzosi) |
 | `npm run db:migrate` | Migratsiyalarni `DATABASE_URL` bazasiga qo'llash (`build` buni avtomatik bajaradi) |
 | `npm run db:generate` | `src/db/schema.ts` o'zgargandan keyin yangi migratsiya |
 | `npm run db:seed` | Ma'lumotnomalar va standart reklama; `-- --demo` namuna profillar (faqat lokal) |
@@ -100,7 +113,6 @@ Dockerfile, docker-compose.yml, Caddyfile   VPS uchun
 
 ## Hali qilinmagan (TZ bo'yicha keyingi ishlar)
 
-- Telegram Login, botni foydalanuvchiga ulash (`users.telegram_id`) va haftalik hisobot. Bildirishnoma yuborish kodi tayyor: `src/lib/telegram.ts`.
 - Videoga avtomatik muqova (thumbnail).
 - Cloudflare Turnstile (botlardan himoya), admin uchun ikki bosqichli kirish.
 - Rate limit hozir bitta server xotirasida; bir nechta nusxada Redis kerak.

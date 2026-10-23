@@ -50,6 +50,7 @@ header.top { position: sticky; top: 0; z-index: 20; background: var(--bg); borde
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); font-weight: 500; cursor: pointer; text-decoration: none; white-space: nowrap }
 .btn:disabled { opacity: .5; cursor: default }
 .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line) }
+.btn.tg { background: #229ed9; border-color: #229ed9; color: #fff }
 .btn.danger { background: var(--bad); border-color: var(--bad); color: #fff }
 .btn.sm { height: 34px; padding: 0 14px; font-size: 14px }
 .link { background: none; border: 0; padding: 0; cursor: pointer; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; color: inherit }

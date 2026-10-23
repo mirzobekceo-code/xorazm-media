@@ -2,8 +2,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { requestCodeAction, verifyCodeAction } from "@/app/actions";
+import TelegramButton from "@/components/TelegramButton";
 
-export default function LoginForm({ next }: { next?: string }) {
+export default function LoginForm({ next, telegram }: { next?: string; telegram: boolean }) {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -29,7 +30,16 @@ export default function LoginForm({ next }: { next?: string }) {
       router.push(next ?? (r.role !== "specialist" ? "/admin" : r.hasProfile ? "/kabinet" : "/qoshilish"));
       router.refresh();
     }}>
-      <div><h2>Kirish</h2><p className="muted" style={{ marginTop: 6 }}>Telefon raqamingizga SMS kod yuboramiz. Parol kerak emas.</p></div>
+      <div><h2>Kirish</h2><p className="muted" style={{ marginTop: 6 }}>Parol kerak emas.</p></div>
+      {telegram && (
+        <>
+          <TelegramButton mode="login" onDone={(r) => {
+            router.push(next ?? (r.role && r.role !== "specialist" ? "/admin" : r.hasProfile ? "/kabinet" : "/qoshilish"));
+            router.refresh();
+          }} />
+          <p className="muted small" style={{ textAlign: "center" }}>yoki SMS kod orqali</p>
+        </>
+      )}
       <div className="field">
         <label htmlFor="l-phone">Telefon raqam</label>
         <input className="inp" id="l-phone" type="tel" autoComplete="tel" placeholder="+998 90 123 45 67" value={phone} disabled={sent} onChange={(e) => setPhone(e.target.value)} />

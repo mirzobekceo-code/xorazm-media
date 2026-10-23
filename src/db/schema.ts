@@ -14,6 +14,8 @@ export const reportStatusEnum = pgEnum("report_status", ["new", "reviewing", "cl
 export const eventTypeEnum = pgEnum("event_type", ["view", "contact_click"]);
 export const adEventEnum = pgEnum("ad_event_type", ["impression", "click"]);
 export const creativeTypeEnum = pgEnum("creative_type", ["text", "image", "video"]);
+export const tgPurposeEnum = pgEnum("tg_token_purpose", ["login", "link"]);
+export const tgStatusEnum = pgEnum("tg_token_status", ["pending", "confirmed", "used"]);
 export const campaignStatusEnum = pgEnum("campaign_status", ["draft", "active", "paused", "ended"]);
 
 const timestamps = {
@@ -45,6 +47,25 @@ export const otpCodes = pgTable("otp_codes", {
   usedAt: timestamp("used_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("otp_phone_idx").on(t.phone, t.createdAt)]);
+
+/**
+ * Telegram orqali kirish/ulash: sayt token yaratadi, foydalanuvchi botda raqamini ulashadi,
+ * bot tokenni tasdiqlaydi, sayt (shu brauzer, secret bilan) tokenni ishlatib sessiya ochadi.
+ */
+export const telegramTokens = pgTable("telegram_tokens", {
+  token: varchar("token", { length: 64 }).primaryKey(),
+  /** Faqat tokenni yaratgan brauzer biladi; xesh saqlanadi */
+  secretHash: varchar("secret_hash", { length: 64 }).notNull(),
+  purpose: tgPurposeEnum("purpose").notNull(),
+  /** link: qaysi foydalanuvchiga ulanadi */
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  status: tgStatusEnum("status").notNull().default("pending"),
+  chatId: varchar("chat_id", { length: 32 }),
+  telegramId: varchar("telegram_id", { length: 32 }),
+  phone: varchar("phone", { length: 20 }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("tg_tokens_chat_idx").on(t.chatId, t.createdAt)]);
 
 /** Kasbga oid maydon ta'rifi: forma va profil sahifasi shundan quriladi. */
 export type FieldDef = {

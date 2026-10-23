@@ -15,6 +15,13 @@
       "when": 1792777154661,
       "tag": "0001_media_size_video_links",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792778891864,
+      "tag": "0002_telegram_tokens",
+      "breakpoints": true
     }
   ]
 }

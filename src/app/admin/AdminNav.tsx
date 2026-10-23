@@ -6,7 +6,7 @@ export default function AdminNav({ isAdmin }: { isAdmin: boolean }) {
   const path = usePathname();
   const links: [string, string][] = [
     ["/admin", "Dashboard"], ["/admin/moderatsiya", "Moderatsiya"], ["/admin/mutaxassislar", "Mutaxassislar"], ["/admin/shikoyatlar", "Shikoyatlar"],
-    ...(isAdmin ? ([["/admin/reklama", "Reklama"], ["/admin/xodimlar", "Xodimlar"]] as [string, string][]) : []),
+    ...(isAdmin ? ([["/admin/reklama", "Reklama"], ["/admin/xodimlar", "Xodimlar"], ["/admin/sozlamalar", "Sozlamalar"]] as [string, string][]) : []),
   ];
   return (
     <nav className="admin-nav" aria-label="Admin">

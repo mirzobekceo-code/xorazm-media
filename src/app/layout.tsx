@@ -7,6 +7,7 @@ import { getUser } from "@/lib/auth";
 import NavLinks from "@/components/NavLinks";
 import Ad from "@/components/Ad";
 import PublicOnly from "@/components/PublicOnly";
+import TelegramWebAppLogin from "@/components/TelegramWebAppLogin";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -71,6 +72,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </footer>
         <PublicOnly><Ad slot="A4" variant="sticky" /></PublicOnly>
+        <TelegramWebAppLogin loggedIn={!!user} />
       </body>
     </html>
   );

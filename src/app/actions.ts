@@ -11,6 +11,7 @@ import { getOwnProfile, submitForReview, upsertProfile } from "@/lib/profiles";
 import { kindOf, removeFile, saveImage, saveVideo } from "@/lib/storage";
 import { uploadLimits, type UploadLimits } from "@/lib/limits";
 import { head } from "@vercel/blob";
+import { createTelegramToken } from "@/lib/telegram-auth";
 
 /** Video brauzerdan to'g'ridan-to'g'ri Blob'ga yuklanadimi (production). */
 export async function uploadModeAction(): Promise<{ directVideo: boolean; profileId: number | null; limits: UploadLimits }> {
@@ -156,6 +157,14 @@ export async function deleteAccountAction(): Promise<void> {
   await logout();
   await db.delete(s.users).where(eq(s.users.id, user.id)); // cascade: profil, kontaktlar, media, statistika
   redirect("/");
+}
+
+/** Kabinetdan Telegramni ulash: bot shu foydalanuvchiga bog'lanadi. */
+export async function createTelegramLinkAction(): Promise<Result<{ url: string; token: string; secret: string }>> {
+  const user = await getUser();
+  if (!user) return { ok: false, error: "Avval kiring" };
+  const t = await createTelegramToken("link", user.id);
+  return t ? { ok: true, ...t } : { ok: false, error: "Telegram bot hali sozlanmagan" };
 }
 
 export async function logoutAction(): Promise<void> {

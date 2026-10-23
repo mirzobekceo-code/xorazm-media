@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import crypto from "node:crypto";
-import { and, eq, gt, isNull, desc, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, desc, ne, sql } from "drizzle-orm";
 import { getDb, schema as s } from "@/db";
 import { sendSms } from "./sms";
 
@@ -47,24 +47,37 @@ export async function verifyOtp(phone: string, code: string): Promise<{ ok: true
     return { ok: false, error: "Kod noto‘g‘ri." };
   }
   await db.update(s.otpCodes).set({ usedAt: new Date() }).where(eq(s.otpCodes.id, otp.id));
+  return { ok: true, userId: await loginByPhone(phone) };
+}
 
+/**
+ * Tasdiqlangan raqam bo'yicha foydalanuvchini topadi yoki yaratadi va sessiya ochadi.
+ * Raqam SMS kod yoki Telegram "kontakt ulashish" orqali tasdiqlangan bo'lishi shart.
+ */
+export async function loginByPhone(phone: string, opts: { telegramId?: string } = {}): Promise<number> {
+  const db = await getDb();
   const adminPhones = (process.env.ADMIN_PHONES ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  if (opts.telegramId) {
+    // Bitta Telegram akkaunti faqat bitta foydalanuvchiga ulanadi
+    await db.update(s.users).set({ telegramId: null }).where(and(eq(s.users.telegramId, opts.telegramId), ne(s.users.phone, phone)));
+  }
   const [existing] = await db.select().from(s.users).where(eq(s.users.phone, phone)).limit(1);
   let userId: number;
   if (existing) {
     userId = existing.id;
     await db.update(s.users).set({
       lastLoginAt: new Date(),
+      ...(opts.telegramId ? { telegramId: opts.telegramId } : {}),
       ...(adminPhones.includes(phone) && existing.role === "specialist" ? { role: "admin" as const } : {}),
     }).where(eq(s.users.id, userId));
   } else {
     const [u] = await db.insert(s.users).values({
-      phone, role: adminPhones.includes(phone) ? "admin" : "specialist", lastLoginAt: new Date(),
+      phone, telegramId: opts.telegramId ?? null, role: adminPhones.includes(phone) ? "admin" : "specialist", lastLoginAt: new Date(),
     }).returning();
     userId = u.id;
   }
   await createSession(userId);
-  return { ok: true, userId };
+  return userId;
 }
 
 async function createSession(userId: number) {
