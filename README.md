@@ -24,6 +24,7 @@ Dev rejimida SMS kod server konsoliga chiqadi (`[SMS dev] +998...: ... kodi 1234
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run lint` | TypeScript tekshiruvi |
 | `npm test` | Unit testlar (format, reklama tanlash) |
+| `npm run db:migrate` | Migratsiyalarni `DATABASE_URL` bazasiga qo'llash (`build` buni avtomatik bajaradi) |
 | `npm run db:generate` | `src/db/schema.ts` o'zgargandan keyin yangi migratsiya |
 | `npm run db:seed` | Ma'lumotnomalar va standart reklama; `-- --demo` namuna profillar (faqat lokal) |
 
@@ -53,12 +54,13 @@ scripts/seed.ts             boshlang'ich ma'lumotlar
 - **Bloger statistikasi** har o'zgarishda yangi qator sifatida yoziladi (tarix saqlanadi). Moderator uni Insights skrinshoti bilan solishtiradi. 60 kundan eski statistika "tasdiqlanmagan" deb ko'rsatiladi.
 - **Reklama:** bitta so'rov ichida umumiy tanlovchi ishlaydi, shuning uchun bir sahifada bir kreativ ikki marta chiqmaydi. Pullik kampaniya standartdan oldin tanlanadi, kasb va tuman bo'yicha nishonlash mumkin. Standart Adverto kampaniyasi bor, shuning uchun slot hech qachon bo'sh qolmaydi.
 - **TOP** bepul va avtomatik: `src/lib/rank.ts`, har soatda `/api/cron/rank` (`Authorization: Bearer $CRON_SECRET`).
-- **Fayllar** hozircha `public/uploads` ga yoziladi (WEBP, EXIF olib tashlanadi). Production uchun `src/lib/storage.ts` dagi adapter S3 yoki Supabase Storage'ga almashtiriladi.
+- **Fayllar:** `BLOB_READ_WRITE_TOKEN` bo'lsa Vercel Blob, aks holda `public/uploads`. Vercel'da so'rov hajmi 4.5 MB bilan cheklangan, shuning uchun rasm brauzerda kichraytiriladi (2000px, WEBP), server esa yana WEBP'ga o'girib EXIF'ni olib tashlaydi. Video brauzerdan to'g'ridan-to'g'ri Blob'ga yuklanadi (`/api/v1/me/media/upload`).
+- **Migratsiyalar:** PostgreSQL'da `npm run build` ichida (`scripts/migrate.ts`), PGlite'da birinchi so'rovda.
 
 ## Hali qilinmagan (TZ bo'yicha keyingi ishlar)
 
 - Telegram Login, botni foydalanuvchiga ulash (`users.telegram_id`) va haftalik hisobot. Bildirishnoma yuborish kodi tayyor: `src/lib/telegram.ts`.
-- Bulutli fayl xotirasi adapteri; videoga avtomatik muqova (thumbnail).
+- Videoga avtomatik muqova (thumbnail).
 - Cloudflare Turnstile (botlardan himoya), admin uchun ikki bosqichli kirish.
 - Rate limit hozir bitta server xotirasida; bir nechta nusxada Redis kerak.
 - Reklama kreativi uchun rasm yuklash (hozir URL bilan kiritiladi).

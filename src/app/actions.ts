@@ -10,6 +10,13 @@ import { firstError, ProfileInput, type ProfileInputT } from "@/lib/profile-inpu
 import { getOwnProfile, submitForReview, upsertProfile } from "@/lib/profiles";
 import { kindOf, removeFile, saveImage, saveVideo } from "@/lib/storage";
 
+/** Video brauzerdan to'g'ridan-to'g'ri Blob'ga yuklanadimi (production). */
+export async function uploadModeAction(): Promise<{ directVideo: boolean; profileId: number | null }> {
+  const user = await getUser();
+  const p = user && (await getOwnProfile(user.id));
+  return { directVideo: !!process.env.BLOB_READ_WRITE_TOKEN, profileId: p?.id ?? null };
+}
+
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
 export async function requestCodeAction(rawPhone: string): Promise<Result> {
@@ -72,6 +79,23 @@ export async function uploadMediaAction(form: FormData): Promise<Result<{ id: nu
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Fayl saqlanmadi" };
   }
+}
+
+/** Brauzerdan Blob'ga yuklangan videoni profilga yozadi. */
+export async function registerVideoAction(url: string): Promise<Result<{ id: number; url: string; thumbUrl: string | null; type: "image" | "video" }>> {
+  const user = await getUser();
+  const profile = user && (await getOwnProfile(user.id));
+  if (!profile) return { ok: false, error: "Avval kiring" };
+  let u: URL;
+  try { u = new URL(url); } catch { return { ok: false, error: "Noto‘g‘ri manzil" }; }
+  if (!u.hostname.endsWith(".public.blob.vercel-storage.com") || !u.pathname.startsWith(`/uploads/p/${profile.id}/`)) {
+    return { ok: false, error: "Noto‘g‘ri manzil" };
+  }
+  const db = await getDb();
+  const [{ n }] = await db.select({ n: count() }).from(s.media).where(and(eq(s.media.profileId, profile.id), eq(s.media.type, "video")));
+  if (n >= LIMITS.video) { await removeFile(url); return { ok: false, error: `Ko‘pi bilan ${LIMITS.video} ta video` }; }
+  const [row] = await db.insert(s.media).values({ profileId: profile.id, type: "video", url, sortOrder: n }).returning();
+  return { ok: true, id: row.id, url: row.url, thumbUrl: null, type: "video" };
 }
 
 export async function deleteMediaAction(mediaId: number): Promise<Result> {

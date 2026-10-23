@@ -1,6 +1,5 @@
 import { drizzle as drizzlePg } from "drizzle-orm/postgres-js";
 import { drizzle as drizzleLite } from "drizzle-orm/pglite";
-import { migrate as migratePg } from "drizzle-orm/postgres-js/migrator";
 import { migrate as migrateLite } from "drizzle-orm/pglite/migrator";
 import postgres from "postgres";
 import path from "node:path";
@@ -17,7 +16,9 @@ function create() {
   if (url) {
     const client = postgres(url, { max: 5, prepare: false });
     const db = drizzlePg(client, { schema });
-    return { db, ready: migratePg(db, { migrationsFolder: path.join(process.cwd(), "drizzle") }) };
+    // Haqiqiy bazada migratsiya build paytida (scripts/migrate.ts) bajariladi:
+    // bir nechta serverless nusxa bir vaqtda migratsiya qilmasligi uchun
+    return { db, ready: Promise.resolve() };
   }
   const dir = process.env.PGLITE_DIR ?? path.join(process.cwd(), ".data", "pglite");
   fs.mkdirSync(dir, { recursive: true });

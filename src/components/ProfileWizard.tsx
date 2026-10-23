@@ -6,8 +6,10 @@ import { LANGUAGES } from "@/lib/reference";
 import { AGE_GROUPS, emptyBlogger, emptyInput, PLATFORMS, RATE_LABELS, type ProfileInputT } from "@/lib/profile-input";
 import { PLATFORM_LABELS } from "@/lib/format";
 import {
-  deleteMediaAction, requestCodeAction, saveProfileAction, setCoverAction, submitAction, uploadMediaAction, verifyCodeAction,
+  deleteMediaAction, registerVideoAction, requestCodeAction, saveProfileAction, setCoverAction, submitAction, uploadMediaAction,
+  uploadModeAction, verifyCodeAction,
 } from "@/app/actions";
+import { upload as blobUpload } from "@vercel/blob/client";
 import { ProfIcon } from "./Icons";
 
 type Prof = { slug: string; nameUz: string; description: string; icon: string; unit: string; fieldsSchema: FieldDef[] };
@@ -113,12 +115,26 @@ export default function ProfileWizard(props: {
   async function upload(files: FileList | null, stat = false) {
     if (!files?.length) return;
     setError("");
-    for (const file of Array.from(files)) {
+    const list = Array.from(files); // FileList input tozalanganda bo'shab qoladi — await'dan oldin nusxalash
+    const mode = await uploadModeAction();
+    for (const file of list) {
       setUploading((n) => n + 1);
-      const fd = new FormData();
-      fd.set("file", file);
-      if (stat) fd.set("stat", "1");
-      const r = await uploadMediaAction(fd);
+      let r: Awaited<ReturnType<typeof uploadMediaAction>>;
+      try {
+        if (file.type.startsWith("video/") && mode.directVideo && mode.profileId) {
+          // Katta video server orqali o'tmaydi: to'g'ridan-to'g'ri Blob'ga
+          const ext = file.type === "video/quicktime" ? "mov" : "mp4";
+          const blob = await blobUpload(`uploads/p/${mode.profileId}/video.${ext}`, file, { access: "public", handleUploadUrl: "/api/v1/me/media/upload" });
+          r = await registerVideoAction(blob.url);
+        } else {
+          const fd = new FormData();
+          fd.set("file", file.type.startsWith("image/") ? await shrinkImage(file) : file);
+          if (stat) fd.set("stat", "1");
+          r = await uploadMediaAction(fd);
+        }
+      } catch (e) {
+        r = { ok: false, error: e instanceof Error ? e.message : "Yuklab bo‘lmadi" };
+      }
       setUploading((n) => n - 1);
       if (!r.ok) { setError(`${file.name}: ${r.error}`); continue; }
       setMedia((m) => [...m, { id: r.id, url: r.url, thumbUrl: r.thumbUrl, type: r.type, isCover: false, isStatScreenshot: stat, moderationStatus: "pending" }]);
@@ -323,7 +339,7 @@ export default function ProfileWizard(props: {
             )}
             <div className="drop">
               <b style={{ color: "var(--ink)" }}>{isBlogger ? "Reklama namunalari: rasm va video" : "Rasm va videolar"}</b>
-              <span className="small">JPG, PNG, WEBP, HEIC — 10 MB gacha · MP4, MOV — 100 MB gacha · kamida 1 ta rasm</span>
+              <span className="small">JPG, PNG, WEBP — rasm avtomatik kichraytiriladi · MP4, MOV — 100 MB gacha · kamida 1 ta rasm</span>
               <label className="btn ghost sm" htmlFor="up-media" style={{ cursor: "pointer" }}>Fayl tanlash</label>
               <input id="up-media" type="file" accept="image/*,video/mp4,video/quicktime" multiple hidden onChange={(e) => { upload(e.target.files); e.target.value = ""; }} />
             </div>
@@ -343,6 +359,26 @@ export default function ProfileWizard(props: {
       </form>
     </div>
   );
+}
+
+/**
+ * Rasmni brauzerda 2000px gacha kichraytiradi (serverga so'rov hajmi cheklangan).
+ * Brauzer o'qiy olmaydigan format (masalan, HEIC) bo'lsa, asl fayl yuboriladi.
+ */
+async function shrinkImage(file: File): Promise<File> {
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const scale = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+    if (scale === 1 && file.size < 3_000_000) return file;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/webp", 0.88));
+    return blob ? new File([blob], file.name.replace(/\.\w+$/, "") + ".webp", { type: "image/webp" }) : file;
+  } catch {
+    return file;
+  }
 }
 
 function Thumbs({ items, onDelete, onCover }: { items: MediaItem[]; onDelete: (id: number) => void; onCover?: (id: number) => void }) {
