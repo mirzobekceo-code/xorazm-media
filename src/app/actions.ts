@@ -9,12 +9,14 @@ import { clientIp, rateLimit } from "@/lib/http";
 import { firstError, ProfileInput, type ProfileInputT } from "@/lib/profile-input";
 import { getOwnProfile, submitForReview, upsertProfile } from "@/lib/profiles";
 import { kindOf, removeFile, saveImage, saveVideo } from "@/lib/storage";
+import { uploadLimits, type UploadLimits } from "@/lib/limits";
+import { head } from "@vercel/blob";
 
 /** Video brauzerdan to'g'ridan-to'g'ri Blob'ga yuklanadimi (production). */
-export async function uploadModeAction(): Promise<{ directVideo: boolean; profileId: number | null }> {
+export async function uploadModeAction(): Promise<{ directVideo: boolean; profileId: number | null; limits: UploadLimits }> {
   const user = await getUser();
   const p = user && (await getOwnProfile(user.id));
-  return { directVideo: !!process.env.BLOB_READ_WRITE_TOKEN, profileId: p?.id ?? null };
+  return { directVideo: !!process.env.BLOB_READ_WRITE_TOKEN, profileId: p?.id ?? null, limits: uploadLimits() };
 }
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -45,7 +47,6 @@ export async function saveProfileAction(input: ProfileInputT): Promise<Result<{ 
   return upsertProfile(user.id, user.phone, parsed.data);
 }
 
-const LIMITS = { image: 20, video: 6, screenshot: 6 };
 
 export async function uploadMediaAction(form: FormData): Promise<Result<{ id: number; url: string; thumbUrl: string | null; type: "image" | "video" }>> {
   const user = await getUser();
@@ -62,13 +63,15 @@ export async function uploadMediaAction(form: FormData): Promise<Result<{ id: nu
   const [{ n }] = await db.select({ n: count() }).from(s.media).where(and(
     eq(s.media.profileId, profile.id), eq(s.media.isStatScreenshot, isStat), ...(isStat ? [] : [eq(s.media.type, kind)]),
   ));
-  const limit = isStat ? LIMITS.screenshot : LIMITS[kind];
+  const L = uploadLimits();
+  if (kind === "video" && L.videos === 0) return { ok: false, error: "Video yuklash hozircha o‘chirilgan — YouTube yoki Instagram havolasini qo‘shing" };
+  const limit = isStat ? L.screenshots : kind === "image" ? L.images : L.videos;
   if (n >= limit) return { ok: false, error: `Ko‘pi bilan ${limit} ta ${isStat ? "skrinshot" : kind === "image" ? "rasm" : "video"}` };
 
   try {
     const saved = kind === "image" ? await saveImage(profile.id, file) : await saveVideo(profile.id, file);
     const [row] = await db.insert(s.media).values({
-      profileId: profile.id, type: kind, url: saved.url, thumbUrl: saved.thumbUrl, isStatScreenshot: isStat, sortOrder: n,
+      profileId: profile.id, type: kind, url: saved.url, thumbUrl: saved.thumbUrl, sizeBytes: saved.sizeBytes, isStatScreenshot: isStat, sortOrder: n,
     }).returning();
     if (isStat) {
       // Skrinshot oxirgi statistika qatoriga ham yoziladi — moderator shu bilan solishtiradi
@@ -93,8 +96,10 @@ export async function registerVideoAction(url: string): Promise<Result<{ id: num
   }
   const db = await getDb();
   const [{ n }] = await db.select({ n: count() }).from(s.media).where(and(eq(s.media.profileId, profile.id), eq(s.media.type, "video")));
-  if (n >= LIMITS.video) { await removeFile(url); return { ok: false, error: `Ko‘pi bilan ${LIMITS.video} ta video` }; }
-  const [row] = await db.insert(s.media).values({ profileId: profile.id, type: "video", url, sortOrder: n }).returning();
+  const L = uploadLimits();
+  if (n >= L.videos) { await removeFile(url); return { ok: false, error: `Ko‘pi bilan ${L.videos} ta video` }; }
+  const size = await head(url).then((h) => h.size, () => 0);
+  const [row] = await db.insert(s.media).values({ profileId: profile.id, type: "video", url, sizeBytes: size, sortOrder: n }).returning();
   return { ok: true, id: row.id, url: row.url, thumbUrl: null, type: "video" };
 }
 

@@ -20,7 +20,6 @@ export const PROFESSIONS: {
     fields: [
       { key: "camera", label: "Kamera va obyektivlar", type: "text", placeholder: "Sony FX3, 24-70", required: true },
       { key: "gear", label: "Qo‘shimcha texnika", type: "text", placeholder: "Dron, svet, mikrofon" },
-      { key: "showreel", label: "Showreel havolasi", type: "url", placeholder: "https://" },
     ] },
   { slug: "fotograf", nameUz: "Fotograf", nameRu: "Фотограф", description: "Mahsulot, portret, tadbir", unit: "soat",
     icon: '<rect x="4" y="12" width="32" height="22" rx="3"/><path d="M14 12l3-5h6l3 5"/><circle cx="20" cy="23" r="6"/>',

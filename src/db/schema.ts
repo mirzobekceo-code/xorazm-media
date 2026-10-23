@@ -91,6 +91,8 @@ export const profiles = pgTable("profiles", {
   price: integer("price"),
   priceNegotiable: boolean("price_negotiable").notNull().default(false),
   tags: text("tags").array().notNull().default([]),
+  /** Showreel va ishlar: YouTube, Instagram, TikTok havolalari (fayl xotirasini tejaydi) */
+  videoLinks: text("video_links").array().notNull().default([]),
   status: profileStatusEnum("status").notNull().default("draft"),
   rejectReason: text("reject_reason"),
   isAvailable: boolean("is_available").notNull().default(true),
@@ -156,6 +158,8 @@ export const media = pgTable("media", {
   type: mediaTypeEnum("type").notNull(),
   url: text("url").notNull(),
   thumbUrl: text("thumb_url"),
+  /** Asl va kichik nusxa birga; xotira hajmini kuzatish uchun */
+  sizeBytes: integer("size_bytes").notNull().default(0),
   isCover: boolean("is_cover").notNull().default(false),
   isStatScreenshot: boolean("is_stat_screenshot").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),

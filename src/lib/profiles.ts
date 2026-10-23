@@ -52,6 +52,7 @@ export async function upsertProfile(userId: number, phone: string, input: Profil
     price: input.price || null,
     priceNegotiable: input.priceNegotiable,
     tags: input.tags,
+    videoLinks: input.videoLinks,
     extra,
     consentAt: new Date(),
     updatedAt: new Date(),

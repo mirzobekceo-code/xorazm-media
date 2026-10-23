@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isVideoLink } from "./limits";
 
 /** Ro'yxatdan o'tish va tahrirlash formasining umumiy sxemasi (klient va server). */
 const pct = z.coerce.number().min(0).max(100);
@@ -41,6 +42,11 @@ export const ProfileInput = z.object({
   priceNegotiable: z.boolean().default(false),
   tags: z.string().max(200).default("").transform((v) => v.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 5)),
   extra: z.record(z.string(), z.string().trim().max(300)).default({}),
+  /** Har qatorda bitta havola (YouTube, Instagram, TikTok, Vimeo, Telegram, Google Drive) */
+  videoLinks: z.string().max(2000).default("")
+    .transform((v) => v.split(/\s+/).map((x) => x.trim()).filter(Boolean))
+    .refine((a) => a.length <= 5, "Ko‘pi bilan 5 ta video havola")
+    .refine((a) => a.every(isVideoLink), "Video havola YouTube, Instagram, TikTok, Vimeo, Telegram yoki Google Drive’dan bo‘lsin (https://...)"),
   contacts: z.object({ phone: z.string().trim().optional().default(""), telegram: handle.default(""), instagram: handle.default("") }),
   blogger: BloggerInput.optional(),
   consent: z.literal(true, { errorMap: () => ({ message: "Kontaktlar ochiq ko‘rinishiga rozilik kerak" }) }),
@@ -53,7 +59,7 @@ export function emptyInput(): ProfileInputT {
   return {
     profession: "", extraProfession: "", fullName: "", birthYear: "" as unknown as number, gender: "f",
     languages: ["uz"], districts: [], bio: "", experienceYears: 0, price: undefined, priceNegotiable: false,
-    tags: "", extra: {}, contacts: { phone: "", telegram: "", instagram: "" }, consent: false as unknown as true,
+    tags: "", extra: {}, videoLinks: "", contacts: { phone: "", telegram: "", instagram: "" }, consent: false as unknown as true,
     blogger: undefined,
   };
 }

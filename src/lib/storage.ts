@@ -4,6 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import sharp from "sharp";
 import { put as blobPut, del as blobDel } from "@vercel/blob";
+import { uploadLimits } from "./limits";
 
 /**
  * Fayl xotirasi. BLOB_READ_WRITE_TOKEN bo'lsa Vercel Blob (production),
@@ -13,7 +14,7 @@ const ROOT = path.join(process.cwd(), "public", "uploads");
 const useBlob = () => !!process.env.BLOB_READ_WRITE_TOKEN;
 
 export const IMAGE_MAX = 10 * 1024 * 1024;
-export const VIDEO_MAX = 100 * 1024 * 1024;
+export const videoMaxBytes = () => uploadLimits().videoMb * 1024 * 1024;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const VIDEO_TYPES = ["video/mp4", "video/quicktime"];
 
@@ -47,14 +48,16 @@ export async function saveImage(profileId: number, file: File) {
   return {
     url: await put(`p/${profileId}/${id}.webp`, full, "image/webp"),
     thumbUrl: await put(`p/${profileId}/${id}-t.webp`, thumb, "image/webp"),
+    sizeBytes: full.length + thumb.length,
   };
 }
 
 export async function saveVideo(profileId: number, file: File) {
-  if (file.size > VIDEO_MAX) throw new Error("Video 100 MB dan katta");
+  const { videoMb } = uploadLimits();
+  if (file.size > videoMaxBytes()) throw new Error(`Video ${videoMb} MB dan katta`);
   const ext = file.type === "video/quicktime" ? "mov" : "mp4";
   const id = crypto.randomBytes(8).toString("hex");
-  return { url: await put(`p/${profileId}/${id}.${ext}`, Buffer.from(await file.arrayBuffer()), file.type), thumbUrl: null };
+  return { url: await put(`p/${profileId}/${id}.${ext}`, Buffer.from(await file.arrayBuffer()), file.type), thumbUrl: null, sizeBytes: file.size };
 }
 
 export async function removeFile(url: string | null) {

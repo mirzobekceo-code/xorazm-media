@@ -1,0 +1,5 @@
+# Domen uchun avtomatik HTTPS (Let's Encrypt)
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:3000
+}

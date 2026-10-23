@@ -11,6 +11,7 @@ import {
 } from "@/app/actions";
 import { upload as blobUpload } from "@vercel/blob/client";
 import { ProfIcon } from "./Icons";
+import type { UploadLimits } from "@/lib/limits";
 
 type Prof = { slug: string; nameUz: string; description: string; icon: string; unit: string; fieldsSchema: FieldDef[] };
 type MediaItem = { id: number; url: string; thumbUrl: string | null; type: "image" | "video"; isCover: boolean; isStatScreenshot: boolean; moderationStatus: string };
@@ -26,6 +27,7 @@ export default function ProfileWizard(props: {
   initial: ProfileInputT | null;
   loggedIn: boolean;
   media: MediaItem[];
+  limits: UploadLimits;
   /** Tahrirlashda: qoralama yoki rad etilgan profil oxirida tekshiruvga yuboriladi */
   submitOnFinish?: boolean;
 }) {
@@ -121,7 +123,10 @@ export default function ProfileWizard(props: {
       setUploading((n) => n + 1);
       let r: Awaited<ReturnType<typeof uploadMediaAction>>;
       try {
-        if (file.type.startsWith("video/") && mode.directVideo && mode.profileId) {
+        const vErr = file.type.startsWith("video/") ? await checkVideo(file, props.limits) : "";
+        if (vErr) {
+          r = { ok: false, error: vErr };
+        } else if (file.type.startsWith("video/") && mode.directVideo && mode.profileId) {
           // Katta video server orqali o'tmaydi: to'g'ridan-to'g'ri Blob'ga
           const ext = file.type === "video/quicktime" ? "mov" : "mp4";
           const blob = await blobUpload(`uploads/p/${mode.profileId}/video.${ext}`, file, { access: "public", handleUploadUrl: "/api/v1/me/media/upload" });
@@ -281,6 +286,15 @@ export default function ProfileWizard(props: {
           </div>
         )}
 
+        {step === 2 && (
+          <div className="field">
+            <label htmlFor="s-vlinks">{isBlogger ? "Reklama namunalari havolalari" : "Showreel va ishlaringiz havolalari"}</label>
+            <textarea className="inp" id="s-vlinks" rows={3} value={String(v.videoLinks ?? "")} onChange={(e) => set("videoLinks", e.target.value)}
+              placeholder={"https://youtube.com/watch?v=...\nhttps://instagram.com/reel/..."} />
+            <small>Har qatorda bitta havola, {props.limits.videoLinks} tagacha: YouTube, Instagram, TikTok, Vimeo, Telegram, Google Drive. YouTube videolari profilda shu yerning o‘zida ochiladi.</small>
+          </div>
+        )}
+
         {step === 3 && (
           <div className="stack" style={{ gap: 22 }}>
             <div className="fields">
@@ -339,9 +353,14 @@ export default function ProfileWizard(props: {
             )}
             <div className="drop">
               <b style={{ color: "var(--ink)" }}>{isBlogger ? "Reklama namunalari: rasm va video" : "Rasm va videolar"}</b>
-              <span className="small">JPG, PNG, WEBP — rasm avtomatik kichraytiriladi · MP4, MOV — 100 MB gacha · kamida 1 ta rasm</span>
+              <span className="small">
+                Rasm: {props.limits.images} tagacha, avtomatik kichraytiriladi · kamida 1 ta
+                {props.limits.videos > 0
+                  ? ` · Video: ${props.limits.videos} tagacha, ${props.limits.videoSeconds} soniya va ${props.limits.videoMb} MB gacha (MP4, MOV)`
+                  : " · Videolarni 3-qadamda havola sifatida qo‘shing"}
+              </span>
               <label className="btn ghost sm" htmlFor="up-media" style={{ cursor: "pointer" }}>Fayl tanlash</label>
-              <input id="up-media" type="file" accept="image/*,video/mp4,video/quicktime" multiple hidden onChange={(e) => { upload(e.target.files); e.target.value = ""; }} />
+              <input id="up-media" type="file" accept={props.limits.videos > 0 ? "image/*,video/mp4,video/quicktime" : "image/*"} multiple hidden onChange={(e) => { upload(e.target.files); e.target.value = ""; }} />
             </div>
             {uploading > 0 && <p className="muted small">Yuklanmoqda: {uploading} ta fayl…</p>}
             <Thumbs items={portfolio} onDelete={async (id) => { await deleteMediaAction(id); setMedia((m) => m.filter((x) => x.id !== id)); }}
@@ -359,6 +378,21 @@ export default function ProfileWizard(props: {
       </form>
     </div>
   );
+}
+
+/** Video davomiyligi va hajmini yuklashdan oldin tekshiradi. */
+async function checkVideo(file: File, limits: UploadLimits): Promise<string> {
+  if (limits.videos === 0) return "Video yuklash hozircha o‘chirilgan — YouTube yoki Instagram havolasini 3-qadamda qo‘shing";
+  if (file.size > limits.videoMb * 1024 * 1024) return `video ${limits.videoMb} MB dan katta`;
+  const seconds = await new Promise<number>((resolve) => {
+    const el = document.createElement("video");
+    el.preload = "metadata";
+    el.onloadedmetadata = () => { resolve(el.duration); URL.revokeObjectURL(el.src); };
+    el.onerror = () => resolve(0); // o'qib bo'lmasa (masalan, ba'zi MOV) hajm limiti yetarli
+    el.src = URL.createObjectURL(file);
+  });
+  if (seconds > limits.videoSeconds + 1) return `video ${Math.round(seconds)} soniya, ko‘pi bilan ${limits.videoSeconds} soniya`;
+  return "";
 }
 
 /**

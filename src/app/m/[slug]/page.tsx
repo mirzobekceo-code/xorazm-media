@@ -6,6 +6,7 @@ import { getUser } from "@/lib/auth";
 import { ageFrom, initials, kfmt, money, PLATFORM_LABELS, totalFollowers } from "@/lib/format";
 import { LANGUAGES } from "@/lib/reference";
 import { SITE } from "@/lib/site";
+import { linkLabel, youtubeId } from "@/lib/limits";
 import ProfileCard from "@/components/ProfileCard";
 import Ad from "@/components/Ad";
 import Bars from "@/components/Bars";
@@ -143,6 +144,26 @@ export default async function ProfilePage({ params }: Props) {
                 {p.media.map((m) => m.type === "image"
                   ? <a key={m.id} href={m.url} target="_blank" rel="noopener"><img src={m.thumbUrl ?? m.url} alt="" loading="lazy" /></a>
                   : <video key={m.id} src={m.url} controls preload="none" playsInline />)}
+              </div>
+            </section>
+          )}
+
+          {p.videoLinks.length > 0 && (
+            <section className="box">
+              <h3>{isBlogger ? "Reklama videolari" : "Showreel va ishlar"}</h3>
+              <div className="vids">
+                {p.videoLinks.map((url) => {
+                  const yt = youtubeId(url);
+                  return yt ? (
+                    <iframe key={url} src={`https://www.youtube-nocookie.com/embed/${yt}`} title="YouTube video" loading="lazy"
+                      allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                  ) : null;
+                })}
+              </div>
+              <div className="row">
+                {p.videoLinks.filter((u) => !youtubeId(u)).map((url) => (
+                  <a key={url} className="btn ghost sm" href={url} target="_blank" rel="noopener nofollow">{linkLabel(url)}da ko‘rish ↗</a>
+                ))}
               </div>
             </section>
           )}
