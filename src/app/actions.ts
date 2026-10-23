@@ -22,7 +22,7 @@ export async function uploadModeAction(): Promise<{ directVideo: boolean; profil
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
-export async function requestCodeAction(rawPhone: string): Promise<Result> {
+export async function requestCodeAction(rawPhone: string): Promise<Result<{ channel: "bot" | "gateway" | "dev" }>> {
   const phone = normalizePhone(rawPhone);
   if (!phone) return { ok: false, error: "Telefon raqamini +998 XX XXX XX XX ko‘rinishida yozing" };
   if (!rateLimit(`otp-ip:${await clientIp()}`, 10, 3_600_000)) return { ok: false, error: "Juda ko‘p urinish. Keyinroq qayta urinib ko‘ring." };

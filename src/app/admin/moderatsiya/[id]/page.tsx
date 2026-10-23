@@ -42,7 +42,7 @@ export default async function Review({ params }: { params: Promise<{ id: string 
           <dt>Narx · tajriba</dt><dd>{money(p.price)} so‘m / {p.profession.unit} · {p.experienceYears} yil</dd>
           {p.profession.fieldsSchema.map((f) => [<dt key={f.key + "t"}>{f.label}</dt>, <dd key={f.key + "d"}>{p.extra[f.key] || "—"}</dd>])}
           <dt>Video havolalar</dt><dd>{p.videoLinks.length ? p.videoLinks.map((u) => <div key={u}><a className="link" href={u} target="_blank" rel="noopener nofollow">{u}</a></div>) : "—"}</dd>
-          <dt>Tasdiqlangan raqam (SMS)</dt><dd>{owner[0] ? prettyPhone(owner[0].phone) : "—"}</dd>
+          <dt>Tasdiqlangan raqam</dt><dd>{owner[0] ? prettyPhone(owner[0].phone) : "—"}</dd>
           <dt>Kontaktlar</dt><dd>{c ? [c.phone && prettyPhone(c.phone), c.telegram, c.instagram].filter(Boolean).join(" · ") : "—"}</dd>
           {p.admins.length > 0 && [<dt key="at">Adminlar</dt>, <dd key="ad">{p.admins.map((a) => `${a.name} (${a.role}) ${prettyPhone(a.phone)} ${a.telegram ?? ""}`).join("; ")}</dd>]}
         </dl>

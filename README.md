@@ -15,19 +15,19 @@ npm run dev                     # http://localhost:3000
 
 `DATABASE_URL` bo'sh bo'lsa, lokal PGlite (`.data/pglite`) ishlatiladi: o'rnatiladigan PostgreSQL, alohida server shart emas. Migratsiyalar birinchi so'rovda avtomatik qo'llanadi. Bitta PGlite papkasini bir vaqtda faqat bitta jarayon ochishi mumkin, shuning uchun seed'ni server to'xtab turganda ishga tushiring.
 
-Dev rejimida SMS kod server konsoliga chiqadi (`[SMS dev] +998...: ... kodi 123456`). `ADMIN_PHONES` dagi raqam bilan kirgan foydalanuvchi admin bo'ladi.
+Kirish faqat Telegram orqali (SMS yo'q). Dev rejimida kod server konsoliga chiqadi (`[OTP dev] +998...: ... kodi 123456`). `ADMIN_PHONES` dagi raqam bilan kirgan foydalanuvchi admin bo'ladi.
 
 ## Hosting
 
 Kod ikki xil joylashtirishga tayyor, o'zgartirish shart emas.
 
-**Vercel** (hozirgi): GitHub'ga push → avtomatik deploy. Kerakli o'zgaruvchilar: `DATABASE_URL` (Neon), `BLOB_READ_WRITE_TOKEN` (Vercel Blob ulaganda o'zi qo'shiladi), `CRON_SECRET`, `NEXT_PUBLIC_SITE_URL`, `ADMIN_PHONES`, SMS va Telegram kalitlari. Vercel Hobby tarifi tijoriy saytga rasman ruxsat bermaydi va Blob 1 GB bilan cheklangan — rasmiy ishga tushirishdan oldin Pro'ga o'tish yoki VPS.
+**Vercel** (hozirgi): GitHub'ga push → avtomatik deploy. Kerakli o'zgaruvchilar: `DATABASE_URL` (Neon), `BLOB_READ_WRITE_TOKEN` (Vercel Blob ulaganda o'zi qo'shiladi), `CRON_SECRET`, `NEXT_PUBLIC_SITE_URL`, `ADMIN_PHONES`, `TELEGRAM_BOT_TOKEN`, ixtiyoriy `TELEGRAM_GATEWAY_TOKEN`. Vercel Hobby tarifi tijoriy saytga rasman ruxsat bermaydi va Blob 1 GB bilan cheklangan — rasmiy ishga tushirishdan oldin Pro'ga o'tish yoki VPS.
 
 **VPS (O'zbekistondagi server)** — Docker bilan:
 
 ```bash
 git clone https://github.com/mirzobekceo-code/xorazm-media && cd xorazm-media
-cp .env.example .env     # DOMAIN, POSTGRES_PASSWORD, ADMIN_PHONES, ESKIZ_*, TELEGRAM_BOT_TOKEN, CRON_SECRET
+cp .env.example .env     # DOMAIN, POSTGRES_PASSWORD, ADMIN_PHONES, TELEGRAM_BOT_TOKEN, TELEGRAM_GATEWAY_TOKEN, CRON_SECRET
 docker compose up -d --build
 ```
 
@@ -46,7 +46,9 @@ Zaxira nusxa: `docker compose exec db pg_dump -U xm xm | gzip > backup-$(date +%
 ## Telegram bot
 
 Bot uchta vazifani bajaradi:
-- **Kirish va ro'yxatdan o'tish (SMS'siz):** saytda "Telegram orqali kirish" → botda "Raqamni ulashish". Telegram raqam egasini o'zi tasdiqlaydi.
+- **Kirish va ro'yxatdan o'tish (SMS'siz), ikki yo'l:**
+  1. "Telegram orqali kirish" → botda "Raqamni ulashish". Telegram raqam egasini o'zi tasdiqlaydi. Bepul.
+  2. "Telegram'ga kod olish": raqam yoziladi, 6 xonali kod Telegram'ga keladi. Raqam botga ulangan bo'lsa — botdan (bepul), aks holda [Telegram Gateway](https://core.telegram.org/gateway) orqali "Verification Codes" chatiga ($0.01/kod, yetib bormasa qaytariladi; `TELEGRAM_GATEWAY_TOKEN`). Gateway ulanmagan bo'lsa, yangi foydalanuvchiga faqat 1-yo'l ko'rsatiladi.
 - **Bildirishnomalar:** profil tasdiqlandi yoki rad etildi, dushanba kunlari haftalik statistika, bloger statistikasi 60 kunlik bo'lganda eslatma. Moderatorlarga yangi profil va shikoyatlar.
 - **Mini App:** bot menyusidagi "Mutaxassislar" tugmasi saytni Telegram ichida ochadi. Telegram'i ulangan foydalanuvchi avtomatik kiradi.
 
@@ -95,7 +97,7 @@ src/app/                    sahifalar (App Router)
   actions.ts                server amallari (kirish, profil, fayllar)
 src/components/             Ad (A1–A6), ProfileWizard, ProfileCard...
 src/db/                     Drizzle sxema va ulanish (PostgreSQL / PGlite)
-src/lib/                    so'rovlar, auth (SMS OTP), sms (Eskiz), storage, ads, rank
+src/lib/                    so'rovlar, auth (Telegram kod), otp-delivery (bot / Gateway), bot, telegram, storage, ads, rank
 drizzle/                    SQL migratsiyalar
 scripts/                    migrate.ts, seed.ts
 Dockerfile, docker-compose.yml, Caddyfile   VPS uchun

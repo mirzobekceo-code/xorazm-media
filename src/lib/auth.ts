@@ -5,7 +5,7 @@ import { cache } from "react";
 import crypto from "node:crypto";
 import { and, eq, gt, isNull, desc, ne, sql } from "drizzle-orm";
 import { getDb, schema as s } from "@/db";
-import { sendSms } from "./sms";
+import { deliverCode, type Channel } from "./otp-delivery";
 
 const COOKIE = "xm_session";
 const SESSION_DAYS = 30;
@@ -15,7 +15,7 @@ const OTP_PER_DAY = 5;
 
 const sha = (v: string) => crypto.createHash("sha256").update(v).digest("hex");
 
-export type OtpResult = { ok: true } | { ok: false; error: string };
+export type OtpResult = { ok: true; channel: Channel } | { ok: false; error: string };
 
 export async function sendOtp(phone: string): Promise<OtpResult> {
   const db = await getDb();
@@ -27,11 +27,15 @@ export async function sendOtp(phone: string): Promise<OtpResult> {
   if (today >= OTP_PER_DAY) return { ok: false, error: "Bugun bu raqamga juda ko‘p kod yuborildi. Ertaga urinib ko‘ring." };
 
   const code = String(crypto.randomInt(100000, 1000000));
-  await db.insert(s.otpCodes).values({
+  const [row] = await db.insert(s.otpCodes).values({
     phone, codeHash: sha(phone + code), expiresAt: new Date(Date.now() + OTP_TTL_MIN * 60_000),
-  });
-  const sent = await sendSms(phone, `Xorazm Media: tasdiqlash kodi ${code}. Hech kimga bermang.`);
-  return sent ? { ok: true } : { ok: false, error: "SMS yuborilmadi. Birozdan keyin qayta urinib ko‘ring." };
+  }).returning({ id: s.otpCodes.id });
+  const channel = await deliverCode(phone, code, OTP_TTL_MIN * 60);
+  // Yetkazilmagan kod limitlarga hisoblanmasin
+  if (!channel) await db.delete(s.otpCodes).where(eq(s.otpCodes.id, row.id));
+  return channel
+    ? { ok: true, channel }
+    : { ok: false, error: "Bu raqamga Telegram orqali kod yuborib bo‘lmadi. “Telegram orqali kirish” tugmasini bosing." };
 }
 
 /** Kod to'g'ri bo'lsa foydalanuvchini yaratadi (yoki topadi) va sessiya ochadi. */
@@ -52,7 +56,7 @@ export async function verifyOtp(phone: string, code: string): Promise<{ ok: true
 
 /**
  * Tasdiqlangan raqam bo'yicha foydalanuvchini topadi yoki yaratadi va sessiya ochadi.
- * Raqam SMS kod yoki Telegram "kontakt ulashish" orqali tasdiqlangan bo'lishi shart.
+ * Raqam Telegram'ga yuborilgan kod yoki botda "kontakt ulashish" orqali tasdiqlangan bo'lishi shart.
  */
 export async function loginByPhone(phone: string, opts: { telegramId?: string } = {}): Promise<number> {
   const db = await getDb();

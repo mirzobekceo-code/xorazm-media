@@ -6,7 +6,7 @@ const FAQ: [string, string][] = [
   ["Xorazm Media nima?", "Xorazmdagi media mutaxassislar katalogi: bloger, brand face, operator, fotograf, montajor, dizayner, targetolog va SMM manager. Bizneslar ularni topib, to‘g‘ridan-to‘g‘ri bog‘lanadi."],
   ["Kontakt ochish pullikmi?", "Yo‘q. Katalog, profillar va kontaktlar hammaga bepul. Ro‘yxatdan o‘tish ham shart emas."],
   ["Platforma qanday ishlaydi, agar bepul bo‘lsa?", "Sahifalardagi reklama joylari hisobiga. Reklama “Reklama” yozuvi bilan belgilanadi va kontentni yopmaydi."],
-  ["Profil ochish qancha turadi?", "Bepul. 5 qadamli formani to‘ldirasiz, telefon SMS bilan tasdiqlanadi, moderator 24 soat ichida tekshiradi."],
+  ["Profil ochish qancha turadi?", "Bepul. 5 qadamli formani to‘ldirasiz, telefon raqam Telegram orqali tasdiqlanadi, moderator 24 soat ichida tekshiradi."],
   ["Profillarni kim tekshiradi?", "Har bir profil va har bir yangi rasm yoki video moderatordan o‘tadi. Tasdiqlangan profillar ✓ belgisi bilan ko‘rinadi."],
   ["Bloger statistikasi qanchalik to‘g‘ri?", "Bloger Instagram Insights skrinshotlarini yuklaydi, moderator raqamlarni solishtiradi. Statistika 60 kundan eskirsa, tasdiq belgisi o‘chadi."],
   ["TOP qanday aniqlanadi?", "Pul bilan emas: profil to‘liqligi, tasdiqlangan statistika, ko‘rishlar va murojaatlar soni asosida avtomatik hisoblanadi."],

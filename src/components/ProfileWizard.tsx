@@ -13,6 +13,7 @@ import { upload as blobUpload } from "@vercel/blob/client";
 import { ProfIcon } from "./Icons";
 import type { UploadLimits } from "@/lib/limits";
 import TelegramButton from "./TelegramButton";
+import { CHANNEL_HINT } from "@/lib/channel-hint";
 
 type Prof = { slug: string; nameUz: string; description: string; icon: string; unit: string; fieldsSchema: FieldDef[] };
 type MediaItem = { id: number; url: string; thumbUrl: string | null; type: "image" | "video"; isCover: boolean; isStatScreenshot: boolean; moderationStatus: string };
@@ -30,7 +31,8 @@ export default function ProfileWizard(props: {
   media: MediaItem[];
   limits: UploadLimits;
   telegram: boolean;
-  sms: boolean;
+  /** Yangi foydalanuvchi raqamini Telegram kodi bilan tasdiqlay oladimi (Gateway) */
+  codeSignup: boolean;
   /** Tahrirlashda: qoralama yoki rad etilgan profil oxirida tekshiruvga yuboriladi */
   submitOnFinish?: boolean;
 }) {
@@ -40,7 +42,7 @@ export default function ProfileWizard(props: {
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
   const [loggedIn, setLoggedIn] = useState(props.loggedIn);
-  const [otp, setOtp] = useState<{ phone: string; sent: boolean; code: string }>({ phone: "", sent: false, code: "" });
+  const [otp, setOtp] = useState<{ phone: string; sent: string; code: string }>({ phone: "", sent: "", code: "" });
   const [media, setMedia] = useState<MediaItem[]>(props.media);
   const [uploading, setUploading] = useState(0);
 
@@ -79,7 +81,7 @@ export default function ProfileWizard(props: {
     if (step === 3) {
       if (!v.consent) return "Kontaktlar ochiq ko‘rinishiga rozilik bering";
       if (isBlogger && !b.admins.every((a) => a.name && a.phone)) return "Admin ismi va telefonini yozing";
-      if (!loggedIn) return "Telefon raqamingizni SMS kod bilan tasdiqlang";
+      if (!loggedIn) return "Telefon raqamingizni Telegram orqali tasdiqlang";
     }
     return "";
   }
@@ -106,7 +108,7 @@ export default function ProfileWizard(props: {
     setError("");
     const r = await requestCodeAction(otp.phone);
     if (!r.ok) return setError(r.error);
-    setOtp((o) => ({ ...o, sent: true }));
+    setOtp((o) => ({ ...o, sent: r.channel }));
   }
   async function confirmCode() {
     setError("");
@@ -330,13 +332,13 @@ export default function ProfileWizard(props: {
                 {props.telegram && (
                   <>
                     <TelegramButton mode="login" label="Telegram orqali tasdiqlash" onDone={() => { setLoggedIn(true); router.refresh(); }} />
-                    {props.sms && <p className="muted small">yoki SMS kod orqali:</p>}
+                    {props.codeSignup && <p className="muted small">yoki raqamingizga Telegram orqali kod oling:</p>}
                   </>
                 )}
-                {(props.sms || !props.telegram) && <>
+                {props.codeSignup && <>
                 <div className="row" style={{ flexWrap: "nowrap" }}>
                   <input className="inp" id="otp-phone" type="tel" autoComplete="tel" placeholder="+998 90 123 45 67" value={otp.phone} onChange={(e) => setOtp({ ...otp, phone: e.target.value })} />
-                  <button type="button" className="btn ghost" onClick={sendCode}>{otp.sent ? "Qayta yuborish" : "Kod olish"}</button>
+                  <button type="button" className="btn ghost" onClick={sendCode}>{otp.sent ? "Qayta yuborish" : "Telegram’ga kod"}</button>
                 </div>
                 {otp.sent && (
                   <div className="row" style={{ flexWrap: "nowrap" }}>
@@ -344,6 +346,7 @@ export default function ProfileWizard(props: {
                     <button type="button" className="btn" onClick={confirmCode}>Tasdiqlash</button>
                   </div>
                 )}
+                {otp.sent && <p className="muted small">{CHANNEL_HINT[otp.sent]}</p>}
                 </>}
               </div>
             )}

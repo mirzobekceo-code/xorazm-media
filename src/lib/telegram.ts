@@ -50,8 +50,9 @@ export function webhookSecret(): string {
   return crypto.createHmac("sha256", token()).update("xm-webhook").digest("hex").slice(0, 48);
 }
 
-export async function send(chatId: string, text: string, extra: Record<string, unknown> = {}) {
-  await tg("sendMessage", { chat_id: chatId, text, disable_web_page_preview: true, ...extra });
+/** Xabar yuboradi; yetkazilgan bo'lsa true. */
+export async function send(chatId: string, text: string, extra: Record<string, unknown> = {}): Promise<boolean> {
+  return !!(await tg("sendMessage", { chat_id: chatId, text, disable_web_page_preview: true, ...extra }));
 }
 
 export async function notifyUser(userId: number, text: string) {
