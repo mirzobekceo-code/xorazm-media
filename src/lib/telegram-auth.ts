@@ -2,7 +2,8 @@ import "server-only";
 import crypto from "node:crypto";
 import { and, eq, gt } from "drizzle-orm";
 import { getDb, schema as s } from "@/db";
-import { botUsername } from "./telegram";
+import { botUsername, ensureWebhook } from "./telegram";
+import { SITE } from "./site";
 
 const TTL_MIN = 10;
 const sha = (v: string) => crypto.createHash("sha256").update(v).digest("hex");
@@ -14,6 +15,7 @@ const sha = (v: string) => crypto.createHash("sha256").update(v).digest("hex");
 export async function createTelegramToken(purpose: "login" | "link", userId?: number) {
   const bot = await botUsername();
   if (!bot) return null;
+  await ensureWebhook(SITE.url);
   const db = await getDb();
   const tokenValue = crypto.randomBytes(16).toString("hex");
   const secret = crypto.randomBytes(24).toString("hex");

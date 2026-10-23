@@ -30,6 +30,21 @@ export async function botUsername(): Promise<string | null> {
   return username;
 }
 
+let webhookChecked = false;
+/**
+ * Webhook o'rnatilmagan yoki boshqa manzilda bo'lsa, o'rnatadi (birinchi kirish urinishida).
+ * Shunda bot tokeni qo'shilgach, admin panelga kirmasdan ham Telegram orqali kirish ishlaydi.
+ */
+export async function ensureWebhook(siteUrl: string) {
+  if (webhookChecked || !botEnabled() || !siteUrl.startsWith("https://")) return;
+  const url = `${siteUrl}/api/telegram/webhook`;
+  const info = await tg<{ url: string }>("getWebhookInfo");
+  if (info && info.url !== url) {
+    await tg("setWebhook", { url, secret_token: webhookSecret(), allowed_updates: ["message"] });
+  }
+  webhookChecked = !!info;
+}
+
 /** Webhook so'rovlari haqiqatan Telegram'dan kelganini tekshirish uchun sir (bot tokenidan olinadi). */
 export function webhookSecret(): string {
   return crypto.createHmac("sha256", token()).update("xm-webhook").digest("hex").slice(0, 48);
