@@ -30,6 +30,7 @@ export default function ProfileWizard(props: {
   media: MediaItem[];
   limits: UploadLimits;
   telegram: boolean;
+  sms: boolean;
   /** Tahrirlashda: qoralama yoki rad etilgan profil oxirida tekshiruvga yuboriladi */
   submitOnFinish?: boolean;
 }) {
@@ -329,9 +330,10 @@ export default function ProfileWizard(props: {
                 {props.telegram && (
                   <>
                     <TelegramButton mode="login" label="Telegram orqali tasdiqlash" onDone={() => { setLoggedIn(true); router.refresh(); }} />
-                    <p className="muted small">yoki SMS kod orqali:</p>
+                    {props.sms && <p className="muted small">yoki SMS kod orqali:</p>}
                   </>
                 )}
+                {(props.sms || !props.telegram) && <>
                 <div className="row" style={{ flexWrap: "nowrap" }}>
                   <input className="inp" id="otp-phone" type="tel" autoComplete="tel" placeholder="+998 90 123 45 67" value={otp.phone} onChange={(e) => setOtp({ ...otp, phone: e.target.value })} />
                   <button type="button" className="btn ghost" onClick={sendCode}>{otp.sent ? "Qayta yuborish" : "Kod olish"}</button>
@@ -342,6 +344,7 @@ export default function ProfileWizard(props: {
                     <button type="button" className="btn" onClick={confirmCode}>Tasdiqlash</button>
                   </div>
                 )}
+                </>}
               </div>
             )}
             {loggedIn && props.mode === "signup" && <p className="ok">✓ Telefon tasdiqlangan</p>}

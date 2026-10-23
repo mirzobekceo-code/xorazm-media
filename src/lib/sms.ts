@@ -20,6 +20,12 @@ async function eskizToken(): Promise<string> {
   return token.value;
 }
 
+/**
+ * SMS orqali kirishni foydalanuvchiga ko'rsatish kerakmi: provayder ulangan bo'lsa yoki dev rejimida.
+ * (SMS_DEV_LOG kodni faqat logga yozadi — oddiy foydalanuvchiga foydasiz, shuning uchun hisobga olinmaydi.)
+ */
+export const smsVisible = () => !!(process.env.ESKIZ_EMAIL && process.env.ESKIZ_PASSWORD) || process.env.NODE_ENV !== "production";
+
 export async function sendSms(phone: string, text: string): Promise<boolean> {
   if (!process.env.ESKIZ_EMAIL || !process.env.ESKIZ_PASSWORD) {
     if (process.env.NODE_ENV === "production" && process.env.SMS_DEV_LOG !== "1") {

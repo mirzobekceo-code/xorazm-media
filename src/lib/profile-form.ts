@@ -5,6 +5,7 @@ import { getDistricts, getProfessions } from "./queries";
 import { AGE_GROUPS, RATE_LABELS, type ProfileInputT } from "./profile-input";
 import { uploadLimits } from "./limits";
 import { botEnabled } from "./telegram";
+import { smsVisible } from "./sms";
 
 /** Formaga kerakli ma'lumotnomalar. */
 export async function wizardRefs() {
@@ -14,6 +15,7 @@ export async function wizardRefs() {
     districts: dists.map((d) => [d.slug, d.nameUz] as [string, string]),
     limits: uploadLimits(),
     telegram: botEnabled(),
+    sms: smsVisible(),
   };
 }
 
