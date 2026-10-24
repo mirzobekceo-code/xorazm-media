@@ -45,6 +45,28 @@ export async function ensureWebhook(siteUrl: string) {
   webhookChecked = !!info;
 }
 
+export const BOT_TEXT = {
+  description: "Xorazm Digital HUB — Xorazmdagi digital va media mutaxassislari bitta joyda: brand face, operator, mobilograf, montajor, targetolog, SMM manager, bloger, fotograf, dizayner, suhandon, studiya va texnika ijarasi. Kontaktlar bepul.",
+  short: "Xorazmdagi digital va media mutaxassislari bitta joyda",
+};
+
+let menuChecked = false;
+/**
+ * Pastdagi menyu tugmasi butun saytni Mini App sifatida ochsin. Har instance'da bir marta tekshiriladi:
+ * domen o'zgarsa (masalan, xorazmdigital.uz ulanganda) tugma o'zi yangilanadi.
+ */
+export async function ensureBotMenu(siteUrl: string) {
+  if (menuChecked || !botEnabled() || !siteUrl.startsWith("https://")) return;
+  const url = `${siteUrl}/`;
+  const cur = await tg<{ type: string; web_app?: { url: string } }>("getChatMenuButton");
+  if (cur && cur.web_app?.url !== url) {
+    await tg("setChatMenuButton", { menu_button: { type: "web_app", text: "Ochish", web_app: { url } } });
+    await tg("setMyDescription", { description: BOT_TEXT.description });
+    await tg("setMyShortDescription", { short_description: BOT_TEXT.short });
+  }
+  menuChecked = !!cur;
+}
+
 /** Webhook so'rovlari haqiqatan Telegram'dan kelganini tekshirish uchun sir (bot tokenidan olinadi). */
 export function webhookSecret(): string {
   return crypto.createHmac("sha256", token()).update("xm-webhook").digest("hex").slice(0, 48);

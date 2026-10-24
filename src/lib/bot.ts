@@ -3,8 +3,9 @@ import { and, eq, ne } from "drizzle-orm";
 import { getDb, schema as s } from "@/db";
 import { normalizePhone } from "./format";
 import { SITE } from "./site";
-import { send } from "./telegram";
+import { BOT_TEXT, send } from "./telegram";
 import { attachChat, confirmToken, pendingLoginForChat } from "./telegram-auth";
+import { upsertUserByPhone } from "./auth";
 
 type TgUser = { id: number; first_name?: string };
 export type Update = {
@@ -19,13 +20,16 @@ export type Update = {
 
 const REMOVE_KB = { reply_markup: { remove_keyboard: true } };
 
+/** Tugma: https bo'lsa sahifa Telegram ichida (Mini App) ochiladi. */
+const appBtn = (text: string, path: string) =>
+  SITE.url.startsWith("https://") ? { text, web_app: { url: `${SITE.url}${path}` } } : { text, url: `${SITE.url}${path}` };
+
 function menu() {
-  const https = SITE.url.startsWith("https://");
   return {
     reply_markup: {
       inline_keyboard: [
-        [https ? { text: "Mutaxassis topish", web_app: { url: `${SITE.url}/mutaxassislar` } } : { text: "Mutaxassis topish", url: `${SITE.url}/mutaxassislar` }],
-        [{ text: "Profil ochish — bepul", url: `${SITE.url}/qoshilish` }, { text: "Kabinet", url: `${SITE.url}/kabinet` }],
+        [appBtn("Mutaxassis topish", "/mutaxassislar")],
+        [appBtn("Mutaxassis bo‘lish", "/qoshilish"), appBtn("Kabinet", "/kabinet")],
       ],
     },
   };
@@ -50,7 +54,10 @@ export async function handleUpdate(u: Update): Promise<void> {
     }
     const t = await pendingLoginForChat(chatId);
     if (!t || t.telegramId !== tgId) {
-      await send(chatId, "Kirish so‘rovi topilmadi yoki eskirgan. Saytda “Telegram orqali kirish” tugmasini qayta bosing.", REMOVE_KB);
+      // Mini App ichidan "raqamni ulashish" (requestContact): raqam shu Telegram akkauntga bog'lanadi,
+      // ilova keyin initData orqali avtomatik kiradi. Telegram kontaktning egasi shu foydalanuvchi ekanini kafolatlaydi.
+      await upsertUserByPhone(phone, { telegramId: tgId });
+      await send(chatId, "✓ Raqam tasdiqlandi. Ilovaga qayting — avtomatik kirasiz.", REMOVE_KB);
       return;
     }
     await confirmToken(t.token, { phone });
@@ -85,8 +92,21 @@ export async function handleUpdate(u: Update): Promise<void> {
     return;
   }
   if (text === "/kabinet") {
-    await send(chatId, `Kabinet: ${SITE.url}/kabinet`);
+    await send(chatId, "Kabinetingiz: statistika, sahifa havolasi va QR-kod.", { reply_markup: { inline_keyboard: [[appBtn("Kabinetni ochish", "/kabinet")]] } });
     return;
   }
-  await send(chatId, "Xorazm Digital HUB — Xorazmdagi digital va media mutaxassislari bitta joyda: brand face, operator, montajor, targetolog, SMM manager, bloger, fotograf, grafik dizayner, suhandon, studiya va texnika ijarasi. Kontaktlar bepul.", menu());
+  // Ulashilgan havola: t.me/<bot>?start=m_<manzil> — profilni Telegram ichida ochish tugmasi
+  const prof = text.match(/^\/start m_([a-z0-9-]{3,80})$/);
+  if (prof) {
+    const db = await getDb();
+    const [p] = await db.select({ name: s.profiles.fullName, slug: s.profiles.slug }).from(s.profiles)
+      .where(and(eq(s.profiles.slug, prof[1]), eq(s.profiles.status, "approved"))).limit(1);
+    if (p) {
+      await send(chatId, `${p.name} — Xorazm Digital HUB’dagi sahifasi: portfolio, narxlar va kontaktlar.`, {
+        reply_markup: { inline_keyboard: [[appBtn("Sahifani ochish", `/m/${p.slug}?s=tg`)]] },
+      });
+      return;
+    }
+  }
+  await send(chatId, BOT_TEXT.description, menu());
 }

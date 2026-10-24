@@ -2,7 +2,10 @@ import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth";
 import { getOwnProfile } from "@/lib/profiles";
-import { getProfessions, professionPlace, profileStats, searchProfiles } from "@/lib/queries";
+import { getProfessions, professionPlace, profileInsights, profileStats, searchProfiles } from "@/lib/queries";
+import { SITE } from "@/lib/site";
+import ShareBox from "./ShareBox";
+import InsightsChart from "./InsightsChart";
 import { getDb, schema as s } from "@/db";
 import { deleteAccountAction, logoutAction } from "@/app/actions";
 import { prettyPhone } from "@/lib/format";
@@ -11,7 +14,7 @@ import ProfileCard from "@/components/ProfileCard";
 import CabinetToggles from "./CabinetToggles";
 import DeleteAccount from "./DeleteAccount";
 import TelegramLink from "./TelegramLink";
-import { botEnabled } from "@/lib/telegram";
+import { botEnabled, botUsername } from "@/lib/telegram";
 
 export const metadata = { title: "Kabinet", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -28,6 +31,29 @@ const STATUS: Record<string, [string, string]> = {
 /** Holat yo'lagi: qoralama → tekshiruv → katalogda. */
 const TRACK = ["Qoralama", "Tekshiruvda", "Katalogda"];
 const trackIndex = (st: string) => (st === "pending" ? 1 : st === "approved" || st === "hidden" ? 2 : 0);
+
+const SOURCE_LABEL: Record<string, string> = {
+  catalog: "Sayt katalogi", ig: "Instagram", qr: "QR-kod", tg: "Telegram", wa: "WhatsApp", link: "Ulashilgan havola", direct: "To‘g‘ridan-to‘g‘ri", other: "Boshqa",
+};
+const CHANNEL_LABEL: Record<string, string> = { phone: "Telefon", telegram: "Telegram", instagram: "Instagram" };
+
+/** Kategoriyalar bo'yicha gorizontal ustunlar (bitta rang — miqdor). */
+function Breakdown({ rows, empty }: { rows: [string, number][]; empty: string }) {
+  const total = rows.reduce((a, [, n]) => a + n, 0);
+  if (!total) return <p className="muted small">{empty}</p>;
+  const max = Math.max(...rows.map(([, n]) => n));
+  return (
+    <ul className="brk">
+      {rows.sort((a, b) => b[1] - a[1]).map(([k, n]) => (
+        <li key={k}>
+          <span>{k}</span>
+          <span className="brk-bar"><i style={{ width: `${(n / max) * 100}%` }} /></span>
+          <b className="num">{n}</b>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 type Item = { label: string; detail?: string; done: boolean; required: boolean; href: string; gain?: string };
 
@@ -80,9 +106,10 @@ export default async function Cabinet({ searchParams }: { searchParams: Promise<
   const pct = Math.round((done / items.length) * 100);
   const missingRequired = items.filter((i) => i.required && !i.done);
 
-  const [stats30, place] = inCatalog
-    ? await Promise.all([profileStats(p.id, 30), professionPlace(p.professionId, p.rankScore)])
-    : [null, null];
+  const [stats30, place, insights] = inCatalog
+    ? await Promise.all([profileStats(p.id, 30), professionPlace(p.professionId, p.rankScore), profileInsights(p.id, 30)])
+    : [null, null, null];
+  const share = <ShareBox site={SITE.url} slug={p.slug} name={p.fullName} approved={inCatalog} bot={botEnabled() ? await botUsername() : null} />;
   const [label, hint] = STATUS[p.status];
   const t = trackIndex(p.status);
 
@@ -133,6 +160,25 @@ export default async function Cabinet({ searchParams }: { searchParams: Promise<
         </div>
       )}
 
+      {inCatalog && share}
+
+      {insights && (
+        <section className="box">
+          <h3>Kim qiziqdi · 30 kun</h3>
+          <InsightsChart series={insights.series} />
+          <div className="cab-grid two">
+            <div>
+              <p className="eyebrow" style={{ marginBottom: 8 }}>Qayerdan kelishdi</p>
+              <Breakdown rows={Object.entries(insights.sources).map(([k, n]) => [SOURCE_LABEL[k] ?? k, n])} empty="Hali ko‘rishlar yo‘q. Havolangizni Instagram bio’ga qo‘ying." />
+            </div>
+            <div>
+              <p className="eyebrow" style={{ marginBottom: 8 }}>Qaysi kontaktni ochishdi</p>
+              <Breakdown rows={Object.entries(insights.channels).map(([k, n]) => [CHANNEL_LABEL[k] ?? k, n])} empty="Hali kontakt bosishlar yo‘q." />
+            </div>
+          </div>
+        </section>
+      )}
+
       <div className="cab-grid">
         <section className="box">
           <div className="row" style={{ justifyContent: "space-between" }}>
@@ -161,6 +207,8 @@ export default async function Cabinet({ searchParams }: { searchParams: Promise<
           <p className="muted small">Kartochkada faqat moderator tasdiqlagan rasmlar chiqadi.</p>
         </section>
       </div>
+
+      {!inCatalog && share}
 
       <CabinetToggles isAvailable={p.isAvailable} hidden={p.status === "hidden"} canHide={inCatalog} />
 

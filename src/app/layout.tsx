@@ -10,7 +10,7 @@ import Ad from "@/components/Ad";
 import { headers } from "next/headers";
 import { adContextFromUrl } from "@/lib/ads";
 import PublicOnly from "@/components/PublicOnly";
-import TelegramWebAppLogin from "@/components/TelegramWebAppLogin";
+import TelegramMiniApp from "@/components/TelegramMiniApp";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -23,7 +23,10 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const [profs, user] = await Promise.all([getProfessions(), getUser()]);
-  const adCtx = await adContextFromUrl((await headers()).get("x-url"), profs);
+  const url = (await headers()).get("x-url");
+  const adCtx = await adContextFromUrl(url, profs);
+  // Profil sahifasi mutaxassisning shaxsiy sahifasi (landing): tepada banner va yopishqoq reklama yo'q
+  const landing = !!url?.startsWith("/m/");
   return (
     <html lang="uz" suppressHydrationWarning>
       <head>
@@ -41,7 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </header>
 
         <main className="wrap">
-          <PublicOnly><div style={{ marginBottom: 28 }}><Ad slot="A1" variant="banner" ctx={adCtx} /></div></PublicOnly>
+          {!landing && <PublicOnly><div style={{ marginBottom: 28 }}><Ad slot="A1" variant="banner" ctx={adCtx} /></div></PublicOnly>}
           {children}
         </main>
 
@@ -72,8 +75,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <p className="muted small" style={{ marginTop: 28 }}>© {new Date().getFullYear()} {SITE.name} · Urganch</p>
           </div>
         </footer>
-        <PublicOnly><Ad slot="A4" variant="sticky" ctx={adCtx} /></PublicOnly>
-        <TelegramWebAppLogin loggedIn={!!user} />
+        {!landing && <PublicOnly><Ad slot="A4" variant="sticky" ctx={adCtx} /></PublicOnly>}
+        <TelegramMiniApp loggedIn={!!user} />
       </body>
     </html>
   );

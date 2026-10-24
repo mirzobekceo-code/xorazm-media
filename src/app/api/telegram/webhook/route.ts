@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { handleUpdate, type Update } from "@/lib/bot";
-import { botEnabled, webhookSecret } from "@/lib/telegram";
+import { botEnabled, ensureBotMenu, webhookSecret } from "@/lib/telegram";
+import { SITE } from "@/lib/site";
 
 /** Telegram bot webhook. setWebhook paytida berilgan secret_token bilan himoyalangan. */
 export async function POST(req: Request) {
@@ -14,7 +15,10 @@ export async function POST(req: Request) {
   const update = (await req.json().catch(() => null)) as Update | null;
   if (update) {
     // Xato bo'lsa ham 200: aks holda Telegram bir xil xabarni qayta-qayta yuboradi
-    await handleUpdate(update).catch((e) => console.error("bot", e));
+    await Promise.all([
+      handleUpdate(update).catch((e) => console.error("bot", e)),
+      ensureBotMenu(SITE.url).catch(() => {}),
+    ]);
   }
   return NextResponse.json({ ok: true });
 }

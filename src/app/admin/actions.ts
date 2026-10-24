@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getDb, schema as s } from "@/db";
 import { requireStaff } from "@/lib/auth";
 import { normalizePhone } from "@/lib/format";
-import { notifyUser, tg, webhookSecret } from "@/lib/telegram";
+import { notifyUser, tg, webhookSecret, BOT_TEXT } from "@/lib/telegram";
 import { SITE } from "@/lib/site";
 import { redirect } from "next/navigation";
 import { SLOTS } from "@/lib/reference";
@@ -162,9 +162,9 @@ export async function setupTelegramBot() {
   });
   await tg("setMyCommands", { commands: [{ command: "start", description: "Bosh menyu" }, { command: "kabinet", description: "Kabinetga havola" }] });
   if (SITE.url.startsWith("https://")) {
-    await tg("setChatMenuButton", { menu_button: { type: "web_app", text: "Mutaxassislar", web_app: { url: `${SITE.url}/mutaxassislar` } } });
+    await tg("setChatMenuButton", { menu_button: { type: "web_app", text: "Ochish", web_app: { url: `${SITE.url}/` } } });
   }
-  await tg("setMyDescription", { description: "Xorazmdagi bloger, brand face, operator, fotograf, montajor, dizayner, targetolog va SMM managerlar katalogi. Kontaktlar bepul." });
-  await tg("setMyShortDescription", { short_description: "Xorazm media mutaxassislari katalogi" });
+  await tg("setMyDescription", { description: BOT_TEXT.description });
+  await tg("setMyShortDescription", { short_description: BOT_TEXT.short });
   redirect("/admin/sozlamalar?ok=1");
 }

@@ -58,7 +58,8 @@ export async function verifyOtp(phone: string, code: string): Promise<{ ok: true
  * Tasdiqlangan raqam bo'yicha foydalanuvchini topadi yoki yaratadi va sessiya ochadi.
  * Raqam Telegram'ga yuborilgan kod yoki botda "kontakt ulashish" orqali tasdiqlangan bo'lishi shart.
  */
-export async function loginByPhone(phone: string, opts: { telegramId?: string } = {}): Promise<number> {
+/** Foydalanuvchini raqam bo'yicha topadi yoki yaratadi; Telegram akkauntini bog'laydi (sessiya ochmaydi). */
+export async function upsertUserByPhone(phone: string, opts: { telegramId?: string } = {}): Promise<number> {
   const db = await getDb();
   const adminPhones = (process.env.ADMIN_PHONES ?? "").split(",").map((x) => x.trim()).filter(Boolean);
   if (opts.telegramId) {
@@ -66,20 +67,24 @@ export async function loginByPhone(phone: string, opts: { telegramId?: string } 
     await db.update(s.users).set({ telegramId: null }).where(and(eq(s.users.telegramId, opts.telegramId), ne(s.users.phone, phone)));
   }
   const [existing] = await db.select().from(s.users).where(eq(s.users.phone, phone)).limit(1);
-  let userId: number;
   if (existing) {
-    userId = existing.id;
-    await db.update(s.users).set({
-      lastLoginAt: new Date(),
+    const patch = {
       ...(opts.telegramId ? { telegramId: opts.telegramId } : {}),
       ...(adminPhones.includes(phone) && existing.role === "specialist" ? { role: "admin" as const } : {}),
-    }).where(eq(s.users.id, userId));
-  } else {
-    const [u] = await db.insert(s.users).values({
-      phone, telegramId: opts.telegramId ?? null, role: adminPhones.includes(phone) ? "admin" : "specialist", lastLoginAt: new Date(),
-    }).returning();
-    userId = u.id;
+    };
+    if (Object.keys(patch).length) await db.update(s.users).set(patch).where(eq(s.users.id, existing.id));
+    return existing.id;
   }
+  const [u] = await db.insert(s.users).values({
+    phone, telegramId: opts.telegramId ?? null, role: adminPhones.includes(phone) ? "admin" : "specialist",
+  }).returning();
+  return u.id;
+}
+
+export async function loginByPhone(phone: string, opts: { telegramId?: string } = {}): Promise<number> {
+  const userId = await upsertUserByPhone(phone, opts);
+  const db = await getDb();
+  await db.update(s.users).set({ lastLoginAt: new Date() }).where(eq(s.users.id, userId));
   await createSession(userId);
   return userId;
 }

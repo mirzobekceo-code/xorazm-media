@@ -203,3 +203,47 @@ export async function professionPlace(professionId: number, rankScore: number) {
   }).from(s.profiles).where(and(eq(s.profiles.professionId, professionId), eq(s.profiles.status, "approved")));
   return { place: r.above + 1, total: Math.max(r.total, 1) };
 }
+
+/** Kabinet statistikasi: kunlik ko'rish/kontakt (Toshkent vaqti), kontakt kanallari va ko'rish manbalari. */
+export async function profileInsights(profileId: number, days = 30) {
+  const db = await getDb();
+  const since = sql`now() - make_interval(days => ${days})`;
+  const day = sql<string>`to_char((${s.events.createdAt} at time zone 'Asia/Tashkent')::date, 'YYYY-MM-DD')`;
+  const [daily, channels, sources] = await Promise.all([
+    db.select({
+      day,
+      views: sql<number>`count(*) filter (where ${s.events.type} = 'view')::int`,
+      contacts: sql<number>`count(*) filter (where ${s.events.type} = 'contact_click')::int`,
+    }).from(s.events).where(and(eq(s.events.profileId, profileId), sql`${s.events.createdAt} > ${since}`)).groupBy(day),
+    db.select({ channel: s.events.channel, n: sql<number>`count(*)::int` }).from(s.events)
+      .where(and(eq(s.events.profileId, profileId), eq(s.events.type, "contact_click"), sql`${s.events.createdAt} > ${since}`))
+      .groupBy(s.events.channel),
+    db.select({ source: s.events.source, n: sql<number>`count(*)::int` }).from(s.events)
+      .where(and(eq(s.events.profileId, profileId), eq(s.events.type, "view"), sql`${s.events.createdAt} > ${since}`))
+      .groupBy(s.events.source),
+  ]);
+  // Bo'sh kunlar ham grafikda bo'lishi uchun to'liq qator
+  const map = new Map(daily.map((d) => [d.day, d]));
+  const series: { day: string; views: number; contacts: number }[] = [];
+  const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Tashkent" }));
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    series.push({ day: key, views: map.get(key)?.views ?? 0, contacts: map.get(key)?.contacts ?? 0 });
+  }
+  return {
+    series,
+    channels: Object.fromEntries(channels.map((c) => [c.channel ?? "other", c.n])) as Record<string, number>,
+    sources: Object.fromEntries(sources.map((c) => [c.source ?? "other", c.n])) as Record<string, number>,
+  };
+}
+
+/** Eski profil manzili bo'yicha hozirgi manzil. */
+export async function movedSlug(slug: string): Promise<string | null> {
+  const db = await getDb();
+  const [r] = await db.select({ slug: s.profiles.slug }).from(s.profileSlugs)
+    .innerJoin(s.profiles, eq(s.profiles.id, s.profileSlugs.profileId))
+    .where(eq(s.profileSlugs.slug, decodeURIComponent(slug))).limit(1);
+  return r?.slug ?? null;
+}

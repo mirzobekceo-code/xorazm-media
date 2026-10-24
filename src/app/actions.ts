@@ -173,3 +173,26 @@ export async function logoutAction(): Promise<void> {
   await logout();
   redirect("/");
 }
+
+const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/;
+
+/** Profil manzilini o'zgartiradi (xorazmdigital.uz/m/<manzil>). Eski manzil yangisiga yo'naltiriladi. */
+export async function changeSlugAction(raw: string): Promise<Result<{ slug: string }>> {
+  const user = await getUser();
+  const p = user && (await getOwnProfile(user.id));
+  if (!p) return { ok: false, error: "Profil topilmadi" };
+  const slug = raw.trim().toLowerCase().replace(/\s+/g, "-");
+  if (!SLUG_RE.test(slug) || slug.includes("--")) {
+    return { ok: false, error: "3–30 belgi: lotin harflari, raqamlar va chiziqcha (-). Masalan: javohir-operator" };
+  }
+  if (slug === p.slug) return { ok: true, slug };
+  const db = await getDb();
+  const [taken] = await db.select({ id: s.profiles.id }).from(s.profiles).where(eq(s.profiles.slug, slug)).limit(1);
+  const [old] = await db.select({ profileId: s.profileSlugs.profileId }).from(s.profileSlugs).where(eq(s.profileSlugs.slug, slug)).limit(1);
+  if (taken || (old && old.profileId !== p.id)) return { ok: false, error: "Bu manzil band. Boshqasini tanlang." };
+  if (old) await db.delete(s.profileSlugs).where(eq(s.profileSlugs.slug, slug));
+  await db.insert(s.profileSlugs).values({ slug: p.slug, profileId: p.id }).onConflictDoNothing();
+  await db.update(s.profiles).set({ slug }).where(eq(s.profiles.id, p.id));
+  revalidatePath("/kabinet");
+  return { ok: true, slug };
+}

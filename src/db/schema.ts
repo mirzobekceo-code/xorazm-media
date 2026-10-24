@@ -217,9 +217,18 @@ export const events = pgTable("events", {
   profileId: integer("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   type: eventTypeEnum("type").notNull(),
   channel: varchar("channel", { length: 20 }),
+  /** Ko'rish manbasi: catalog | ig | qr | tg | wa | direct | other */
+  source: varchar("source", { length: 16 }),
   sessionHash: varchar("session_hash", { length: 64 }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("events_profile_idx").on(t.profileId, t.createdAt)]);
+
+/** Profil manzili o'zgarganda eski manzil yangisiga yo'naltiriladi (ulashilgan havolalar buzilmasin). */
+export const profileSlugs = pgTable("profile_slugs", {
+  slug: varchar("slug", { length: 80 }).primaryKey(),
+  profileId: integer("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const adCampaigns = pgTable("ad_campaigns", {
   id: serial("id").primaryKey(),

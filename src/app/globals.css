@@ -391,6 +391,41 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px }
 .switch input:checked { background: var(--accent); border-color: var(--accent) }
 .switch input:checked::after { transform: translateX(20px); background: var(--accent-ink) }
 .switch input:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px }
+.cab-grid.two { grid-template-columns: 1fr 1fr; margin-top: 18px }
+.share { display: flex; flex-direction: column; gap: 16px }
+.share-link { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line) }
+.share-link .url { font-size: 17px; overflow-wrap: anywhere }
+.share-edit { display: flex; align-items: center; gap: 6px; padding-left: 12px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line) }
+.share-edit .inp { border: 0; background: transparent; padding-left: 0 }
+.share-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px }
+.share-card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 14px; border: 1px solid var(--line); align-items: flex-start }
+.share-card .muted { flex: 1 }
+.share-card.qr { flex-direction: row; align-items: center; gap: 14px }
+.share-card.qr img { width: 112px; height: 112px; border-radius: 10px; background: #fff; flex: none }
+.ichart { display: flex; flex-direction: column; gap: 10px; margin-top: 10px }
+.ichart-tip { min-height: 22px; font-size: 14px }
+.ichart-row { margin: 0; display: flex; flex-direction: column; gap: 4px }
+.ichart-row figcaption { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted) }
+.ichart-row figcaption b { color: var(--ink) }
+.ichart-row svg { width: 100%; height: 64px; display: block; overflow: visible }
+.ichart .base { stroke: var(--line); stroke-width: 1 }
+.ichart .bar { fill: var(--accent); opacity: .8 }
+.ichart .bar.contacts { fill: var(--accent-strong) }
+.ichart .bar.on { opacity: 1; fill: var(--ink) }
+.ichart .hit { fill: transparent; cursor: pointer }
+.ichart-x { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted) }
+.ichart-tbl { margin-top: 8px }
+.brk { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px }
+.brk li { display: grid; grid-template-columns: 130px 1fr 36px; gap: 10px; align-items: center; font-size: 14px }
+.brk-bar { height: 8px; border-radius: 99px; background: var(--soft); overflow: hidden }
+.brk-bar i { display: block; height: 100%; border-radius: 99px; background: var(--accent) }
+.brk b { text-align: right }
+.pf-actions { gap: 8px; margin-top: 4px }
+.notice.owner { border-left-color: var(--accent) }
+.notice.made-with { border-left-color: var(--accent) }
+/* Telegram Mini App ichida */
+.tg-app .ad-sticky { padding-bottom: calc(10px + var(--tg-safe-area-inset-bottom, 0px)) }
+.tg-app body { overscroll-behavior: none }
 .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px }
 .tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px }
 .tile b { font-family: var(--display); font-size: 30px; font-weight: 500; display: block }
@@ -427,6 +462,7 @@ dialog::backdrop { background: rgb(0 0 0 / .4) }
   .tiles { grid-template-columns: repeat(2, 1fr) }
 }
 @media (max-width: 800px) {
+  .share-grid, .cab-grid.two { grid-template-columns: 1fr }
   .cab-grid { grid-template-columns: 1fr }
   .cab-card { max-width: 300px }
   .hero, .join, .cat-layout, .su, .admin-layout { grid-template-columns: 1fr }

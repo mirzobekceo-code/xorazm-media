@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getProfile, getSimilar } from "@/lib/queries";
+import { notFound, permanentRedirect } from "next/navigation";
+import { getProfile, getSimilar, movedSlug } from "@/lib/queries";
 import { getUser } from "@/lib/auth";
 import { ageFrom, kfmt, money, PLATFORM_LABELS, totalFollowers } from "@/lib/format";
 import { LANGUAGES } from "@/lib/reference";
@@ -14,11 +14,12 @@ import { Verified } from "@/components/Icons";
 import Contacts from "./Contacts";
 import ReportButton from "./ReportButton";
 import ViewBeacon from "./ViewBeacon";
+import ShareProfile from "./ShareProfile";
 import ExtraValue from "@/components/ExtraValue";
-import { portfolioRule } from "@/lib/portfolio-rules";
+import { isBusiness, portfolioRule } from "@/lib/portfolio-rules";
 
 export const dynamic = "force-dynamic";
-type Props = { params: Promise<{ slug: string }> };
+type Props = { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string>> };
 
 async function load(slug: string) {
   const user = await getUser();
@@ -26,7 +27,7 @@ async function load(slug: string) {
   if (!p) return null;
   const canPreview = !!user && (user.id === p.userId || user.role !== "specialist");
   if (p.status !== "approved" && !canPreview) return null;
-  return p;
+  return Object.assign(p, { isOwner: !!user && user.id === p.userId });
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -37,20 +38,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${p.fullName} — ${p.profession.nameUz.toLowerCase()}, ${where}`,
     description: p.bio.slice(0, 160) || `${p.profession.nameUz}, ${where}. Portfolio, narx va kontaktlar.`,
     alternates: { canonical: `/m/${p.slug}` },
-    openGraph: { images: p.media.find((m) => m.type === "image")?.url ? [p.media.find((m) => m.type === "image")!.url] : undefined },
     robots: p.status === "approved" ? undefined : { index: false },
   };
 }
 
-export default async function ProfilePage({ params }: Props) {
+export default async function ProfilePage({ params, searchParams }: Props) {
   const p = await load((await params).slug);
-  if (!p) notFound();
+  if (!p) {
+    // Manzil o'zgargan bo'lsa, eski ulashilgan havola yangisiga o'tadi
+    const moved = await movedSlug((await params).slug);
+    if (moved) {
+      const q = new URLSearchParams(await searchParams).toString();
+      permanentRedirect(`/m/${moved}${q ? `?${q}` : ""}`);
+    }
+    notFound();
+  }
   const isBlogger = p.profession.slug === "bloger";
   const cover = p.media.find((m) => m.type === "image");
   const similar = await getSimilar(p.id, p.profession.slug, 3);
   const b = p.blogger;
   const plats = b ? Object.entries(b.followers).filter(([, v]) => v > 0) : [];
-  const age = ageFrom(p.birthYear);
+  const age = isBusiness(p.profession.slug) ? null : ageFrom(p.birthYear);
   const langs = p.languages.map((l) => LANGUAGES.find(([k]) => k === l)?.[1] ?? l).join(", ");
   const ctx = { profession: p.profession.slug, district: p.districts[0]?.slug };
   const statFresh = b?.statDate && Date.now() - new Date(b.statDate).getTime() < 60 * 86_400_000;
@@ -58,7 +66,7 @@ export default async function ProfilePage({ params }: Props) {
   const jsonLd = {
     "@context": "https://schema.org", "@type": "Person", name: p.fullName, jobTitle: p.profession.nameUz,
     address: { "@type": "PostalAddress", addressRegion: "Xorazm", addressLocality: p.districts[0]?.nameUz },
-    url: `${SITE.url}/m/${p.slug}`, image: cover ? `${SITE.url}${cover.url}` : undefined,
+    url: `${SITE.url}/m/${p.slug}`, image: cover ? (cover.url.startsWith("http") ? cover.url : `${SITE.url}${cover.url}`) : undefined,
   };
 
   return (
@@ -66,6 +74,9 @@ export default async function ProfilePage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {p.status === "approved" ? <ViewBeacon profileId={p.id} /> : (
         <div className="notice">Bu profil hozir <b>{p.status === "pending" ? "tekshiruvda" : p.status}</b> — katalogda ko‘rinmaydi. Ko‘rinish faqat sizga.</div>
+      )}
+      {p.isOwner && (
+        <div className="notice owner">Bu sizning sahifangiz. Havolani Instagram bio yoki Telegram kanalingizga qo‘ying — <Link className="link" href="/kabinet#ulashish">ulashish va QR-kod</Link>.</div>
       )}
       <div className="crumbs">
         <Link className="link" href="/mutaxassislar">Mutaxassislar</Link> / <Link className="link" href={`/mutaxassislar/${p.profession.slug}`}>{p.profession.nameUz}</Link>
@@ -83,6 +94,10 @@ export default async function ProfilePage({ params }: Props) {
               {!p.isAvailable && <p className="busy">Hozir band — keyinroq murojaat qiling</p>}
               <p className="muted" style={{ maxWidth: "60ch" }}>{p.bio}</p>
               <div className="tags">{p.tags.map((t) => <span key={t} className="tg">{t}</span>)}</div>
+              <div className="row pf-actions">
+                <a className="btn" href="#kontakt">Bog‘lanish</a>
+                <ShareProfile url={`${SITE.url}/m/${p.slug}`} title={`${p.fullName} — ${p.profession.nameUz.toLowerCase()}`} />
+              </div>
             </div>
           </div>
 
@@ -178,10 +193,15 @@ export default async function ProfilePage({ params }: Props) {
               <div className="grid three">{similar.map((s) => <ProfileCard key={s.id} p={s} />)}</div>
             </section>
           )}
+          {!p.isOwner && (
+            <div className="notice made-with">
+              <b>Siz ham mutaxassismisiz?</b> Shunday portfolio sahifani bepul oching va havolasini Instagram bio’ga qo‘ying. <Link className="link" href="/qoshilish">Sahifa ochish →</Link>
+            </div>
+          )}
         </div>
 
         <div className="side">
-          <section className="box">
+          <section className="box" id="kontakt">
             <div className="row" style={{ justifyContent: "space-between" }}>
               <h3>{isBlogger ? "Reklama uchun adminlar" : "Kontaktlar"}</h3><span className="tg" style={{ fontWeight: 600 }}>Bepul</span>
             </div>

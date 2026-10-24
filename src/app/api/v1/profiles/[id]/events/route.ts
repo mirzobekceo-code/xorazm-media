@@ -7,6 +7,7 @@ import { isBot, sessionHash } from "@/lib/http";
 const Body = z.object({
   type: z.enum(["view", "contact_click"]),
   channel: z.enum(["phone", "telegram", "instagram"]).optional(),
+  source: z.enum(["catalog", "ig", "qr", "tg", "wa", "link", "direct", "other"]).optional(),
 });
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -17,7 +18,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const db = await getDb();
   const hash = await sessionHash();
-  const { type, channel } = parsed.data;
+  const { type, channel, source } = parsed.data;
   // Bir sessiyadan 30 daqiqa ichidagi takror hisoblanmaydi
   const [dup] = await db.select({ id: s.events.id }).from(s.events).where(and(
     eq(s.events.profileId, id), eq(s.events.type, type), eq(s.events.sessionHash, hash),
@@ -25,7 +26,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     ...(channel ? [eq(s.events.channel, channel)] : []),
   )).limit(1);
   if (!dup) {
-    await db.insert(s.events).values({ profileId: id, type, channel: channel ?? null, sessionHash: hash }).catch(() => {});
+    await db.insert(s.events).values({ profileId: id, type, channel: channel ?? null, source: source ?? null, sessionHash: hash }).catch(() => {});
   }
   return new NextResponse(null, { status: 204 });
 }
