@@ -184,7 +184,7 @@ export default async function ProfilePage({ params }: Props) {
               <h3>{isBlogger ? "Reklama uchun adminlar" : "Kontaktlar"}</h3><span className="tg" style={{ fontWeight: 600 }}>Bepul</span>
             </div>
             {p.status === "approved" ? <Contacts profileId={p.id} /> : <p className="muted small">Kontaktlar profil tasdiqlangach ko‘rinadi.</p>}
-            <p className="muted small">Murojaat qilganda “Xorazm Media orqali topdim” deb yozing.</p>
+            <p className="muted small">Murojaat qilganda “Xorazm Digital HUB orqali topdim” deb yozing.</p>
             <ReportButton profileId={p.id} />
           </section>
           <Ad slot="A3" variant="side" ctx={ctx} />

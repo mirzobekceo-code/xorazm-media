@@ -24,7 +24,7 @@ export async function deliverCode(phone: string, code: string, ttlSec: number): 
   const db = await getDb();
   const [u] = await db.select({ tg: s.users.telegramId }).from(s.users).where(eq(s.users.phone, phone)).limit(1);
   if (u?.tg && botEnabled()) {
-    const ok = await send(u.tg, `Xorazm Media: kirish kodi ${code}\n\nKodni hech kimga bermang. ${Math.round(ttlSec / 60)} daqiqa amal qiladi.`);
+    const ok = await send(u.tg, `Xorazm Digital HUB: kirish kodi ${code}\n\nKodni hech kimga bermang. ${Math.round(ttlSec / 60)} daqiqa amal qiladi.`);
     if (ok) return "bot";
   }
   if (gatewayEnabled()) {
@@ -43,7 +43,7 @@ export async function deliverCode(phone: string, code: string, ttlSec: number): 
     }
   }
   if (devLog()) {
-    console.log(`[OTP dev] ${phone}: Xorazm Media: tasdiqlash kodi ${code}`);
+    console.log(`[OTP dev] ${phone}: Xorazm Digital HUB: tasdiqlash kodi ${code}`);
     return "dev";
   }
   return null;

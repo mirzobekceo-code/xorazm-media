@@ -43,9 +43,17 @@ button, input, select, textarea { font: inherit; color: inherit }
 /* Header */
 header.top { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line) }
 .nav { display: flex; align-items: center; gap: 24px; height: 64px }
-.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--display); font-size: 20px; font-weight: 600; letter-spacing: -.02em }
-.mark { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid var(--accent); display: grid; place-items: center; flex: none }
-.mark::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--brick) }
+.brand { display: flex; align-items: center; gap: 10px; white-space: nowrap; text-decoration: none; font-family: var(--display); font-size: 20px; font-weight: 600; letter-spacing: -.02em }
+/* Adverto uslubidagi belgi: qalin halqa va nuqta */
+.mark { width: 26px; height: 26px; border-radius: 50%; border: 6px solid var(--ink); display: grid; place-items: center; flex: none }
+.mark::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink) }
+.brand .hub { font-weight: 500; color: var(--muted) }
+.burger { display: none; width: 40px; height: 40px; place-items: center; border: 1px solid var(--line); border-radius: 12px; background: transparent; color: var(--ink); cursor: pointer }
+.mnav { position: absolute; top: 64px; left: 0; right: 0; z-index: 30; display: flex; flex-direction: column; padding: 8px 16px 16px; background: var(--bg); border-bottom: 1px solid var(--line) }
+.mnav a { padding: 14px 4px; border-bottom: 1px solid var(--line); text-decoration: none; font-weight: 500 }
+.mnav a:last-child { border-bottom: 0 }
+.mnav a[aria-current="page"] { color: var(--accent-strong) }
+select option { background: var(--surface); color: var(--ink) }
 .navlinks { display: flex; gap: 4px; margin-left: 8px }
 .navlinks a { text-decoration: none; padding: 8px 12px; border-radius: 999px; color: var(--muted); font-weight: 500 }
 .navlinks a[aria-current="page"] { color: var(--accent-strong); background: var(--accent-soft) }
@@ -94,7 +102,7 @@ main { padding-block: 24px 72px }
 .hero { display: grid; grid-template-columns: 1.25fr 1fr; gap: 40px; align-items: end; padding-top: 24px }
 .hero h1 { font-size: clamp(40px, 6vw, 76px) }
 .hero .lead { font-size: 18px; color: var(--muted); max-width: 52ch; margin-top: 18px }
-.hero-c { text-align: center; padding-top: 18px }
+.hero-c { text-align: center; padding-top: 28px }
 .hero-c h1 { font-size: clamp(42px, 6.4vw, 86px); line-height: 1.02; max-width: 15ch; margin: 0 auto }
 .hero-c .lead { font-size: 18px; color: var(--muted); max-width: 58ch; margin: 18px auto 0 }
 .hero-c .search { max-width: 760px; margin: 26px auto 0; text-align: left }
@@ -110,7 +118,9 @@ main { padding-block: 24px 72px }
 .ph-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px }
 .ph-loc { font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line) }
 .ph-ic { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); color: var(--ink) }
-.ph-hl { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 18px; background: radial-gradient(120% 140% at 100% 0%, #3cc2cb 0%, #1d6f74 45%, #123534 100%); color: #fff }
+.ph-hl { text-decoration: none; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 18px; background: radial-gradient(120% 140% at 100% 0%, #3cc2cb 0%, #1d6f74 45%, #123534 100%); color: #fff }
+.ph-hl * { color: #fff }
+.ph-hl .ph-badge { color: var(--accent-ink) }
 .ph-hl b { font-family: var(--display); font-size: 19px; font-weight: 600 }
 .ph-hl span:last-child { font-size: 12px; opacity: .85 }
 .ph-badge { align-self: flex-start; font-size: 10px; font-weight: 700; letter-spacing: .06em; color: var(--accent-ink); background: #c9f27a; padding: 3px 8px; border-radius: 999px }
@@ -146,14 +156,19 @@ main { padding-block: 24px 72px }
 .stats { display: flex; gap: 28px; margin-top: 22px; flex-wrap: wrap }
 .stats b { font-family: var(--display); font-size: 28px; font-weight: 500; display: block }
 .stats span { font-size: 13px; color: var(--muted) }
-.sec-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap }
+.sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap }
 .sec-head h2 { font-size: clamp(28px, 3.4vw, 40px) }
 
 .cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px }
 .cat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: flex; flex-direction: column; gap: 28px; text-decoration: none; transition: border-color .15s }
-.cat:hover { border-color: var(--accent) }
-.cat .ic { color: var(--accent) }
-.cat .ic { width: 40px; height: 40px }
+.cat:hover { border-color: var(--ink) }
+.cat .ic { width: 44px; height: 44px; color: var(--ink); stroke-width: 1.6 }
+.cat:hover .ic { color: #fff }
+.cat.all { background: transparent; border-style: dashed }
+.cat .arrow { font-size: 28px; line-height: 1; color: var(--ink) }
+.contacts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px }
+.page-head h1 { font-size: clamp(36px, 5vw, 60px) }
+.page-head .lead { color: var(--muted); font-size: 18px; margin-top: 10px; max-width: 60ch }
 .cat h3 { font-size: 22px }
 .cat p { font-size: 13px; color: var(--muted); margin-top: 4px }
 .cat .c { font-size: 13px; font-weight: 600 }
@@ -337,6 +352,8 @@ dialog { border: 1px solid var(--line); border-radius: 18px; padding: 24px; back
 dialog::backdrop { background: rgb(0 0 0 / .4) }
 
 @media (max-width: 1000px) {
+  .navlinks { display: none }
+  .burger { display: grid }
   .grid { grid-template-columns: repeat(3, 1fr) }
   .cats { grid-template-columns: repeat(2, 1fr) }
   .tumans { grid-template-columns: repeat(2, 1fr) }
@@ -346,7 +363,6 @@ dialog::backdrop { background: rgb(0 0 0 / .4) }
   .tiles { grid-template-columns: repeat(2, 1fr) }
 }
 @media (max-width: 800px) {
-  .navlinks { display: none }
   .hero, .join, .cat-layout, .su, .admin-layout { grid-template-columns: 1fr }
   .filters, .steps, .admin-nav { position: static }
   .steps { flex-direction: row; overflow-x: auto; gap: 12px }
@@ -356,6 +372,9 @@ dialog::backdrop { background: rgb(0 0 0 / .4) }
   .kasb { grid-template-columns: 1fr 1fr }
 }
 @media (max-width: 560px) {
+  .nav .brand { font-size: 17px; gap: 8px }
+  .nav { gap: 10px }
+  .contacts { grid-template-columns: 1fr }
   .grid, .grid.three { grid-template-columns: 1fr 1fr; gap: 10px }
   .search { grid-template-columns: 1fr }
   .how { grid-template-columns: 1fr }

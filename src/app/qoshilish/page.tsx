@@ -5,7 +5,7 @@ import { getOwnProfile } from "@/lib/profiles";
 import { profileToInput, wizardRefs } from "@/lib/profile-form";
 import ProfileWizard from "@/components/ProfileWizard";
 
-export const metadata: Metadata = { title: "Profil ochish — bepul", description: "Xorazm Media'da mutaxassis profilini 5 qadamda oching. Bepul." };
+export const metadata: Metadata = { title: "Profil ochish — bepul", description: "Xorazm Digital HUB'da mutaxassis profilini 5 qadamda oching. Bepul." };
 export const dynamic = "force-dynamic";
 
 export default async function Join() {

@@ -6,7 +6,7 @@ export default function Terms() {
       <h1>Foydalanish shartlari</h1>
       <p className="muted">Loyiha matni. Ishga tushishdan oldin yurist bilan kelishib yakunlanadi.</p>
       <h2>1. Xizmat</h2>
-      <p>Xorazm Media — mutaxassislar katalogi. Platforma mutaxassis va mijoz o‘rtasidagi kelishuvda ishtirok etmaydi, to‘lovlarni qabul qilmaydi va ish sifati uchun javob bermaydi.</p>
+      <p>Xorazm Digital HUB — mutaxassislar katalogi. Platforma mutaxassis va mijoz o‘rtasidagi kelishuvda ishtirok etmaydi, to‘lovlarni qabul qilmaydi va ish sifati uchun javob bermaydi.</p>
       <h2>2. Mutaxassis profili</h2>
       <ul>
         <li>Profilda faqat o‘zingiz haqingizdagi haqiqiy ma’lumot va o‘zingizga tegishli rasm, video joylanadi.</li>

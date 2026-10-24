@@ -66,7 +66,7 @@ export async function handleUpdate(u: Update): Promise<void> {
       await send(chatId, "Havola eskirgan. Saytda “Telegram orqali kirish” tugmasini qayta bosing.");
       return;
     }
-    await send(chatId, "Xorazm Media’ga kirish uchun pastdagi tugma orqali telefon raqamingizni ulashing.", {
+    await send(chatId, "Xorazm Digital HUB’ga kirish uchun pastdagi tugma orqali telefon raqamingizni ulashing.", {
       reply_markup: { keyboard: [[{ text: "📱 Raqamni ulashish", request_contact: true }]], resize_keyboard: true, one_time_keyboard: true },
     });
     return;
@@ -88,5 +88,5 @@ export async function handleUpdate(u: Update): Promise<void> {
     await send(chatId, `Kabinet: ${SITE.url}/kabinet`);
     return;
   }
-  await send(chatId, "Xorazm Media — Xorazmdagi bloger, operator, montajor, fotograf, dizayner, targetolog va SMM managerlar katalogi. Kontaktlar bepul.", menu());
+  await send(chatId, "Xorazm Digital HUB — Xorazmdagi digital va media mutaxassislari bitta joyda: brand face, operator, montajor, targetolog, SMM manager, bloger, fotograf, grafik dizayner, suhandon, studiya va texnika ijarasi. Kontaktlar bepul.", menu());
 }

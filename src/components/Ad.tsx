@@ -21,7 +21,6 @@ export default async function Ad({ slot, variant, ctx }: { slot: Slot; variant: 
 }
 
 function render(variant: Variant, c: Creative, href: string, slot: Slot) {
-  const label = <span className="tag">Reklama</span>;
   const cta = <a className="cta" href={href} target="_blank" rel="noopener sponsored">{c.cta}</a>;
 
   if (c.type === "image" && c.imageDesktop && variant !== "sticky") {
@@ -51,7 +50,7 @@ function render(variant: Variant, c: Creative, href: string, slot: Slot) {
       <aside className="ad ad-banner" aria-label="Reklama" data-slot={slot}>
         <span className="ad-target" />
         <img className="logo" src={LOGO} alt="adverto" />
-        <div className="txt">{label}<h3>{c.title}</h3><p>{c.body}</p></div>
+        <div className="txt"><h3>{c.title}</h3><p>{c.body}</p></div>
         {cta}
       </aside>
     );
@@ -60,7 +59,7 @@ function render(variant: Variant, c: Creative, href: string, slot: Slot) {
     return (
       <aside className="ad ad-card" aria-label="Reklama" data-slot={slot}>
         <span className="ad-target" />
-        <div className="stack" style={{ gap: 12 }}><img className="logo" src={LOGO} alt="adverto" />{label}</div>
+        <img className="logo" src={LOGO} alt="adverto" />
         {c.type === "video" && c.video
           ? <video src={c.video} muted autoPlay loop playsInline style={{ width: "100%", borderRadius: 10 }} />
           : <div className="stack" style={{ gap: 8 }}><h3>{c.title}</h3><p>{c.body}</p></div>}
@@ -72,7 +71,6 @@ function render(variant: Variant, c: Creative, href: string, slot: Slot) {
     <aside className="ad ad-side" aria-label="Reklama" data-slot={slot}>
       <span className="ad-target" />
       <img className="logo" src={LOGO} alt="adverto" />
-      {label}
       <h3>{c.title}</h3>
       <p>{c.body}</p>
       <div>{cta}</div>

@@ -11,19 +11,19 @@ export default function HeroSearch({ profs, dists }: { profs: [string, string][]
       const tuman = String(f.get("tuman") ?? "");
       router.push(`/mutaxassislar${kasb ? `/${kasb}` : ""}${tuman ? `?tuman=${tuman}` : ""}`);
     }}>
-      <label htmlFor="hs-kasb"><span>Kim kerak?</span>
+      <label htmlFor="hs-kasb"><span>Xizmatlar</span>
         <select id="hs-kasb" name="kasb" defaultValue="">
-          <option value="">Barcha yo‘nalishlar</option>
+          <option value="">Barcha xizmatlar</option>
           {profs.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
       </label>
-      <label htmlFor="hs-tuman"><span>Qayerda?</span>
+      <label htmlFor="hs-tuman"><span>Hudud</span>
         <select id="hs-tuman" name="tuman" defaultValue="">
           <option value="">Butun Xorazm</option>
           {dists.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
       </label>
-      <button className="btn" type="submit">Topish</button>
+      <button className="btn" type="submit">Izlash</button>
     </form>
   );
 }

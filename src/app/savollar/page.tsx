@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-export const metadata = { title: "Savollar", description: "Xorazm Media haqida ko‘p so‘raladigan savollar." };
+export const metadata = { title: "Savollar", description: "Xorazm Digital HUB haqida ko‘p so‘raladigan savollar." };
 
 const FAQ: [string, string][] = [
-  ["Xorazm Media nima?", "Xorazmdagi media mutaxassislar katalogi: bloger, brand face, operator, fotograf, montajor, dizayner, targetolog va SMM manager. Bizneslar ularni topib, to‘g‘ridan-to‘g‘ri bog‘lanadi."],
+  ["Xorazm Digital HUB nima?", "Xorazmdagi digital va media mutaxassislari katalogi: brand face, operator, montajor, targetolog, SMM manager, bloger, fotograf, grafik dizayner, suhandon, shuningdek studiya va texnika ijarasi. Bizneslar ularni topib, to‘g‘ridan-to‘g‘ri bog‘lanadi."],
   ["Kontakt ochish pullikmi?", "Yo‘q. Katalog, profillar va kontaktlar hammaga bepul. Ro‘yxatdan o‘tish ham shart emas."],
   ["Platforma qanday ishlaydi, agar bepul bo‘lsa?", "Sahifalardagi reklama joylari hisobiga. Reklama “Reklama” yozuvi bilan belgilanadi va kontentni yopmaydi."],
   ["Profil ochish qancha turadi?", "Bepul. 5 qadamli formani to‘ldirasiz, telefon raqam Telegram orqali tasdiqlanadi, moderator 24 soat ichida tekshiradi."],

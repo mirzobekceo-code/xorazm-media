@@ -3,7 +3,7 @@
  *   npm run db:seed           — kasblar, tumanlar, reklama
  *   npm run db:seed -- --demo — qo'shimcha namuna profillar (faqat lokal sinov uchun)
  */
-import { eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { getDb, schema as s } from "../src/db";
 import { PROFESSIONS, DISTRICTS } from "../src/lib/reference";
 import { slugify } from "../src/lib/format";
@@ -25,17 +25,26 @@ async function main() {
       .onConflictDoUpdate({ target: s.districts.slug, set: { nameUz: d.nameUz, nameRu: d.nameRu, sortOrder: i } });
   }
 
+  const AD = {
+    title: "Biznesingiz uchun sotib olishga tayyor mijozlar kerakmi?",
+    body: "Adverto — Xorazmdagi bizneslar uchun mas’uliyatli marketing jamoasi",
+    cta: "Bog‘lanish", url: "https://t.me/mirzobek_bozorov",
+  };
   const [fallback] = await db.select().from(s.adCampaigns).where(eq(s.adCampaigns.isFallback, true)).limit(1);
   if (!fallback) {
     const [c] = await db.insert(s.adCampaigns).values({
       name: "Adverto — standart", advertiser: "Adverto", isFallback: true, status: "active",
       slots: ["A1", "A2", "A3", "A3b", "A4", "A5", "A6"],
     }).returning();
-    await db.insert(s.adCreatives).values([
-      { campaignId: c.id, title: "Biznesingizga lidlar oqimi kerakmi?", body: "Adverto — Xorazm bizneslari uchun performance marketing.", cta: "Bog‘lanish", url: "https://t.me/mirzobek_bozorov" },
-      { campaignId: c.id, title: "Offer + 4 ta unikal video + reklama", body: "Bitta mahsulotni tanlaymiz va sotuvgacha olib boramiz.", cta: "Batafsil", url: "https://t.me/mirzobek_bozorov" },
-      { campaignId: c.id, title: "Shu platformadagi jamoa bilan ishlaymiz", body: "Brand face, operator va montajorni Adverto o‘zi tashkil qiladi.", cta: "Taklif olish", url: "https://t.me/mirzobek_bozorov" },
-    ]);
+    await db.insert(s.adCreatives).values({ campaignId: c.id, ...AD });
+  } else {
+    // Eski standart matnlar yangisiga almashtiriladi (admin o'zgartirgan kreativlarga tegilmaydi)
+    const OLD = ["Biznesingizga lidlar oqimi kerakmi?", "Offer + 4 ta unikal video + reklama", "Shu platformadagi jamoa bilan ishlaymiz"];
+    const old = await db.select().from(s.adCreatives)
+      .where(and(eq(s.adCreatives.campaignId, fallback.id), inArray(s.adCreatives.title, OLD))).orderBy(asc(s.adCreatives.id));
+    for (const [i, c] of old.entries()) {
+      await db.update(s.adCreatives).set(i === 0 ? { ...AD, isActive: true } : { isActive: false }).where(eq(s.adCreatives.id, c.id));
+    }
   }
 
   if (process.argv.includes("--demo")) await seedDemo();

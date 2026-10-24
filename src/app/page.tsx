@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getDistricts, getProfessions, searchProfiles } from "@/lib/queries";
 import ProfileCard from "@/components/ProfileCard";
-import { ProfIcon } from "@/components/Icons";
+import ServiceGrid from "@/components/ServiceGrid";
 import HeroFan, { type FanItem } from "@/components/HeroFan";
 import Ad from "@/components/Ad";
 import HeroSearch from "./HeroSearch";
@@ -26,29 +26,24 @@ export default async function Home() {
   return (
     <div className="view">
       <div className="hero-c">
-        <span className="free">Hammasi bepul — kontaktlar ochiq</span>
-        <h1>Xorazmdagi media mutaxassislar <em>bir joyda</em></h1>
-        <p className="lead">Bloger, brand face, operator, fotograf, montajor, dizayner, targetolog va SMM manager toping. Profilni ko‘ring va to‘g‘ridan-to‘g‘ri bog‘laning. To‘lov yo‘q, vositachi yo‘q.</p>
+        <h1>Xorazmdagi digital va media mutaxassislari <em>bitta joyda</em></h1>
+        <p className="lead">Brand face, operator, montajor, targetolog, SMM manager, bloger va boshqa mutaxassislarni toping, studiya va texnikani ijaraga oling. To‘g‘ridan-to‘g‘ri bog‘laning — vositachisiz.</p>
         <HeroSearch profs={profs.map((p) => [p.slug, p.nameUz])} dists={dists.map((d) => [d.slug, d.nameUz])} />
         <div className="stats">
           <div><b className="num">{total}</b><span>tasdiqlangan profil</span></div>
+          <div><b className="num">{profs.length}</b><span>xizmat turi</span></div>
           <div><b className="num">{dists.length}</b><span>shahar va tuman</span></div>
-          <div><b className="num">0 so‘m</b><span>kontakt ochish</span></div>
         </div>
-        <HeroFan items={HERO} top={items} profs={profs} />
       </div>
 
       <section>
-        <div className="sec-head"><h2>Yo‘nalishlar</h2></div>
-        <div className="cats">
-          {profs.map((p) => (
-            <Link key={p.slug} className="cat" href={`/mutaxassislar/${p.slug}`}>
-              <ProfIcon svg={p.icon} />
-              <div><h3>{p.nameUz}</h3><p>{p.description}</p></div>
-              <span className="c num">{p.count} ta profil →</span>
-            </Link>
-          ))}
-        </div>
+        <div className="sec-head"><h2>Xizmatlar</h2><Link className="link" href="/xizmatlar">Barchasi</Link></div>
+        <ServiceGrid profs={profs} />
+      </section>
+
+      <section>
+        <div className="sec-head"><div><p className="eyebrow">Platformada</p><h2>Mutaxassislar</h2></div><Link className="link" href="/mutaxassislar">Hammasini ko‘rish</Link></div>
+        <HeroFan items={HERO} top={items} profs={profs} />
       </section>
 
       <section>

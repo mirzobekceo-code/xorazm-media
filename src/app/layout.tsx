@@ -5,6 +5,7 @@ import { SITE } from "@/lib/site";
 import { getProfessions } from "@/lib/queries";
 import { getUser } from "@/lib/auth";
 import NavLinks from "@/components/NavLinks";
+import Logo from "@/components/Logo";
 import Ad from "@/components/Ad";
 import PublicOnly from "@/components/PublicOnly";
 import TelegramWebAppLogin from "@/components/TelegramWebAppLogin";
@@ -31,13 +32,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <header className="top">
           <div className="wrap nav">
-            <Link className="brand" href="/"><span className="mark" aria-hidden="true" />{SITE.name}</Link>
-            <NavLinks />
-            <span className="sp" />
-            {user
-              ? <Link className="btn ghost sm" href={user.role === "specialist" ? "/kabinet" : "/admin"}>{user.role === "specialist" ? "Kabinet" : "Admin"}</Link>
-              : <Link className="btn ghost sm" href="/kirish">Kirish</Link>}
-            <Link className="btn sm join-btn" href="/qoshilish">Profil ochish — bepul</Link>
+            <Logo />
+            <NavLinks account={user ? { href: user.role === "specialist" ? "/kabinet" : "/admin", label: user.role === "specialist" ? "Kabinet" : "Admin" } : { href: "/kirish", label: "Kirish" }} />
           </div>
         </header>
 
@@ -51,19 +47,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PublicOnly><div style={{ marginBottom: 36 }}><Ad slot="A6" variant="banner" /></div></PublicOnly>
             <div className="foot">
               <div>
-                <Link className="brand" href="/"><span className="mark" aria-hidden="true" />{SITE.name}</Link>
-                <p className="muted" style={{ marginTop: 10, maxWidth: "36ch" }}>Xorazm media bozori: brendlar va bizneslar uchun mutaxassislar katalogi. Bepul.</p>
+                <Logo />
+                <p className="muted" style={{ marginTop: 10, maxWidth: "36ch" }}>Xorazmdagi digital va media mutaxassislari bitta joyda. Bepul.</p>
                 <div className="powered">Homiy va reklama hamkori <img src="/brand/adverto-white.png" alt="adverto" /></div>
               </div>
-              <div><h4>Yo‘nalishlar</h4>{profs.map((p) => <Link key={p.slug} href={`/mutaxassislar/${p.slug}`}>{p.nameUz}</Link>)}</div>
+              <div><h4>Xizmatlar</h4>{profs.map((p) => <Link key={p.slug} href={`/mutaxassislar/${p.slug}`}>{p.nameUz}</Link>)}</div>
               <div><h4>Platforma</h4>
+                <Link href="/xizmatlar">Xizmatlar</Link>
                 <Link href="/mutaxassislar">Mutaxassislar</Link>
-                <Link href="/qoshilish">Profil ochish</Link>
+                <Link href="/qoshilish">Mutaxassis bo‘lish</Link>
                 <Link href="/savollar">Savollar</Link>
                 <Link href="/shartlar">Foydalanish shartlari</Link>
                 <Link href="/maxfiylik">Maxfiylik siyosati</Link>
               </div>
               <div><h4>Aloqa</h4>
+                <Link href="/aloqa">Bog‘lanish</Link>
                 <a href={SITE.telegram} target="_blank" rel="noopener">Telegram</a>
                 <Link href="/reklama">Reklama joylashtirish</Link>
               </div>

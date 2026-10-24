@@ -1,8 +1,8 @@
-# Xorazm Media
+# Xorazm Digital HUB
 
 Xorazmdagi media mutaxassislar katalogi: bloger, brand face, operator, fotograf, montajor, dizayner, targetolog va SMM manager. Katalog va kontaktlar bepul, daromad esa sahifalardagi Adverto reklama joylaridan keladi.
 
-Texnik topshiriq: [Xorazm Media — TZ](https://claude.ai/artifact/Hw1uU8T7A4i2BBfCdr3c6T) · Prototip: [Xorazm Media prototipi](https://claude.ai/artifact/74C9k2YDPjCH4uxTyr4Gyx)
+Texnik topshiriq: [Xorazm Digital HUB — TZ](https://claude.ai/artifact/Hw1uU8T7A4i2BBfCdr3c6T) · Prototip: [Xorazm Digital HUB prototipi](https://claude.ai/artifact/74C9k2YDPjCH4uxTyr4Gyx)
 
 ## Ishga tushirish
 

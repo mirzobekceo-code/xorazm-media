@@ -26,11 +26,11 @@ export default function HeroFan({ items, top, profs }: { items: FanItem[]; top: 
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
           </Link>
         </div>
-        <div className="ph-hl">
-          <span className="ph-badge">BEPUL</span>
-          <b>Kontaktlar ochiq</b>
-          <span>Vositachisiz, to‘g‘ridan-to‘g‘ri bog‘laning</span>
-        </div>
+        <Link className="ph-hl" href="/mutaxassislar/studiya">
+          <span className="ph-badge">YANGI</span>
+          <b>Studiya va texnika ijarasi</b>
+          <span>Kamera, svet va dronni ijaraga oling</span>
+        </Link>
         <div className="ph-tabs">
           <Link href="/mutaxassislar" className="on">Hammasi</Link>
           {profs.slice(0, 2).map((p) => <Link key={p.slug} href={`/mutaxassislar/${p.slug}`}>{p.nameUz}</Link>)}
