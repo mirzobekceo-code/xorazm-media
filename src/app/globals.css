@@ -127,6 +127,34 @@ main { padding-block: 24px 72px }
 .cat p { font-size: 13px; color: var(--muted); margin-top: 4px }
 .cat .c { font-size: 13px; font-weight: 600 }
 
+/* Mutaxassislar vitrinasi: yelpig'ich kartochkalar va markazda telefon */
+.showcase { text-align: center; padding: 28px 0 8px }
+.showcase h2 { font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 4.6vw, 60px); line-height: 1.04; letter-spacing: -.015em; margin-top: 10px }
+.showcase .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 26px }
+.btn.xl { height: 58px; padding: 0 30px; font-size: 17px; font-weight: 600 }
+.btn.dark { background: var(--surface); border-color: var(--line); color: var(--ink) }
+.btn.dark:hover { background: var(--soft); border-color: var(--accent) }
+.fan { display: flex; justify-content: center; align-items: flex-start; margin-top: 44px; padding: 0 0 40px }
+.fan-card { position: relative; flex: 0 0 auto; width: clamp(92px, 8.6vw, 126px); aspect-ratio: 3 / 4.7; margin: 0 -8px; border-radius: 22px; overflow: hidden; background: var(--soft); border: 1px solid var(--line); box-shadow: 0 18px 40px -18px #000c; transform: translateY(var(--y)) rotate(var(--rot)); transition: transform .25s ease; text-decoration: none }
+.fan-card:hover { transform: translateY(calc(var(--y) - 10px)) rotate(var(--rot)) scale(1.04); z-index: 3 }
+.fan-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
+.fan-card svg { opacity: .55 }
+.fan-card .fan-ic { position: absolute; left: 50%; top: 40%; width: 44px; height: 44px; transform: translate(-50%, -50%); color: var(--accent-strong); opacity: 1 }
+.fan-card .pill { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 1; display: inline-flex; gap: 5px; align-items: center; white-space: nowrap; font-size: 11.5px; font-weight: 600; color: var(--ink); background: #0b1312e6; padding: 6px 11px; border-radius: 999px; backdrop-filter: blur(6px) }
+.fan-card .pill b { color: var(--accent-strong); font-weight: 600 }
+.phone { position: relative; z-index: 2; flex: 0 0 auto; width: clamp(220px, 19vw, 262px); margin: -18px 14px 0; padding: 30px 14px 16px; border-radius: 38px; background: var(--bg); border: 7px solid #26332f; box-shadow: 0 30px 70px -20px #000e, 0 0 0 1px #3cc2cb33; text-align: left }
+.phone .notch { position: absolute; top: 8px; left: 50%; width: 70px; height: 18px; transform: translateX(-50%); border-radius: 999px; background: #26332f }
+.phone .ph-t { font-size: 13px; font-weight: 600; margin: 4px 2px 8px }
+.ph-pick { display: flex; flex-direction: column; gap: 2px; text-decoration: none; margin-bottom: 14px }
+.ph-pick .ph-img { position: relative; aspect-ratio: 4 / 3.4; border-radius: 16px; overflow: hidden; background: var(--soft); margin-bottom: 8px }
+.ph-pick .ph-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
+.ph-pick .ph-img .ini { width: 54px; height: 54px; font-size: 18px }
+.ph-pick .nm { font-weight: 600; font-size: 14px; display: inline-flex; gap: 4px; align-items: center }
+.ph-cats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.ph-cats a { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); font-size: 12px; font-weight: 600; text-decoration: none }
+.ph-cats a:hover { border-color: var(--accent) }
+.ph-cats .ic { width: 24px; height: 24px; color: var(--accent) }
+
 .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px }
 .grid.three { grid-template-columns: repeat(3, 1fr) }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; display: flex; flex-direction: column; text-decoration: none; transition: border-color .15s }
@@ -352,4 +380,15 @@ dialog::backdrop { background: rgb(0 0 0 / .4) }
   .collage .arch:nth-child(1) { grid-row: auto }
   .collage .arch:nth-child(n+4) { display: none }
 }
+@media (max-width: 1000px) {
+  .fan-card:nth-child(1), .fan-card:nth-last-child(1) { display: none }
+}
+@media (max-width: 800px) {
+  .fan { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scroll-snap-type: x mandatory; margin: 30px -16px 0; padding: 20px 26px 34px; gap: 14px; scrollbar-width: none }
+  .fan::-webkit-scrollbar { display: none }
+  .fan-card, .fan-card:nth-child(1), .fan-card:nth-last-child(1) { display: block; margin: 0; width: 132px; scroll-snap-align: center; transform: rotate(calc(var(--rot) * .5)) }
+  .fan-card:hover { transform: rotate(calc(var(--rot) * .5)) }
+  .phone { order: -1; margin: 0; width: 220px; scroll-snap-align: center }
+}
+@media (max-width: 560px) { .btn.xl { height: 52px; padding: 0 22px; font-size: 16px; flex: 1 1 100% } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important } }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getDistricts, getProfessions, searchProfiles } from "@/lib/queries";
 import ProfileCard from "@/components/ProfileCard";
-import { ProfIcon } from "@/components/Icons";
+import Showcase from "@/components/Showcase";
 import Ad from "@/components/Ad";
 import HeroSearch from "./HeroSearch";
 import Tile from "@/components/Tile";
@@ -48,18 +48,7 @@ export default async function Home() {
         </div>
       </div>
 
-      <section>
-        <div className="sec-head"><h2>Yo‘nalishlar</h2></div>
-        <div className="cats">
-          {profs.map((p) => (
-            <Link key={p.slug} className="cat" href={`/mutaxassislar/${p.slug}`}>
-              <ProfIcon svg={p.icon} />
-              <div><h3>{p.nameUz}</h3><p>{p.description}</p></div>
-              <span className="c num">{p.count} ta profil →</span>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <Showcase profs={profs} top={items} />
 
       <section>
         <div className="sec-head">
