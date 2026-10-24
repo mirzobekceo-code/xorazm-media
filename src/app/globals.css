@@ -1,29 +1,21 @@
 /*
- * "Xiva firuzasi": Ichan qal'a koshinlarining firuza va kobalt ranglari, g'isht va ganchning iliq foni.
+ * "Xiva firuzasi": Ichan qal'a koshinlarining firuza va kobalt ranglari, g'isht urg'ulari; doim qorong'i rejim.
  * Bitta imzo rangi (firuza) — tugmalar, havolalar, faol holatlar; g'isht — TOP va urg'ular.
- * Reklama joylari to'q firuza-qora (teskari) bloklar.
+ * Reklama joylari to'q firuza bloklar.
  */
 :root {
-  --bg: #f5efe5; --surface: #fffcf7; --ink: #1d1a16; --muted: #6d6458; --line: #e5dacb; --soft: #efe5d6;
-  --accent: #0e7c86; --accent-ink: #ffffff; --accent-strong: #0a5f67; --accent-soft: #d9eeee;
-  --brick: #b4532c; --cobalt: #1f3f8f; --sand: #e9d8bd;
-  --inv-bg: #10201f; --inv-fg: #f5efe5; --inv-muted: #9fb3b0;
-  --good: #1f7a46; --warn: #a15c00; --bad: #b3261e;
+  /* Sayt doim qorong'i: to'q firuza-qora fon, ganch rangidagi matn, koshin firuzasi urg'u */
+  --bg: #0f1615; --surface: #162120; --ink: #f2ebdf; --muted: #a59d90; --line: #26332f; --soft: #1c2927;
+  --accent: #3cc2cb; --accent-ink: #0b1716; --accent-strong: #74d8de; --accent-soft: #163a3c;
+  --brick: #e0805a; --cobalt: #7f9de6; --sand: #2c2a22;
+  /* Reklama bloklari: fondan ajraladigan, lekin ko'zni qamashtirmaydigan to'q firuza */
+  --inv-bg: #123534; --inv-fg: #f2ebdf; --inv-muted: #9cc4c2;
+  --good: #5cc28a; --warn: #e0a24a; --bad: #f2867d;
   --serif: "Fraunces", Georgia, "Times New Roman", serif;
   --display: "Outfit", "Helvetica Neue", Arial, sans-serif;
   --body: "Inter", "Helvetica Neue", Arial, sans-serif;
-  --r: 16px; --logo-ad: none; --logo-page: invert(1);
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1615; --surface: #162120; --ink: #f2ebdf; --muted: #a59d90; --line: #26332f; --soft: #1c2927;
-    --accent: #3cc2cb; --accent-ink: #0b1716; --accent-strong: #74d8de; --accent-soft: #163a3c;
-    --brick: #e0805a; --cobalt: #7f9de6; --sand: #3a3226;
-    --inv-bg: #e9f4f2; --inv-fg: #0f1615; --inv-muted: #4c605d;
-    --good: #5cc28a; --warn: #e0a24a; --bad: #f2867d;
-    --logo-ad: invert(1); --logo-page: none; color-scheme: dark;
-  }
+  --r: 16px; --logo-ad: none; --logo-page: none;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box }
@@ -72,10 +64,10 @@ header.top { position: sticky; top: 0; z-index: 20; background: var(--bg); borde
 .link:hover { color: var(--accent-strong) }
 
 /* Reklama */
-.ad { position: relative; background: var(--inv-bg); color: var(--inv-fg); border-radius: var(--r); overflow: hidden }
+.ad { position: relative; background: var(--inv-bg); color: var(--inv-fg); border: 1px solid #1d4a48; border-radius: var(--r); overflow: hidden }
 .ad .logo { height: 20px; width: auto; filter: var(--logo-ad); display: block; align-self: flex-start }
 .ad .tag { font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--inv-muted) }
-.ad .cta { display: inline-flex; align-items: center; height: 38px; padding: 0 16px; border-radius: 999px; background: var(--inv-fg); color: var(--inv-bg); font-weight: 600; font-size: 14px; text-decoration: none; white-space: nowrap }
+.ad .cta { display: inline-flex; align-items: center; height: 38px; padding: 0 16px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 14px; text-decoration: none; white-space: nowrap }
 .ad h3 { color: var(--inv-fg) }
 .ad p { color: var(--inv-muted) }
 .ad .img { display: block; width: 100%; height: auto }
@@ -107,6 +99,7 @@ main { padding-block: 24px 72px }
 .collage .arch:nth-child(1) { grid-row: span 2 }
 .collage .arch:nth-child(4) { grid-column: 2 / span 2; border-radius: 14px }
 .collage .arch img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
+.collage .arch svg { opacity: .78 }
 .collage .label { position: absolute; left: 10px; bottom: 10px; z-index: 1; font-size: 12px; font-weight: 600; background: var(--surface); color: var(--ink); padding: 4px 10px; border-radius: 999px }
 .tile-band { position: relative; height: 14px; border-radius: 999px; overflow: hidden; opacity: .9 }
 .hero { display: grid; grid-template-columns: 1.25fr 1fr; gap: 40px; align-items: end; padding-top: 24px }
@@ -145,7 +138,7 @@ main { padding-block: 24px 72px }
 .card .ph svg { opacity: .42 }
 .card .ph { background: var(--sand) }
 .ph .ini { position: relative; z-index: 1; width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center;
-  background: var(--surface); color: var(--ink); font-family: var(--serif); font-size: 34px; font-weight: 500; box-shadow: 0 0 0 6px rgb(255 255 255 / .35) }
+  background: var(--surface); color: var(--ink); font-family: var(--serif); font-size: 34px; font-weight: 500; box-shadow: 0 0 0 6px rgb(0 0 0 / .25) }
 .ph .ini.big { width: 132px; height: 132px; font-size: 52px }
 .strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 3px 3px 0 }
 .strip img, .strip span { aspect-ratio: 1; width: 100%; object-fit: cover; display: block; background: var(--soft); border-radius: 4px }

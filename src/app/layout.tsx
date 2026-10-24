@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: { siteName: SITE.name, locale: "uz_UZ", type: "website" },
 };
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#0f1615", colorScheme: "dark" };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const [profs, user] = await Promise.all([getProfessions(), getUser()]);
