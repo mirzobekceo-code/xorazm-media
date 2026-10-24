@@ -47,8 +47,47 @@ async function main() {
     }
   }
 
+  await seedTargetedAds();
+
   if (process.argv.includes("--demo")) await seedDemo();
   console.log("Seed tayyor.");
+}
+
+/**
+ * Kasbga qarab avtomatik chiqadigan Adverto reklamalari. Nomi bo'yicha bir marta yaratiladi;
+ * keyin admin panelda tahrirlanadi (seed ularga qayta tegmaydi).
+ */
+async function seedTargetedAds() {
+  const db = await getDb();
+  const url = "https://t.me/mirzobek_bozorov";
+  const VIDEO = ["operator", "mobilograf", "montajor"];
+  const campaigns = [
+    {
+      name: "Adverto Marketing — target va SMM", professions: ["targetolog", "smm"],
+      slots: ["A1", "A3", "A3b", "A4", "A5", "A6"],
+      creatives: [{ style: "marketing", badge: "Kafolatlangan natija", title: "Reklamani natija uchun ishlaydigan jamoaga topshiring",
+        body: "Strategiya, target va SMM bitta jamoada — har oy aniq hisobot bilan.", cta: "Bepul konsultatsiya", url }],
+    },
+    {
+      name: "Adverto Production — video", professions: VIDEO,
+      slots: ["A1", "A3", "A3b", "A4", "A5", "A6"],
+      creatives: [{ style: "production", badge: "Tayyor kontent", title: "Videoni Instagram’ga tayyor holda topshiramiz",
+        body: "Ssenariy, suratga olish, montaj va joylash — Adverto Production jamoasi.", cta: "Narxini bilish", url }],
+    },
+    {
+      name: "Adverto Production — Rasmiy jamoa (lenta)", professions: VIDEO, slots: ["A2"],
+      creatives: [{ style: "production", badge: "Rasmiy jamoa", title: "Adverto Production",
+        body: "Operator, mobilograf va montajor bir jamoada: ssenariydan Instagram’ga joylashgacha.", cta: "Jamoa bilan bog‘lanish", url }],
+    },
+  ];
+  for (const c of campaigns) {
+    const [exists] = await db.select({ id: s.adCampaigns.id }).from(s.adCampaigns).where(eq(s.adCampaigns.name, c.name)).limit(1);
+    if (exists) continue;
+    const [row] = await db.insert(s.adCampaigns).values({
+      name: c.name, advertiser: "Adverto", status: "active", slots: c.slots, professions: c.professions,
+    }).returning();
+    await db.insert(s.adCreatives).values(c.creatives.map((k) => ({ ...k, campaignId: row.id })));
+  }
 }
 
 /** Prototipdagi namuna profillar. Production bazaga yozilmasin. */

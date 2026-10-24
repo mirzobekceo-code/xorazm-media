@@ -11,9 +11,9 @@ import HeroSearch from "./HeroSearch";
  * shuning uchun ro'yxat qo'lda yuritiladi. pos — yuz ko'rinib turishi uchun (object-position).
  */
 const HERO: FanItem[] = [
-  { label: "Blogerlar", href: "/mutaxassislar/bloger", src: "/hero/bloger.webp", pos: "center 30%" },
-  { label: "Operatorlar", href: "/mutaxassislar/operator", src: "/hero/operator.webp", pos: "center 28%" },
-  { label: "Brand Face", href: "/mutaxassislar/brand-face", src: "/hero/brandface.webp", pos: "center 22%" },
+  { label: "Blogerlar", href: "/mutaxassislar/bloger", src: "/hero/bloger.webp", pos: "center 30%", m: "c" },
+  { label: "Operatorlar", href: "/mutaxassislar/operator", src: "/hero/operator.webp", pos: "center 28%", m: "l" },
+  { label: "Brand Face", href: "/mutaxassislar/brand-face", src: "/hero/brandface.webp", pos: "center 22%", m: "r" },
   { label: "Montajorlar", href: "/mutaxassislar/montajor", src: "/hero/montajor.webp", pos: "30% 40%" },
 ];
 
@@ -70,13 +70,6 @@ export default async function Home() {
       </section>
 
       <Ad slot="A5" variant="banner" />
-
-      <section>
-        <div className="sec-head"><h2>Tumanlar bo‘yicha</h2></div>
-        <div className="tumans">
-          {dists.map((d) => <Link key={d.slug} href={`/mutaxassislar?tuman=${d.slug}`}>{d.nameUz}<span className="num">{d.count}</span></Link>)}
-        </div>
-      </section>
 
       <div className="join">
         <div>

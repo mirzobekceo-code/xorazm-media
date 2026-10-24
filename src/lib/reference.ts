@@ -18,6 +18,13 @@ export const PROFESSIONS: {
       { key: "camera", label: "Kamera va obyektivlar", type: "text", placeholder: "Sony FX3, 24-70", required: true },
       { key: "gear", label: "Qo‘shimcha texnika", type: "text", placeholder: "Dron, svet, mikrofon" },
     ] },
+  { slug: "mobilograf", nameUz: "Mobilograf", nameRu: "Мобилограф", description: "Telefonda Reels, TikTok, stories", unit: "video",
+    icon: '<rect x="11" y="4" width="18" height="32" rx="4"/><circle cx="20" cy="18" r="4.5"/><path d="M17 30h6"/>',
+    fields: [
+      { key: "device", label: "Telefon va jihozlar", type: "text", placeholder: "iPhone 15 Pro, gimbal, mikrofon", required: true },
+      { key: "formats", label: "Formatlar", type: "text", placeholder: "Reels, TikTok, stories" },
+      { key: "editing", label: "Montaj ham qilasizmi", type: "text", placeholder: "Ha, CapCut" },
+    ] },
   { slug: "montajor", nameUz: "Montajor", nameRu: "Монтажёр", description: "Reels, reklama, YouTube", unit: "video",
     icon: '<rect x="4" y="9" width="13" height="8" rx="2"/><rect x="21" y="9" width="15" height="8" rx="2"/><rect x="4" y="23" width="19" height="8" rx="2"/><rect x="27" y="23" width="9" height="8" rx="2"/><path d="M19 4v32"/>',
     fields: [

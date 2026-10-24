@@ -7,6 +7,8 @@ import { getUser } from "@/lib/auth";
 import NavLinks from "@/components/NavLinks";
 import Logo from "@/components/Logo";
 import Ad from "@/components/Ad";
+import { headers } from "next/headers";
+import { adContextFromUrl } from "@/lib/ads";
 import PublicOnly from "@/components/PublicOnly";
 import TelegramWebAppLogin from "@/components/TelegramWebAppLogin";
 
@@ -21,6 +23,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const [profs, user] = await Promise.all([getProfessions(), getUser()]);
+  const adCtx = await adContextFromUrl((await headers()).get("x-url"), profs);
   return (
     <html lang="uz">
       <head>
@@ -38,13 +41,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </header>
 
         <main className="wrap">
-          <PublicOnly><div style={{ marginBottom: 28 }}><Ad slot="A1" variant="banner" /></div></PublicOnly>
+          <PublicOnly><div style={{ marginBottom: 28 }}><Ad slot="A1" variant="banner" ctx={adCtx} /></div></PublicOnly>
           {children}
         </main>
 
         <footer>
           <div className="wrap">
-            <PublicOnly><div style={{ marginBottom: 36 }}><Ad slot="A6" variant="banner" /></div></PublicOnly>
+            <PublicOnly><div style={{ marginBottom: 36 }}><Ad slot="A6" variant="banner" ctx={adCtx} /></div></PublicOnly>
             <div className="foot">
               <div>
                 <Logo />
@@ -69,7 +72,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <p className="muted small" style={{ marginTop: 28 }}>© {new Date().getFullYear()} {SITE.name} · Urganch</p>
           </div>
         </footer>
-        <PublicOnly><Ad slot="A4" variant="sticky" /></PublicOnly>
+        <PublicOnly><Ad slot="A4" variant="sticky" ctx={adCtx} /></PublicOnly>
         <TelegramWebAppLogin loggedIn={!!user} />
       </body>
     </html>

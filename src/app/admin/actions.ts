@@ -122,6 +122,8 @@ const CreativeForm = z.object({
   imageDesktop: z.string().optional(),
   imageMobile: z.string().optional(),
   video: z.string().optional(),
+  style: z.enum(["default", "marketing", "production"]).default("default"),
+  badge: z.string().trim().max(40).optional(),
 });
 
 export async function createCreative(form: FormData) {

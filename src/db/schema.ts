@@ -245,6 +245,10 @@ export const adCreatives = pgTable("ad_creatives", {
   imageDesktop: text("image_desktop"),
   imageMobile: text("image_mobile"),
   video: text("video"),
+  /** Ko'rinish: default | marketing | production (production kartochkasi — "Rasmiy jamoa") */
+  style: varchar("style", { length: 16 }).notNull().default("default"),
+  /** Sarlavha ustidagi urg'u, masalan "Kafolatlangan natija" */
+  badge: varchar("badge", { length: 40 }),
   isActive: boolean("is_active").notNull().default(true),
 });
 

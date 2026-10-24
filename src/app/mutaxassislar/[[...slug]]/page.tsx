@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getDistricts, getProfessions, searchProfiles, type CatalogFilters } from "@/lib/queries";
 import ProfileCard from "@/components/ProfileCard";
 import Ad from "@/components/Ad";
+import { professionFromQuery } from "@/lib/ads";
 import SortSelect from "./SortSelect";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,7 @@ export default async function Catalog(props: Props) {
   if (!r) notFound();
   const { prof, dist, profs, dists, filters, sp } = r;
   const res = await searchProfiles(filters);
+  const adCtx = { profession: prof?.slug ?? professionFromQuery(filters.q, profs), district: dist?.slug };
 
   // Filtr havolalari: joriy holatni saqlab, bitta qiymatni almashtiradi
   const href = (o: { kasb?: string | null; tuman?: string | null; [k: string]: string | null | undefined }) => {
@@ -122,9 +124,9 @@ export default async function Catalog(props: Props) {
           <div className="grid three">
             {items.flatMap((p, i) => {
               const card = <ProfileCard key={p.id} p={p} />;
-              return i === 4 ? [card, <Ad key="ad" slot="A2" variant="card" ctx={{ profession: prof?.slug, district: dist?.slug }} />] : [card];
+              return i === 4 ? [card, <Ad key="ad" slot="A2" variant="card" ctx={adCtx} />] : [card];
             })}
-            {items.length <= 4 && <Ad slot="A2" variant="card" ctx={{ profession: prof?.slug, district: dist?.slug }} />}
+            {items.length <= 4 && <Ad slot="A2" variant="card" ctx={adCtx} />}
           </div>
         ) : (
           <div className="empty">Bu filtr bo‘yicha hozircha profil yo‘q. Tumanni “Butun Xorazm” qilib ko‘ring.</div>

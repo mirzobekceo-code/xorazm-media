@@ -7,6 +7,31 @@ export type Creative = typeof s.adCreatives.$inferSelect;
 type Candidate = { creative: Creative; campaign: typeof s.adCampaigns.$inferSelect };
 export type AdContext = { profession?: string; district?: string };
 
+/** Qidiruv matnidan kasbni topadi ("mobilograf", "smm", "montaj" ...). */
+export function professionFromQuery(q: string | undefined, profs: { slug: string; nameUz: string }[]): string | undefined {
+  const t = q?.trim().toLowerCase();
+  if (!t || t.length < 3) return undefined;
+  return profs.find((p) => p.slug.startsWith(t) || p.nameUz.toLowerCase().startsWith(t) || t.startsWith(p.slug.slice(0, 5)))?.slug;
+}
+
+/** Sahifa manzilidan reklama konteksti: /mutaxassislar/<kasb>, ?q=..., ?tuman=..., /m/<profil>. */
+export async function adContextFromUrl(url: string | null, profs: { id: number; slug: string; nameUz: string }[]): Promise<AdContext> {
+  if (!url) return {};
+  const u = new URL(url, "http://x");
+  const parts = u.pathname.split("/").filter(Boolean);
+  const district = u.searchParams.get("tuman") ?? undefined;
+  if (parts[0] === "mutaxassislar") {
+    const profession = profs.find((p) => p.slug === parts[1])?.slug ?? professionFromQuery(u.searchParams.get("q") ?? undefined, profs);
+    return { profession, district };
+  }
+  if (parts[0] === "m" && parts[1]) {
+    const db = await getDb();
+    const [p] = await db.select({ pid: s.profiles.professionId }).from(s.profiles).where(eq(s.profiles.slug, decodeURIComponent(parts[1]))).limit(1);
+    return { profession: profs.find((x) => x.id === p?.pid)?.slug };
+  }
+  return {};
+}
+
 /**
  * Bitta so'rov davomida (layout + sahifa) umumiy reklama tanlovchi:
  * bir sahifada bir xil kreativ ikki marta chiqmaydi.

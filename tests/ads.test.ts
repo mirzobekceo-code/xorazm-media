@@ -9,7 +9,7 @@ const camp = (o: Partial<Row["campaign"]>): Row["campaign"] => ({
 });
 const cr = (id: number, campaign: Row["campaign"]): Row => ({
   campaign,
-  creative: { id, campaignId: campaign.id, type: "text", title: `t${id}`, body: "", cta: "x", url: "https://a.uz", imageDesktop: null, imageMobile: null, video: null, isActive: true },
+  creative: { id, campaignId: campaign.id, type: "text", title: `t${id}`, body: "", cta: "x", url: "https://a.uz", imageDesktop: null, imageMobile: null, video: null, style: "default", badge: null, isActive: true },
 });
 
 test("pullik kampaniya standartdan oldin tanlanadi", () => {

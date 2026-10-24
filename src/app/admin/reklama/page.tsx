@@ -53,7 +53,7 @@ export default async function Ads() {
               const st = sum(k.id);
               return (
                 <tr key={k.id}>
-                  <td><b>{k.title}</b><p className="muted small">{k.body} → {k.url}</p></td><td>{k.type}</td>
+                  <td>{k.badge && <span className="pill approved">{k.badge}</span>} <b>{k.title}</b>{k.style !== "default" && <span className="muted small"> · {k.style}</span>}<p className="muted small">{k.body} → {k.url}</p></td><td>{k.type}</td>
                   <td className="num">{st.imp}</td><td className="num">{st.clk}</td><td className="num">{st.imp ? ((st.clk / st.imp) * 100).toFixed(2) + "%" : "—"}</td>
                   <td><form action={toggleCreative.bind(null, k.id, !k.isActive)}><button className="copy">{k.isActive ? "O‘chirish" : "Yoqish"}</button></form></td>
                 </tr>
@@ -68,6 +68,8 @@ export default async function Ads() {
               <div className="field"><label htmlFor={`cr-title-${c.id}`}>Sarlavha (60)</label><input className="inp" id={`cr-title-${c.id}`} name="title" maxLength={60} required /></div>
               <div className="field"><label htmlFor={`cr-body-${c.id}`}>Matn (120)</label><input className="inp" id={`cr-body-${c.id}`} name="body" maxLength={120} /></div>
               <div className="field"><label htmlFor={`cr-cta-${c.id}`}>Tugma</label><input className="inp" id={`cr-cta-${c.id}`} name="cta" defaultValue="Batafsil" maxLength={24} /></div>
+              <div className="field"><label htmlFor={`cr-style-${c.id}`}>Ko‘rinish</label><select className="inp" id={`cr-style-${c.id}`} name="style"><option value="default">Adverto</option><option value="marketing">Adverto Marketing</option><option value="production">Adverto Production (kartochkada — Rasmiy jamoa)</option></select></div>
+              <div className="field"><label htmlFor={`cr-badge-${c.id}`}>Urg‘u (40)</label><input className="inp" id={`cr-badge-${c.id}`} name="badge" maxLength={40} placeholder="Kafolatlangan natija" /></div>
               <div className="field full"><label htmlFor={`cr-url-${c.id}`}>Havola</label><input className="inp" id={`cr-url-${c.id}`} name="url" type="url" required placeholder="https://" /></div>
               <div className="field"><label htmlFor={`cr-imgd-${c.id}`}>Rasm (desktop) URL</label><input className="inp" id={`cr-imgd-${c.id}`} name="imageDesktop" placeholder="/uploads/... yoki https://" /></div>
               <div className="field"><label htmlFor={`cr-imgm-${c.id}`}>Rasm (mobil) URL</label><input className="inp" id={`cr-imgm-${c.id}`} name="imageMobile" /></div>
