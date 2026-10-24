@@ -359,6 +359,38 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px }
 .admin-nav { display: flex; flex-direction: column; gap: 2px; position: sticky; top: 88px }
 .admin-nav a { text-decoration: none; padding: 8px 12px; border-radius: 10px; color: var(--muted); font-weight: 500 }
 .admin-nav a[aria-current="page"] { background: var(--soft); color: var(--ink) }
+/* Kabinet */
+.track { display: flex; align-items: center; gap: 0; margin-bottom: 16px }
+.track div { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; font-weight: 500; flex: 1 }
+.track div:not(:last-child)::after { content: ""; flex: 1; height: 2px; margin: 0 10px; border-radius: 2px; background: var(--line) }
+.track div.done:not(:last-child)::after { background: var(--accent) }
+.track i { font-style: normal; width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); font-size: 12px; font-weight: 700 }
+.track div.on { color: var(--ink) }
+.track div.on i { background: var(--accent); border-color: var(--accent); color: var(--accent-ink) }
+.track div.done i { border-color: var(--accent); color: var(--accent) }
+.track div:last-child { flex: none }
+.cab .tile b small { font-size: 16px; color: var(--muted) }
+.cab-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start }
+.cab-card { max-width: 340px }
+.cab .meter { height: 8px; border-radius: 99px; background: var(--soft); overflow: hidden; margin: 12px 0 6px }
+.cab .meter span { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width .3s }
+.checklist { list-style: none; padding: 0; margin: 8px 0 12px; display: flex; flex-direction: column }
+.checklist li { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line) }
+.checklist li:last-child { border-bottom: 0 }
+.checklist .mark-i { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; font-size: 12px; font-weight: 700; border: 1px solid var(--line); color: var(--muted) }
+.checklist li.ok .mark-i { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-strong) }
+.checklist li.need .mark-i { border-color: var(--brick); color: var(--brick) }
+.checklist li.ok b { color: var(--muted); font-weight: 500 }
+.checklist .tag-req { margin-left: 8px; padding: 1px 8px; border-radius: 99px; background: var(--soft); color: var(--muted); white-space: nowrap }
+.checklist li.need .tag-req { background: #e0805a22; color: var(--brick) }
+.switch { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); cursor: pointer }
+.switch:first-of-type { border-top: 0 }
+.switch div { display: flex; flex-direction: column; gap: 2px }
+.switch input { appearance: none; -webkit-appearance: none; flex: none; width: 46px; height: 26px; border-radius: 99px; background: var(--soft); border: 1px solid var(--line); position: relative; cursor: pointer; transition: background .15s }
+.switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s }
+.switch input:checked { background: var(--accent); border-color: var(--accent) }
+.switch input:checked::after { transform: translateX(20px); background: var(--accent-ink) }
+.switch input:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px }
 .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px }
 .tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px }
 .tile b { font-family: var(--display); font-size: 30px; font-weight: 500; display: block }
@@ -395,6 +427,8 @@ dialog::backdrop { background: rgb(0 0 0 / .4) }
   .tiles { grid-template-columns: repeat(2, 1fr) }
 }
 @media (max-width: 800px) {
+  .cab-grid { grid-template-columns: 1fr }
+  .cab-card { max-width: 300px }
   .hero, .join, .cat-layout, .su, .admin-layout { grid-template-columns: 1fr }
   .filters, .steps, .admin-nav { position: static }
   .steps { flex-direction: row; overflow-x: auto; gap: 12px }
@@ -404,6 +438,8 @@ dialog::backdrop { background: rgb(0 0 0 / .4) }
   .kasb { grid-template-columns: 1fr 1fr }
 }
 @media (max-width: 560px) {
+  .track div { font-size: 12px; gap: 6px }
+  .track div:not(:last-child)::after { margin: 0 6px }
   /* Ixcham banner: 1-qator logotip va tugma, 2-qator sarlavha */
   .ad-banner { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px 12px; padding: 12px 14px }
   .ad-banner .ad-target, .ad-banner .txt p { display: none }

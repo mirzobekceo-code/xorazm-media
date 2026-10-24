@@ -36,9 +36,11 @@ export default function ProfileWizard(props: {
   codeSignup: boolean;
   /** Tahrirlashda: qoralama yoki rad etilgan profil oxirida tekshiruvga yuboriladi */
   submitOnFinish?: boolean;
+  /** Tahrirlashda qaysi qadamdan ochilsin (kabinetdagi "tuzatish" havolalari) */
+  startStep?: number;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState(props.mode === "edit" ? 1 : 0);
+  const [step, setStep] = useState(props.mode === "edit" ? Math.min(4, Math.max(1, props.startStep ?? 1)) : 0);
   const [v, setV] = useState<ProfileInputT>(props.initial ?? emptyInput());
   const [error, setError] = useState("");
   const [pending, start] = useTransition();

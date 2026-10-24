@@ -5,16 +5,20 @@ import { setFlagsAction } from "@/app/actions";
 export default function CabinetToggles({ isAvailable, hidden, canHide }: { isAvailable: boolean; hidden: boolean; canHide: boolean }) {
   const [pending, start] = useTransition();
   return (
-    <div className="box">
+    <section className="box">
       <h3>Holat</h3>
-      <div className="checks">
-        <label><input type="checkbox" id="t-avail" checked={!isAvailable} disabled={pending}
-          onChange={(e) => start(async () => { await setFlagsAction({ isAvailable: !e.target.checked }); })} /> Hozir bandman</label>
-        {canHide && (
-          <label><input type="checkbox" id="t-hide" checked={hidden} disabled={pending}
-            onChange={(e) => start(async () => { await setFlagsAction({ hidden: e.target.checked }); })} /> Profilni katalogdan yashirish</label>
-        )}
-      </div>
-    </div>
+      <label className="switch" htmlFor="t-avail">
+        <div><b>Hozir bandman</b><span className="muted small">Kartochkada “Band” yoziladi, profil katalogda qoladi.</span></div>
+        <input type="checkbox" role="switch" id="t-avail" checked={!isAvailable} disabled={pending}
+          onChange={(e) => start(async () => { await setFlagsAction({ isAvailable: !e.target.checked }); })} />
+      </label>
+      {canHide && (
+        <label className="switch" htmlFor="t-hide">
+          <div><b>Profilni katalogdan yashirish</b><span className="muted small">Ta’til yoki tanaffus uchun. Qayta yoqsangiz, tekshiruvsiz qaytadi.</span></div>
+          <input type="checkbox" role="switch" id="t-hide" checked={hidden} disabled={pending}
+            onChange={(e) => start(async () => { await setFlagsAction({ hidden: e.target.checked }); })} />
+        </label>
+      )}
+    </section>
   );
 }

@@ -47,13 +47,15 @@ export type CatalogFilters = {
   audience?: "s" | "m" | "l";
   sort?: "top" | "new" | "cheap" | "views";
   page?: number;
+  /** Kabinetdagi oldindan ko'rish: shu profil, holatidan qat'i nazar */
+  onlyId?: number;
 };
 
 export type ProfileCard = Awaited<ReturnType<typeof searchProfiles>>["items"][number];
 
 export async function searchProfiles(f: CatalogFilters) {
   const db = await getDb();
-  const where: SQL[] = [eq(s.profiles.status, "approved")];
+  const where: SQL[] = [f.onlyId ? eq(s.profiles.id, f.onlyId) : eq(s.profiles.status, "approved")];
   const profs = await getProfessions();
   const prof = f.profession ? profs.find((p) => p.slug === f.profession) : undefined;
   if (prof) {
@@ -191,3 +193,13 @@ export function bloggerTotals(stats: { followers: Record<string, number> } | nul
 }
 
 export { inArray };
+
+/** Kasb ichidagi o'rni (TOP tartibi bo'yicha) va jami tasdiqlangan profillar soni. */
+export async function professionPlace(professionId: number, rankScore: number) {
+  const db = await getDb();
+  const [r] = await db.select({
+    above: sql<number>`count(*) filter (where ${s.profiles.rankScore} > ${rankScore})::int`,
+    total: sql<number>`count(*)::int`,
+  }).from(s.profiles).where(and(eq(s.profiles.professionId, professionId), eq(s.profiles.status, "approved")));
+  return { place: r.above + 1, total: Math.max(r.total, 1) };
+}

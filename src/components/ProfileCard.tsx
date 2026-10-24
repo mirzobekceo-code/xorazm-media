@@ -14,7 +14,8 @@ export function Placeholder({ id, name, big }: { id: number; name: string; big?:
   );
 }
 
-export default function ProfileCard({ p }: { p: Card }) {
+/** verified=false — kabinetdagi oldindan ko'rish (hali tasdiqlanmagan profil) */
+export default function ProfileCard({ p, verified = true }: { p: Card; verified?: boolean }) {
   const isBlogger = p.profession.slug === "bloger";
   const meta = isBlogger
     ? `${kfmt(p.followers)} obunachi${p.er ? ` · ER ${p.er}%` : ""}`
@@ -33,7 +34,7 @@ export default function ProfileCard({ p }: { p: Card }) {
         </div>
       )}
       <div className="b">
-        <span className="nm">{p.fullName} <Verified /></span>
+        <span className="nm">{p.fullName} {verified && <Verified />}</span>
         <span className="meta">{meta}</span>
         <div className="tags">{p.tags.slice(0, 3).map((t) => <span key={t} className="tg">{t}</span>)}</div>
         <div className="pr">
