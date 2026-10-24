@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ExtraValue from "@/components/ExtraValue";
 import { notFound } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
 import { getDb, schema as s } from "@/db";
@@ -36,11 +37,11 @@ export default async function Review({ params }: { params: Promise<{ id: string 
         <h3>Ma’lumotlar</h3>
         <dl className="spec">
           <dt>Yo‘nalish</dt><dd>{p.profession.nameUz}{p.extraProfession ? ` + ${p.extraProfession.nameUz}` : ""}</dd>
-          <dt>Tug‘ilgan yil · jins</dt><dd>{p.birthYear ?? "—"} · {p.gender === "f" ? "ayol" : "erkak"}</dd>
+          <dt>Tug‘ilgan yil · jins</dt><dd>{p.birthYear ?? "—"} · {p.gender ? (p.gender === "f" ? "ayol" : "erkak") : "—"}</dd>
           <dt>Tumanlar</dt><dd>{p.districts.map((d) => d.nameUz).join(", ")}</dd>
           <dt>Bio</dt><dd>{p.bio || "—"}</dd>
           <dt>Narx · tajriba</dt><dd>{money(p.price)} so‘m / {p.profession.unit} · {p.experienceYears} yil</dd>
-          {p.profession.fieldsSchema.map((f) => [<dt key={f.key + "t"}>{f.label}</dt>, <dd key={f.key + "d"}>{p.extra[f.key] || "—"}</dd>])}
+          {p.profession.fieldsSchema.map((f) => [<dt key={f.key + "t"}>{f.label}</dt>, <dd key={f.key + "d"}>{p.extra[f.key] ? <ExtraValue f={f} value={p.extra[f.key]} /> : "—"}</dd>])}
           <dt>Video havolalar</dt><dd>{p.videoLinks.length ? p.videoLinks.map((u) => <div key={u}><a className="link" href={u} target="_blank" rel="noopener nofollow">{u}</a></div>) : "—"}</dd>
           <dt>Tasdiqlangan raqam</dt><dd>{owner[0] ? prettyPhone(owner[0].phone) : "—"}</dd>
           <dt>Kontaktlar</dt><dd>{c ? [c.phone && prettyPhone(c.phone), c.telegram, c.instagram].filter(Boolean).join(" · ") : "—"}</dd>

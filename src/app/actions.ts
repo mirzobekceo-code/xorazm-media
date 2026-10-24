@@ -1,4 +1,5 @@
 "use server";
+import { portfolioRule } from "@/lib/portfolio-rules";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, count, desc, eq } from "drizzle-orm";
@@ -66,7 +67,8 @@ export async function uploadMediaAction(form: FormData): Promise<Result<{ id: nu
   ));
   const L = uploadLimits();
   if (kind === "video" && L.videos === 0) return { ok: false, error: "Video yuklash hozircha o‘chirilgan — YouTube yoki Instagram havolasini qo‘shing" };
-  const limit = isStat ? L.screenshots : kind === "image" ? L.images : L.videos;
+  const [pr] = await db.select({ slug: s.professions.slug }).from(s.professions).where(eq(s.professions.id, profile.professionId));
+  const limit = isStat ? L.screenshots : kind === "image" ? Math.max(L.images, portfolioRule(pr?.slug ?? "").minImages) : L.videos;
   if (n >= limit) return { ok: false, error: `Ko‘pi bilan ${limit} ta ${isStat ? "skrinshot" : kind === "image" ? "rasm" : "video"}` };
 
   try {

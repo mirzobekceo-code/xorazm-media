@@ -14,6 +14,8 @@ import { Verified } from "@/components/Icons";
 import Contacts from "./Contacts";
 import ReportButton from "./ReportButton";
 import ViewBeacon from "./ViewBeacon";
+import ExtraValue from "@/components/ExtraValue";
+import { portfolioRule } from "@/lib/portfolio-rules";
 
 export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ slug: string }> };
@@ -129,7 +131,7 @@ export default async function ProfilePage({ params }: Props) {
                   <dl className="spec">
                     {p.profession.fieldsSchema.filter((f) => p.extra[f.key]).map((f) => (
                       [<dt key={f.key + "t"}>{f.label}</dt>,
-                       <dd key={f.key + "d"}>{f.type === "url" ? <a className="link" href={p.extra[f.key]} target="_blank" rel="noopener nofollow">{p.extra[f.key]}</a> : p.extra[f.key]}</dd>]
+                       <dd key={f.key + "d"}><ExtraValue f={f} value={p.extra[f.key]} /></dd>]
                     ))}
                   </dl>
                 </section>
@@ -150,7 +152,7 @@ export default async function ProfilePage({ params }: Props) {
 
           {p.videoLinks.length > 0 && (
             <section className="box">
-              <h3>{isBlogger ? "Reklama videolari" : "Showreel va ishlar"}</h3>
+              <h3>{portfolioRule(p.profession.slug).linkLabel}</h3>
               <div className="vids">
                 {p.videoLinks.map((url) => {
                   const yt = youtubeId(url);
@@ -162,7 +164,7 @@ export default async function ProfilePage({ params }: Props) {
               </div>
               <div className="row">
                 {p.videoLinks.filter((u) => !youtubeId(u)).map((url) => (
-                  <a key={url} className="btn ghost sm" href={url} target="_blank" rel="noopener nofollow">{linkLabel(url)}da ko‘rish ↗</a>
+                  <a key={url} className="btn ghost sm" href={url} target="_blank" rel="noopener nofollow">{linkLabel(url)}da ochish ↗</a>
                 ))}
               </div>
             </section>

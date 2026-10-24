@@ -71,8 +71,10 @@ export const telegramTokens = pgTable("telegram_tokens", {
 export type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "number" | "url";
+  /** pricelist — "Nomi — narx" qatorlari; map — xarita havolasi */
+  type: "text" | "number" | "url" | "textarea" | "pricelist" | "map";
   placeholder?: string;
+  hint?: string;
   required?: boolean;
 };
 

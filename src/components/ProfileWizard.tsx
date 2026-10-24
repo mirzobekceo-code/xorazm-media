@@ -14,6 +14,7 @@ import { ProfIcon } from "./Icons";
 import type { UploadLimits } from "@/lib/limits";
 import TelegramButton from "./TelegramButton";
 import { CHANNEL_HINT } from "@/lib/channel-hint";
+import { formatPriceList, isBusiness, parsePriceList, portfolioProblem, portfolioRule, type PriceRow } from "@/lib/portfolio-rules";
 
 type Prof = { slug: string; nameUz: string; description: string; icon: string; unit: string; fieldsSchema: FieldDef[] };
 type MediaItem = { id: number; url: string; thumbUrl: string | null; type: "image" | "video"; isCover: boolean; isStatScreenshot: boolean; moderationStatus: string };
@@ -48,6 +49,9 @@ export default function ProfileWizard(props: {
 
   const prof = useMemo(() => props.professions.find((p) => p.slug === v.profession), [v.profession, props.professions]);
   const isBlogger = v.profession === "bloger";
+  const rule = portfolioRule(v.profession ?? "");
+  const business = isBusiness(v.profession);
+  const linkCount = String(v.videoLinks ?? "").split(/\s+/).filter(Boolean).length;
 
   // Ro'yxatdan o'tish qoralamasi brauzerda saqlanadi
   useEffect(() => {
@@ -69,14 +73,15 @@ export default function ProfileWizard(props: {
   function check(): string {
     if (step === 0 && !v.profession) return "Yo‘nalishni tanlang";
     if (step === 1) {
-      if ((v.fullName ?? "").trim().length < 3) return "To‘liq ismni yozing";
-      if (!v.birthYear) return "Tug‘ilgan yilni yozing";
+      if ((v.fullName ?? "").trim().length < 3) return business ? "Nomini yozing" : "To‘liq ismni yozing";
+      if (!business && !v.birthYear) return "Tug‘ilgan yilni yozing";
       if (!v.districts?.length) return "Kamida bitta tuman tanlang";
       if (!v.languages?.length) return "Kamida bitta til tanlang";
     }
     if (step === 2) {
       for (const f of prof?.fieldsSchema ?? []) if (f.required && !v.extra?.[f.key]) return `“${f.label}” maydonini to‘ldiring`;
       if (isBlogger && !Object.values(b.followers).some((n) => Number(n) > 0)) return "Kamida bitta platformadagi obunachilar sonini yozing";
+      if (linkCount < rule.minLinks) return `“${rule.linkLabel}”: kamida ${rule.minLinks} ta havola qo‘shing`;
     }
     if (step === 3) {
       if (!v.consent) return "Kontaktlar ochiq ko‘rinishiga rozilik bering";
@@ -155,6 +160,8 @@ export default function ProfileWizard(props: {
     setError("");
     start(async () => {
       if (props.mode === "edit" && !props.submitOnFinish) { router.push("/kabinet"); router.refresh(); return; }
+      const problem = portfolioProblem(v.profession ?? "", { images: portfolio.filter((m) => m.type === "image").length, links: linkCount, proofs: shots.length });
+      if (problem) return setError(problem);
       const r = await submitAction();
       if (!r.ok) return setError(r.error);
       try { localStorage.removeItem(DRAFT_KEY); } catch {}
@@ -200,15 +207,16 @@ export default function ProfileWizard(props: {
 
         {step === 1 && (
           <div className="fields">
-            {field("s-name", "To‘liq ism *", <input className="inp" id="s-name" value={v.fullName} onChange={(e) => set("fullName", e.target.value)} autoComplete="name" />, { full: true })}
-            {field("s-year", "Tug‘ilgan yil *", <input className="inp" id="s-year" inputMode="numeric" value={String(v.birthYear ?? "")} onChange={(e) => set("birthYear", e.target.value.replace(/\D/g, "").slice(0, 4) as unknown as number)} />, { hint: "Profilda faqat yosh ko‘rinadi" })}
-            <div className="field"><span>Jins</span>
+            {field("s-name", business ? "Nomi *" : "To‘liq ism *", <input className="inp" id="s-name" value={v.fullName} onChange={(e) => set("fullName", e.target.value)} autoComplete={business ? "organization" : "name"}
+              placeholder={business ? (v.profession === "studiya" ? "Masalan: Nur Studio" : "Masalan: Kamera ijara Urganch") : undefined} />, { full: true, hint: business ? "Studiya yoki kompaniya nomi, bo‘lmasa ismingiz" : undefined })}
+            {!business && field("s-year", "Tug‘ilgan yil *", <input className="inp" id="s-year" inputMode="numeric" value={String(v.birthYear ?? "")} onChange={(e) => set("birthYear", e.target.value.replace(/\D/g, "").slice(0, 4) as unknown as number)} />, { hint: "Profilda faqat yosh ko‘rinadi" })}
+            {!business && <div className="field"><span>Jins</span>
               <div className="checks">
                 {([["f", "Ayol"], ["m", "Erkak"]] as const).map(([k, l]) => (
                   <label key={k}><input type="radio" name="gender" id={`s-g-${k}`} checked={v.gender === k} onChange={() => set("gender", k)} /> {l}</label>
                 ))}
               </div>
-            </div>
+            </div>}
             <div className="field full"><span>Tillar *</span>
               <div className="checks">
                 {LANGUAGES.map(([k, l]) => (
@@ -238,12 +246,28 @@ export default function ProfileWizard(props: {
 
         {step === 2 && !isBlogger && (
           <div className="fields">
-            {prof?.fieldsSchema.map((f) => field(`s-x-${f.key}`, f.label + (f.required ? " *" : ""), (
-              <input className="inp" id={`s-x-${f.key}`} type={f.type === "number" ? "text" : f.type} inputMode={f.type === "number" ? "numeric" : undefined}
-                placeholder={f.placeholder} value={v.extra?.[f.key] ?? ""} onChange={(e) => set("extra", { ...v.extra, [f.key]: e.target.value })} />
-            )))}
+            {prof?.fieldsSchema.map((f) => {
+              const id = `s-x-${f.key}`;
+              const val = v.extra?.[f.key] ?? "";
+              const put = (x: string) => set("extra", { ...v.extra, [f.key]: x });
+              if (f.type === "pricelist") {
+                return (
+                  <div className="field full" key={f.key}>
+                    <span>{f.label}{f.required ? " *" : ""}</span>
+                    <PriceListInput idPrefix={id} value={val} onChange={put} />
+                    {f.hint && <small>{f.hint}</small>}
+                  </div>
+                );
+              }
+              return field(id, f.label + (f.required ? " *" : ""), f.type === "textarea"
+                ? <textarea className="inp" id={id} rows={3} maxLength={1000} placeholder={f.placeholder} value={val} onChange={(e) => put(e.target.value)} />
+                : <input className="inp" id={id} type={f.type === "url" || f.type === "map" ? "url" : "text"} inputMode={f.type === "number" ? "numeric" : undefined}
+                    placeholder={f.placeholder} value={val} onChange={(e) => put(e.target.value)} />,
+              { full: f.type === "textarea", hint: f.hint });
+            })}
             {field("s-exp", "Tajriba (yil)", <input className="inp" id="s-exp" inputMode="numeric" value={String(v.experienceYears ?? 0)} onChange={(e) => set("experienceYears", Number(e.target.value.replace(/\D/g, "") || 0))} />)}
-            {field("s-price", `Narx (so‘m / ${prof?.unit})`, <input className="inp" id="s-price" inputMode="numeric" value={v.price ? String(v.price) : ""} onChange={(e) => set("price", (Number(e.target.value.replace(/\D/g, "")) || undefined) as number)} placeholder="Bo‘sh qoldirsangiz: kelishiladi" />)}
+            {field("s-price", `Narx (so‘m / ${prof?.unit})`, <input className="inp" id="s-price" inputMode="numeric" value={v.price ? String(v.price) : ""} onChange={(e) => set("price", (Number(e.target.value.replace(/\D/g, "")) || undefined) as number)} placeholder="Bo‘sh qoldirsangiz: kelishiladi" />,
+              { hint: prof?.fieldsSchema.some((f) => f.type === "pricelist") ? "Bo‘sh qolsa, ro‘yxatdagi eng arzon narx ko‘rsatiladi" : undefined })}
             <div className="field"><span>Narx kelishiladimi?</span>
               <div className="checks"><label><input type="checkbox" id="s-neg" checked={!!v.priceNegotiable} onChange={(e) => set("priceNegotiable", e.target.checked)} /> Ha, kelishiladi</label></div>
             </div>
@@ -293,10 +317,10 @@ export default function ProfileWizard(props: {
 
         {step === 2 && (
           <div className="field">
-            <label htmlFor="s-vlinks">{isBlogger ? "Reklama namunalari havolalari" : "Showreel va ishlaringiz havolalari"}</label>
+            <label htmlFor="s-vlinks">{rule.linkLabel}{rule.minLinks > 0 ? ` * (kamida ${rule.minLinks} ta · hozir ${linkCount})` : ""}</label>
             <textarea className="inp" id="s-vlinks" rows={3} value={String(v.videoLinks ?? "")} onChange={(e) => set("videoLinks", e.target.value)}
               placeholder={"https://youtube.com/watch?v=...\nhttps://instagram.com/reel/..."} />
-            <small>Har qatorda bitta havola, {props.limits.videoLinks} tagacha: YouTube, Instagram, TikTok, Vimeo, Telegram, Google Drive. YouTube videolari profilda shu yerning o‘zida ochiladi.</small>
+            <small>{rule.linkHint}. Har qatorda bitta havola, {props.limits.videoLinks} tagacha. YouTube videolari profilda shu yerning o‘zida ochiladi.</small>
           </div>
         )}
 
@@ -356,19 +380,19 @@ export default function ProfileWizard(props: {
 
         {step === 4 && (
           <div className="stack" style={{ gap: 22 }}>
-            {isBlogger && (
+            {rule.proof && (
               <div className="stack">
-                <b>Instagram Insights skrinshotlari</b>
-                <p className="muted small">Auditoriya (jins, yosh, shaharlar) va oxirgi 30 kun qamrovi. Faqat moderator ko‘radi.</p>
+                <b>{rule.proof.label}{rule.proof.required ? " *" : ""}</b>
+                <p className="muted small">{rule.proof.hint}</p>
                 <Thumbs items={shots} onDelete={async (id) => { await deleteMediaAction(id); setMedia((m) => m.filter((x) => x.id !== id)); }} />
                 <label className="btn ghost sm" htmlFor="up-stat" style={{ alignSelf: "flex-start" }}>Skrinshot yuklash</label>
                 <input id="up-stat" type="file" accept="image/*" multiple hidden onChange={(e) => { upload(e.target.files, true); e.target.value = ""; }} />
               </div>
             )}
             <div className="drop">
-              <b style={{ color: "var(--ink)" }}>{isBlogger ? "Reklama namunalari: rasm va video" : "Rasm va videolar"}</b>
+              <b style={{ color: "var(--ink)" }}>{rule.imageHint}</b>
               <span className="small">
-                Rasm: {props.limits.images} tagacha, avtomatik kichraytiriladi · kamida 1 ta
+                Yuklandi: {portfolio.filter((m) => m.type === "image").length} / kamida {rule.minImages} · {Math.max(props.limits.images, rule.minImages)} tagacha, avtomatik kichraytiriladi · ★ bilan muqovani tanlang
                 {props.limits.videos > 0
                   ? ` · Video: ${props.limits.videos} tagacha, ${props.limits.videoSeconds} soniya va ${props.limits.videoMb} MB gacha (MP4, MOV)`
                   : " · Videolarni 3-qadamda havola sifatida qo‘shing"}
@@ -443,6 +467,29 @@ function Thumbs({ items, onDelete, onCover }: { items: MediaItem[]; onDelete: (i
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Narxli ro'yxat: har qatorda nomi va kunlik narxi. Matn ko'rinishida saqlanadi ("Nomi — narx"). */
+function PriceListInput({ idPrefix, value, onChange }: { idPrefix: string; value: string; onChange: (v: string) => void }) {
+  const [rows, setRows] = useState<PriceRow[]>(() => {
+    const r = parsePriceList(value);
+    return r.length ? r : [{ name: "", price: 0 }];
+  });
+  const update = (next: PriceRow[]) => { setRows(next); onChange(formatPriceList(next)); };
+  return (
+    <div className="stack" style={{ gap: 8 }}>
+      {rows.map((r, i) => (
+        <div className="row" key={i} style={{ flexWrap: "nowrap" }}>
+          <input className="inp" id={`${idPrefix}-n${i}`} aria-label="Texnika nomi" placeholder="Sony FX3" value={r.name}
+            onChange={(e) => update(rows.map((x, j) => (j === i ? { ...x, name: e.target.value.replace(/[—–]/g, "-") } : x)))} />
+          <input className="inp" id={`${idPrefix}-p${i}`} aria-label="Kunlik narxi, so‘m" style={{ width: 150 }} inputMode="numeric" placeholder="so‘m / kun"
+            value={r.price ? String(r.price) : ""} onChange={(e) => update(rows.map((x, j) => (j === i ? { ...x, price: Number(e.target.value.replace(/\D/g, "")) || 0 } : x)))} />
+          {rows.length > 1 && <button type="button" className="btn ghost sm" aria-label="Qatorni o‘chirish" onClick={() => update(rows.filter((_, j) => j !== i))}>×</button>}
+        </div>
+      ))}
+      {rows.length < 20 && <div><button type="button" className="btn ghost sm" onClick={() => setRows([...rows, { name: "", price: 0 }])}>+ Texnika qo‘shish</button></div>}
     </div>
   );
 }

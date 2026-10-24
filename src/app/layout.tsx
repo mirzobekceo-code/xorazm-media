@@ -25,7 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [profs, user] = await Promise.all([getProfessions(), getUser()]);
   const adCtx = await adContextFromUrl((await headers()).get("x-url"), profs);
   return (
-    <html lang="uz">
+    <html lang="uz" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />

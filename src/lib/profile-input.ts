@@ -32,8 +32,10 @@ export const ProfileInput = z.object({
   profession: z.string().min(1, "Yo‘nalishni tanlang"),
   extraProfession: z.string().optional().default(""),
   fullName: z.string().trim().min(3, "To‘liq ismni yozing").max(80),
-  birthYear: z.coerce.number().int().min(1940).max(new Date().getFullYear() - 14, "Yosh kamida 14"),
-  gender: z.enum(["f", "m"]),
+  /** Studiya va texnika ijarasida so'ralmaydi (isBusiness) */
+  birthYear: z.preprocess((v) => (v === "" || v == null ? undefined : v),
+    z.coerce.number().int().min(1940).max(new Date().getFullYear() - 14, "Yosh kamida 14").optional()),
+  gender: z.enum(["f", "m"]).optional(),
   languages: z.array(z.enum(["uz", "ru", "en"])).min(1, "Kamida bitta til"),
   districts: z.array(z.string()).min(1, "Kamida bitta tuman tanlang").max(14),
   bio: z.string().trim().max(500).default(""),
@@ -41,12 +43,12 @@ export const ProfileInput = z.object({
   price: z.coerce.number().int().min(0).max(1_000_000_000).optional(),
   priceNegotiable: z.boolean().default(false),
   tags: z.string().max(200).default("").transform((v) => v.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 5)),
-  extra: z.record(z.string(), z.string().trim().max(300)).default({}),
+  extra: z.record(z.string(), z.string().trim().max(1000)).default({}),
   /** Har qatorda bitta havola (YouTube, Instagram, TikTok, Vimeo, Telegram, Google Drive) */
   videoLinks: z.string().max(2000).default("")
     .transform((v) => v.split(/\s+/).map((x) => x.trim()).filter(Boolean))
     .refine((a) => a.length <= 5, "Ko‘pi bilan 5 ta video havola")
-    .refine((a) => a.every(isVideoLink), "Video havola YouTube, Instagram, TikTok, Vimeo, Telegram yoki Google Drive’dan bo‘lsin (https://...)"),
+    .refine((a) => a.every(isVideoLink), "Havola YouTube, Instagram, TikTok, Vimeo, Telegram, Google Drive yoki SoundCloud’dan bo‘lsin (https://...)"),
   contacts: z.object({ phone: z.string().trim().optional().default(""), telegram: handle.default(""), instagram: handle.default("") }),
   blogger: BloggerInput.optional(),
   consent: z.literal(true, { errorMap: () => ({ message: "Kontaktlar ochiq ko‘rinishiga rozilik kerak" }) }),

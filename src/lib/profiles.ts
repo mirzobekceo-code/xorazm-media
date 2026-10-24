@@ -4,6 +4,7 @@ import { getDb, schema as s } from "@/db";
 import { normalizePhone, slugify } from "./format";
 import { AGE_GROUPS, RATE_LABELS, type ProfileParsed } from "./profile-input";
 import { notifyStaff } from "./telegram";
+import { isBusiness, parsePriceList, portfolioProblem } from "./portfolio-rules";
 
 export async function getOwnProfile(userId: number) {
   const db = await getDb();
@@ -22,11 +23,19 @@ export async function upsertProfile(userId: number, phone: string, input: Profil
   if (!prof) return { ok: false, error: "Yo‘nalish topilmadi" };
   const extraProf = input.extraProfession ? profs.find((p) => p.slug === input.extraProfession && p.id !== prof.id) : undefined;
   const isBlogger = prof.slug === "bloger";
+  const business = isBusiness(prof.slug);
+  if (!business && !input.birthYear) return { ok: false, error: "Tug‘ilgan yilni yozing" };
   if (isBlogger && !input.blogger) return { ok: false, error: "Bloger statistikasini to‘ldiring" };
   for (const f of prof.fieldsSchema) {
     if (f.required && !input.extra[f.key]) return { ok: false, error: `“${f.label}” maydonini to‘ldiring` };
   }
   const extra = Object.fromEntries(prof.fieldsSchema.map((f) => [f.key, input.extra[f.key] ?? ""]).filter(([, v]) => v));
+  for (const f of prof.fieldsSchema) {
+    if (f.type === "map" && extra[f.key] && !/^https:\/\//.test(extra[f.key])) return { ok: false, error: `“${f.label}”: https:// bilan boshlanadigan havola kiriting` };
+  }
+  // Narxli ro'yxat bo'lsa va umumiy narx yozilmagan bo'lsa, kartochkada eng arzon narx ko'rsatiladi
+  const listField = prof.fieldsSchema.find((f) => f.type === "pricelist");
+  const listMin = listField ? Math.min(...parsePriceList(extra[listField.key]).map((r) => r.price).filter((n) => n > 0)) : Infinity;
 
   const dists = await db.select().from(s.districts).where(inArray(s.districts.slug, input.districts));
   if (!dists.length) return { ok: false, error: "Tuman tanlang" };
@@ -44,12 +53,12 @@ export async function upsertProfile(userId: number, phone: string, input: Profil
     professionId: prof.id,
     extraProfessionId: extraProf?.id ?? null,
     fullName: input.fullName,
-    birthYear: input.birthYear,
-    gender: input.gender,
+    birthYear: business ? null : input.birthYear,
+    gender: business ? null : input.gender ?? null,
     languages: input.languages,
     bio: input.bio,
     experienceYears: input.experienceYears,
-    price: input.price || null,
+    price: input.price || (Number.isFinite(listMin) ? listMin : null),
     priceNegotiable: input.priceNegotiable,
     tags: input.tags,
     videoLinks: input.videoLinks,
@@ -115,9 +124,14 @@ export async function submitForReview(userId: number): Promise<{ ok: true } | { 
   if (!p) return { ok: false, error: "Avval profilni to‘ldiring" };
   if (p.status === "blocked") return { ok: false, error: "Profil bloklangan. Admin bilan bog‘laning." };
   if (p.status === "approved" || p.status === "pending") return { ok: true };
-  const images = await db.select({ id: s.media.id }).from(s.media)
-    .where(and(eq(s.media.profileId, p.id), eq(s.media.type, "image"), eq(s.media.isStatScreenshot, false)));
-  if (!images.length) return { ok: false, error: "Kamida bitta rasm yuklang" };
+  const media = await db.select({ type: s.media.type, stat: s.media.isStatScreenshot }).from(s.media).where(eq(s.media.profileId, p.id));
+  const [prof] = await db.select({ slug: s.professions.slug }).from(s.professions).where(eq(s.professions.id, p.professionId));
+  const problem = portfolioProblem(prof.slug, {
+    images: media.filter((m) => m.type === "image" && !m.stat).length,
+    links: p.videoLinks.length,
+    proofs: media.filter((m) => m.stat).length,
+  });
+  if (problem) return { ok: false, error: problem };
   await db.update(s.profiles).set({ status: "pending", rejectReason: null, updatedAt: new Date() }).where(eq(s.profiles.id, p.id));
   await notifyStaff(`Yangi profil tekshiruvga keldi: ${p.fullName}`);
   return { ok: true };

@@ -6,7 +6,7 @@ const int = (v: string | undefined, d: number) => (v && /^\d+$/.test(v) ? Number
 
 export function uploadLimits() {
   return {
-    images: int(process.env.MAX_IMAGES, 10),
+    images: int(process.env.MAX_IMAGES, 6),
     screenshots: int(process.env.MAX_SCREENSHOTS, 6),
     /** 0 = video yuklash o'chirilgan, faqat havola (YouTube, Instagram, TikTok) */
     videos: int(process.env.MAX_VIDEOS, 3),
@@ -18,7 +18,7 @@ export function uploadLimits() {
 export type UploadLimits = ReturnType<typeof uploadLimits>;
 
 /** Ruxsat etilgan video havolalari: brauzer ochadigan tashqi platformalar. */
-const VIDEO_HOSTS = ["youtube.com", "youtu.be", "instagram.com", "tiktok.com", "vimeo.com", "t.me", "drive.google.com"];
+const VIDEO_HOSTS = ["youtube.com", "youtu.be", "instagram.com", "tiktok.com", "vimeo.com", "t.me", "drive.google.com", "soundcloud.com"];
 
 export function isVideoLink(raw: string): boolean {
   try {
@@ -52,6 +52,7 @@ export function linkLabel(raw: string): string {
     if (h.includes("vimeo")) return "Vimeo";
     if (h === "t.me") return "Telegram";
     if (h.includes("drive.google")) return "Google Drive";
+    if (h.includes("soundcloud")) return "SoundCloud";
     return h;
   } catch {
     return raw;
