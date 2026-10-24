@@ -129,7 +129,10 @@ export default async function Catalog(props: Props) {
             {items.length <= 4 && <Ad slot="A2" variant="card" ctx={adCtx} />}
           </div>
         ) : (
-          <div className="empty">Bu filtr bo‘yicha hozircha profil yo‘q. Tumanni “Butun Xorazm” qilib ko‘ring.</div>
+          <>
+            <div className="empty">Bu filtr bo‘yicha hozircha profil yo‘q. Tumanni “Butun Xorazm” qilib ko‘ring.</div>
+            <div className="grid three"><Ad slot="A2" variant="card" ctx={adCtx} /></div>
+          </>
         )}
         {res.pages > 1 && (
           <nav className="pager" aria-label="Sahifalar">
