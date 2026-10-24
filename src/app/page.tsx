@@ -4,6 +4,14 @@ import ProfileCard from "@/components/ProfileCard";
 import { ProfIcon } from "@/components/Icons";
 import Ad from "@/components/Ad";
 import HeroSearch from "./HeroSearch";
+import Tile from "@/components/Tile";
+
+const HERO_LABELS = ["Bloger", "Operator", "Brand Face", "Montajor"];
+/**
+ * Bosh sahifa kollaji rasmlari (public/hero/). Ro'yxat bo'sh yoki rasm yetishmasa — koshin naqshi.
+ * Vercel'da public/ server funksiyasiga kirmaydi, shuning uchun ro'yxat qo'lda yuritiladi.
+ */
+const HERO_IMAGES: string[] = [];
 
 export const dynamic = "force-dynamic";
 
@@ -13,18 +21,26 @@ export default async function Home() {
   const items = top.items.slice(0, 7);
   return (
     <div className="view">
-      <div className="hero">
+      <div className="hero-x">
         <div>
           <span className="free">Hammasi bepul — kontaktlar ochiq</span>
-          <h1>Xorazmdagi media mutaxassislar bir joyda</h1>
+          <h1>Xorazmdagi media mutaxassislar <em>bir joyda</em></h1>
           <p className="lead">Bloger, brand face, operator, fotograf, montajor, dizayner, targetolog va SMM manager toping. Profilni ko‘ring va to‘g‘ridan-to‘g‘ri bog‘laning. To‘lov yo‘q, vositachi yo‘q.</p>
+          <HeroSearch profs={profs.map((p) => [p.slug, p.nameUz])} dists={dists.map((d) => [d.slug, d.nameUz])} />
           <div className="stats">
             <div><b className="num">{total}</b><span>tasdiqlangan profil</span></div>
             <div><b className="num">{dists.length}</b><span>shahar va tuman</span></div>
             <div><b className="num">0 so‘m</b><span>kontakt ochish</span></div>
           </div>
         </div>
-        <HeroSearch profs={profs.map((p) => [p.slug, p.nameUz])} dists={dists.map((d) => [d.slug, d.nameUz])} />
+        <div className="collage" aria-hidden="true">
+          {HERO_LABELS.map((label, i) => (
+            <div className="arch" key={label}>
+              {HERO_IMAGES[i] ? <img src={HERO_IMAGES[i]} alt="" /> : <Tile seed={i} scale={1.4} />}
+              <span className="label">{label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <section>

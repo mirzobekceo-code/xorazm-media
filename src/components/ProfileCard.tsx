@@ -2,6 +2,17 @@ import Link from "next/link";
 import type { ProfileCard as Card } from "@/lib/queries";
 import { initials, kfmt, money } from "@/lib/format";
 import { Verified } from "./Icons";
+import Tile from "./Tile";
+
+/** Rasmi yo'q profil uchun: Xiva koshini naqshi va ism harflari. */
+export function Placeholder({ id, name, big }: { id: number; name: string; big?: boolean }) {
+  return (
+    <>
+      <Tile seed={id} scale={big ? 1.6 : 1.8} />
+      <span className={`ini${big ? " big" : ""}`}>{initials(name)}</span>
+    </>
+  );
+}
 
 export default function ProfileCard({ p }: { p: Card }) {
   const isBlogger = p.profession.slug === "bloger";
@@ -11,10 +22,16 @@ export default function ProfileCard({ p }: { p: Card }) {
   return (
     <Link className="card" href={`/m/${p.slug}`}>
       <div className="ph">
-        {p.cover ? <img src={p.cover} alt="" loading="lazy" /> : <span className="ini">{initials(p.fullName)}</span>}
+        {p.cover ? <img src={p.cover} alt="" loading="lazy" /> : <Placeholder id={p.id} name={p.fullName} />}
         <span className="chip">{p.profession.nameUz}</span>
         {p.isFeatured && <span className="top">TOP</span>}
       </div>
+      {p.thumbs.length > 0 && (
+        <div className="strip">
+          {p.thumbs.map((t) => <img key={t} src={t} alt="" loading="lazy" />)}
+          {Array.from({ length: 3 - p.thumbs.length }, (_, i) => <span key={i} />)}
+        </div>
+      )}
       <div className="b">
         <span className="nm">{p.fullName} <Verified /></span>
         <span className="meta">{meta}</span>

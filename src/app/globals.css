@@ -1,17 +1,26 @@
-/* Adverto oilasidagi qora-oq uslub. Reklama joylari teskari (inverse) bloklar. */
+/*
+ * "Xiva firuzasi": Ichan qal'a koshinlarining firuza va kobalt ranglari, g'isht va ganchning iliq foni.
+ * Bitta imzo rangi (firuza) — tugmalar, havolalar, faol holatlar; g'isht — TOP va urg'ular.
+ * Reklama joylari to'q firuza-qora (teskari) bloklar.
+ */
 :root {
-  --bg: #f6f6f4; --surface: #ffffff; --ink: #111111; --muted: #66665f; --line: #e2e2dd; --soft: #ededea;
-  --inv-bg: #111111; --inv-fg: #f6f6f4; --inv-muted: #a6a6a6;
+  --bg: #f5efe5; --surface: #fffcf7; --ink: #1d1a16; --muted: #6d6458; --line: #e5dacb; --soft: #efe5d6;
+  --accent: #0e7c86; --accent-ink: #ffffff; --accent-strong: #0a5f67; --accent-soft: #d9eeee;
+  --brick: #b4532c; --cobalt: #1f3f8f; --sand: #e9d8bd;
+  --inv-bg: #10201f; --inv-fg: #f5efe5; --inv-muted: #9fb3b0;
   --good: #1f7a46; --warn: #a15c00; --bad: #b3261e;
+  --serif: "Fraunces", Georgia, "Times New Roman", serif;
   --display: "Outfit", "Helvetica Neue", Arial, sans-serif;
   --body: "Inter", "Helvetica Neue", Arial, sans-serif;
-  --r: 14px; --logo-ad: none; --logo-page: invert(1);
+  --r: 16px; --logo-ad: none; --logo-page: invert(1);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0e0e0d; --surface: #171716; --ink: #f2f2ef; --muted: #9b9b95; --line: #2a2a28; --soft: #1f1f1e;
-    --inv-bg: #f2f2ef; --inv-fg: #0e0e0d; --inv-muted: #55554f;
+    --bg: #0f1615; --surface: #162120; --ink: #f2ebdf; --muted: #a59d90; --line: #26332f; --soft: #1c2927;
+    --accent: #3cc2cb; --accent-ink: #0b1716; --accent-strong: #74d8de; --accent-soft: #163a3c;
+    --brick: #e0805a; --cobalt: #7f9de6; --sand: #3a3226;
+    --inv-bg: #e9f4f2; --inv-fg: #0f1615; --inv-muted: #4c605d;
     --good: #5cc28a; --warn: #e0a24a; --bad: #f2867d;
     --logo-ad: invert(1); --logo-page: none; color-scheme: dark;
   }
@@ -21,11 +30,14 @@
 html, body { margin: 0 }
 body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased }
 h1, h2, h3, h4 { font-family: var(--display); font-weight: 500; letter-spacing: -.02em; line-height: 1.08; margin: 0; text-wrap: balance }
+/* Katta sarlavhalar — serif (jurnal uslubi); kursiv so'z firuza rangda */
+h1, .sec-head h2, .join h2, .prose h1 { font-family: var(--serif); font-weight: 500; letter-spacing: -.015em; font-optical-sizing: auto }
+h1 em, h2 em { font-style: italic; color: var(--accent) }
 p { margin: 0 }
 a { color: inherit }
 img { max-width: 100% }
 button, input, select, textarea { font: inherit; color: inherit }
-:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 [hidden] { display: none !important }
 
 .wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
@@ -40,20 +52,24 @@ button, input, select, textarea { font: inherit; color: inherit }
 header.top { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line) }
 .nav { display: flex; align-items: center; gap: 24px; height: 64px }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--display); font-size: 20px; font-weight: 600; letter-spacing: -.02em }
-.mark { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid var(--ink); display: grid; place-items: center; flex: none }
-.mark::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ink) }
+.mark { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid var(--accent); display: grid; place-items: center; flex: none }
+.mark::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--brick) }
 .navlinks { display: flex; gap: 4px; margin-left: 8px }
 .navlinks a { text-decoration: none; padding: 8px 12px; border-radius: 999px; color: var(--muted); font-weight: 500 }
-.navlinks a[aria-current="page"] { color: var(--ink); background: var(--soft) }
+.navlinks a[aria-current="page"] { color: var(--accent-strong); background: var(--accent-soft) }
 .nav .sp { flex: 1 }
 
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); font-weight: 500; cursor: pointer; text-decoration: none; white-space: nowrap }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 500; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background .15s }
+.btn:hover { background: var(--accent-strong); border-color: var(--accent-strong) }
 .btn:disabled { opacity: .5; cursor: default }
 .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line) }
+.btn.ghost:hover { border-color: var(--accent); color: var(--accent-strong); background: transparent }
 .btn.tg { background: #229ed9; border-color: #229ed9; color: #fff }
+.btn.tg:hover { background: #1b8bc0; border-color: #1b8bc0 }
 .btn.danger { background: var(--bad); border-color: var(--bad); color: #fff }
 .btn.sm { height: 34px; padding: 0 14px; font-size: 14px }
-.link { background: none; border: 0; padding: 0; cursor: pointer; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; color: inherit }
+.link { background: none; border: 0; padding: 0; cursor: pointer; font-weight: 500; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 4px; color: inherit }
+.link:hover { color: var(--accent-strong) }
 
 /* Reklama */
 .ad { position: relative; background: var(--inv-bg); color: var(--inv-fg); border-radius: var(--r); overflow: hidden }
@@ -82,16 +98,27 @@ main { padding-block: 24px 72px }
 .view { display: flex; flex-direction: column; gap: 56px }
 
 /* Bosh sahifa */
+.hero-x { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; padding-top: 12px }
+.hero-x h1 { font-size: clamp(42px, 6.2vw, 82px); line-height: 1.02 }
+.hero-x .lead { font-size: 18px; color: var(--muted); max-width: 50ch; margin-top: 18px }
+.hero-x .search { margin-top: 26px }
+.collage { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; gap: 12px; height: clamp(360px, 42vw, 520px) }
+.collage .arch { position: relative; overflow: hidden; border-radius: 999px 999px 14px 14px; background: var(--soft) }
+.collage .arch:nth-child(1) { grid-row: span 2 }
+.collage .arch:nth-child(4) { grid-column: 2 / span 2; border-radius: 14px }
+.collage .arch img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
+.collage .label { position: absolute; left: 10px; bottom: 10px; z-index: 1; font-size: 12px; font-weight: 600; background: var(--surface); color: var(--ink); padding: 4px 10px; border-radius: 999px }
+.tile-band { position: relative; height: 14px; border-radius: 999px; overflow: hidden; opacity: .9 }
 .hero { display: grid; grid-template-columns: 1.25fr 1fr; gap: 40px; align-items: end; padding-top: 24px }
 .hero h1 { font-size: clamp(40px, 6vw, 76px) }
 .hero .lead { font-size: 18px; color: var(--muted); max-width: 52ch; margin-top: 18px }
 .free { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; border: 1px solid var(--ink); border-radius: 999px; padding: 4px 12px; margin-bottom: 18px }
-.free::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink) }
+.free::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent) }
 .search { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 8px }
 .search label { display: flex; flex-direction: column; padding: 6px 12px; border-radius: 12px; min-width: 0 }
 .search label span { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
 .search select { border: 0; background: transparent; padding: 2px 0; font-weight: 500; width: 100%; min-width: 0 }
-.search .btn { height: auto; border-radius: 12px }
+.search .btn { height: auto; min-height: 46px; border-radius: 12px }
 .stats { display: flex; gap: 28px; margin-top: 22px; flex-wrap: wrap }
 .stats b { font-family: var(--display); font-size: 28px; font-weight: 500; display: block }
 .stats span { font-size: 13px; color: var(--muted) }
@@ -100,7 +127,8 @@ main { padding-block: 24px 72px }
 
 .cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px }
 .cat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: flex; flex-direction: column; gap: 28px; text-decoration: none; transition: border-color .15s }
-.cat:hover { border-color: var(--ink) }
+.cat:hover { border-color: var(--accent) }
+.cat .ic { color: var(--accent) }
 .cat .ic { width: 40px; height: 40px }
 .cat h3 { font-size: 22px }
 .cat p { font-size: 13px; color: var(--muted); margin-top: 4px }
@@ -109,15 +137,23 @@ main { padding-block: 24px 72px }
 .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px }
 .grid.three { grid-template-columns: repeat(3, 1fr) }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; display: flex; flex-direction: column; text-decoration: none; transition: border-color .15s }
-.card:hover { border-color: var(--ink) }
+.card:hover { border-color: var(--accent) }
 .ph { aspect-ratio: 4/3.4; position: relative; display: grid; place-items: center; background: var(--soft); max-width: 100% }
 .ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
-.ph .ini { font-family: var(--display); font-size: 56px; font-weight: 500; letter-spacing: -.03em; opacity: .85 }
+.ph { overflow: hidden }
+/* Rasmsiz kartochkada naqsh yumshoqroq — haqiqiy rasmlar ajralib tursin */
+.card .ph svg { opacity: .42 }
+.card .ph { background: var(--sand) }
+.ph .ini { position: relative; z-index: 1; width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface); color: var(--ink); font-family: var(--serif); font-size: 34px; font-weight: 500; box-shadow: 0 0 0 6px rgb(255 255 255 / .35) }
+.ph .ini.big { width: 132px; height: 132px; font-size: 52px }
+.strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 3px 3px 0 }
+.strip img, .strip span { aspect-ratio: 1; width: 100%; object-fit: cover; display: block; background: var(--soft); border-radius: 4px }
 .ph .chip { position: absolute; left: 10px; top: 10px; font-size: 11px; font-weight: 600; background: var(--surface); color: var(--ink); padding: 3px 9px; border-radius: 999px; z-index: 1 }
-.ph .top { position: absolute; right: 10px; top: 10px; font-size: 11px; font-weight: 700; background: var(--ink); color: var(--bg); padding: 3px 9px; border-radius: 999px; z-index: 1 }
+.ph .top { position: absolute; right: 10px; top: 10px; font-size: 11px; font-weight: 700; background: var(--brick); color: #fff; padding: 3px 9px; border-radius: 999px; z-index: 1 }
 .card .b { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1 }
 .card .nm { font-family: var(--display); font-size: 19px; font-weight: 500; display: flex; align-items: center; gap: 6px }
-.ver { width: 16px; height: 16px; flex: none }
+.ver { width: 16px; height: 16px; flex: none; color: var(--accent) }
 .card .meta { font-size: 13px; color: var(--muted) }
 .tags { display: flex; flex-wrap: wrap; gap: 4px }
 .tg { font-size: 12px; background: var(--soft); padding: 2px 8px; border-radius: 6px }
@@ -146,7 +182,7 @@ main { padding-block: 24px 72px }
 .fgroup > span { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
 .chips { display: flex; flex-wrap: wrap; gap: 6px }
 .chips a { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 14px; text-decoration: none }
-.chips a[aria-current="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink) }
+.chips a[aria-current="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent) }
 .inp { width: 100%; height: 42px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 0 12px }
 textarea.inp { height: auto; padding: 10px 12px; resize: vertical }
 .cat-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap }
@@ -154,15 +190,15 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical }
 .empty { padding: 40px; border: 1px dashed var(--line); border-radius: var(--r); text-align: center; color: var(--muted) }
 .pager { display: flex; gap: 6px; justify-content: center; margin-top: 24px }
 .pager a, .pager span { min-width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line); text-decoration: none; padding: 0 10px }
-.pager span { background: var(--ink); color: var(--bg); border-color: var(--ink) }
+.pager span { background: var(--accent); color: var(--accent-ink); border-color: var(--accent) }
 
 /* Profil */
 .crumbs { font-size: 14px; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
 .pf { display: grid; grid-template-columns: 1fr 330px; gap: 28px; align-items: start }
 .pf-main { display: flex; flex-direction: column; gap: 28px; min-width: 0 }
 .pf-head { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: end }
-.pf-head .ph { aspect-ratio: 1; border-radius: 18px; overflow: hidden }
-.pf-head .ph .ini { font-size: 80px }
+/* Profil rasmi — Xiva ravoqi (arka) shaklida */
+.pf-head .ph { aspect-ratio: 4/5; border-radius: 999px 999px 18px 18px; overflow: hidden }
 .pf-head h1 { font-size: clamp(32px, 4.4vw, 52px); display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
 .pf-head h1 .ver { width: 26px; height: 26px }
 .kv { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line) }
@@ -199,7 +235,7 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical }
 .bars { display: flex; flex-direction: column; gap: 9px; margin-top: 10px }
 .bar { display: grid; grid-template-columns: 78px 1fr 40px; gap: 10px; align-items: center; font-size: 13px }
 .bar .track { height: 8px; background: var(--soft); border-radius: 99px; overflow: hidden }
-.bar .track i { display: block; height: 100%; background: var(--ink); border-radius: 99px }
+.bar .track i { display: block; height: 100%; background: var(--accent); border-radius: 99px }
 .bar b { text-align: right; font-weight: 600 }
 
 /* Formalar */
@@ -208,8 +244,8 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical }
 .steps div { display: flex; gap: 12px; align-items: center; padding: 10px 0; color: var(--muted) }
 .steps i { font-style: normal; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; font-size: 13px; font-weight: 600; flex: none }
 .steps div.on { color: var(--ink) }
-.steps div.on i { background: var(--ink); color: var(--bg); border-color: var(--ink) }
-.steps div.done i { border-color: var(--ink); color: var(--ink) }
+.steps div.on i { background: var(--accent); color: var(--accent-ink); border-color: var(--accent) }
+.steps div.done i { border-color: var(--accent); color: var(--accent) }
 .form { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 32px; display: flex; flex-direction: column; gap: 22px; min-width: 0 }
 .form h2 { font-size: 32px }
 .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px }
@@ -220,14 +256,15 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical }
 .kasb { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px }
 .kasb label { border: 1px solid var(--line); border-radius: 14px; padding: 16px; cursor: pointer; display: flex; flex-direction: column; gap: 14px; position: relative }
 .kasb input { position: absolute; opacity: 0; pointer-events: none }
-.kasb label:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+.kasb label:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft) }
+.kasb .ic { color: var(--accent) }
 .kasb .ic { width: 36px; height: 36px }
 .kasb b { font-family: var(--display); font-size: 18px; font-weight: 500 }
 .kasb small { color: var(--muted); font-size: 13px }
 .checks { display: flex; flex-wrap: wrap; gap: 6px }
 .checks label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 14px }
-.checks input { accent-color: var(--ink) }
-.checks label:has(input:checked) { border-color: var(--ink); background: var(--soft) }
+.checks input { accent-color: var(--accent) }
+.checks label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft) }
 .drop { border: 1.5px dashed var(--line); border-radius: 14px; padding: 28px; text-align: center; color: var(--muted); display: flex; flex-direction: column; gap: 8px; align-items: center }
 .act { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); padding-top: 20px }
 .err { color: var(--bad); font-size: 14px }
@@ -285,7 +322,8 @@ dialog::backdrop { background: rgb(0 0 0 / .4) }
 }
 @media (max-width: 800px) {
   .navlinks { display: none }
-  .hero, .join, .cat-layout, .su, .admin-layout { grid-template-columns: 1fr }
+  .hero, .hero-x, .join, .cat-layout, .su, .admin-layout { grid-template-columns: 1fr }
+  .collage { height: 300px }
   .filters, .steps, .admin-nav { position: static }
   .steps { flex-direction: row; overflow-x: auto; gap: 12px }
   .steps div span { display: none }
@@ -312,10 +350,13 @@ dialog::backdrop { background: rgb(0 0 0 / .4) }
   .form { padding: 20px }
   .card .nm { font-size: 16px }
   .card .pr { flex-direction: column-reverse; gap: 2px }
-  .ph .ini { font-size: 40px }
+  .ph .ini { width: 68px; height: 68px; font-size: 26px }
   .tumans { grid-template-columns: 1fr }
   .nav .join-btn { display: none }
   .ad-banner .cta { width: 100%; justify-content: center }
-  .hero h1 { font-size: 40px }
+  .hero h1, .hero-x h1 { font-size: 40px }
+  .collage { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr; height: 180px }
+  .collage .arch:nth-child(1) { grid-row: auto }
+  .collage .arch:nth-child(n+4) { display: none }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important } }

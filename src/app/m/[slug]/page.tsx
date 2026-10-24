@@ -3,11 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProfile, getSimilar } from "@/lib/queries";
 import { getUser } from "@/lib/auth";
-import { ageFrom, initials, kfmt, money, PLATFORM_LABELS, totalFollowers } from "@/lib/format";
+import { ageFrom, kfmt, money, PLATFORM_LABELS, totalFollowers } from "@/lib/format";
 import { LANGUAGES } from "@/lib/reference";
 import { SITE } from "@/lib/site";
 import { linkLabel, youtubeId } from "@/lib/limits";
-import ProfileCard from "@/components/ProfileCard";
+import ProfileCard, { Placeholder } from "@/components/ProfileCard";
 import Ad from "@/components/Ad";
 import Bars from "@/components/Bars";
 import { Verified } from "@/components/Icons";
@@ -72,7 +72,7 @@ export default async function ProfilePage({ params }: Props) {
         <div className="pf-main">
           <div className="pf-head">
             <div className="ph">
-              {cover ? <img src={cover.url} alt={p.fullName} /> : <span className="ini">{initials(p.fullName)}</span>}
+              {cover ? <img src={cover.url} alt={p.fullName} /> : <Placeholder id={p.id} name={p.fullName} big />}
               {p.isFeatured && <span className="top">TOP</span>}
             </div>
             <div className="stack" style={{ gap: 10 }}>

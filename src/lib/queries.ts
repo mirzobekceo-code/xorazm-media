@@ -103,6 +103,8 @@ export async function searchProfiles(f: CatalogFilters) {
       followers: followersExpr,
       er: sql<number | null>`(select bs.er from ${s.bloggerStats} bs where bs.profile_id = ${P_ID} order by bs.created_at desc limit 1)`,
       cover: sql<string | null>`(select coalesce(m.thumb_url, m.url) from ${s.media} m where m.profile_id = ${P_ID} and m.type = 'image' and m.moderation_status = 'approved' and not m.is_stat_screenshot order by m.is_cover desc, m.sort_order asc limit 1)`,
+      // Kartochka ostidagi portfolio: muqovadan keyingi 3 ta rasm
+      thumbs: sql<string[]>`(select coalesce(array_agg(t.u), '{}') from (select coalesce(m.thumb_url, m.url) as u from ${s.media} m where m.profile_id = ${P_ID} and m.type = 'image' and m.moderation_status = 'approved' and not m.is_stat_screenshot order by m.is_cover desc, m.sort_order asc offset 1 limit 3) t)`,
       districts: sql<string[]>`(select coalesce(array_agg(d.name_uz order by d.sort_order), '{}') from ${s.profileDistricts} pd join ${s.districts} d on d.id = pd.district_id where pd.profile_id = ${P_ID})`,
     })
     .from(s.profiles)
