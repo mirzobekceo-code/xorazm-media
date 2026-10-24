@@ -14,7 +14,7 @@ import Tile from "@/components/Tile";
 const HERO: { label: string; src?: string; pos?: string }[] = [
   { label: "Bloger", src: "/hero/bloger.webp", pos: "center 35%" },
   { label: "Operator", src: "/hero/operator.webp", pos: "center 28%" },
-  { label: "Brand Face" },
+  { label: "Brand Face", src: "/hero/brandface.webp", pos: "center 22%" },
   { label: "Montajor", src: "/hero/montajor.webp", pos: "center 40%" },
 ];
 
