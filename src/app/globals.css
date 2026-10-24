@@ -90,21 +90,52 @@ main { padding-block: 24px 72px }
 .view { display: flex; flex-direction: column; gap: 56px }
 
 /* Bosh sahifa */
-.hero-x { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; padding-top: 12px }
-.hero-x h1 { font-size: clamp(42px, 6.2vw, 82px); line-height: 1.02 }
-.hero-x .lead { font-size: 18px; color: var(--muted); max-width: 50ch; margin-top: 18px }
-.hero-x .search { margin-top: 26px }
-.collage { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; gap: 12px; height: clamp(360px, 42vw, 520px) }
-.collage .arch { position: relative; overflow: hidden; border-radius: 999px 999px 14px 14px; background: var(--soft) }
-.collage .arch:nth-child(1) { grid-row: span 2 }
-.collage .arch:nth-child(4) { grid-column: 2 / span 2; border-radius: 14px }
-.collage .arch img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
-.collage .arch svg { opacity: .78 }
-.collage .label { position: absolute; left: 10px; bottom: 10px; z-index: 1; font-size: 12px; font-weight: 600; background: var(--surface); color: var(--ink); padding: 4px 10px; border-radius: 999px }
 .tile-band { position: relative; height: 14px; border-radius: 999px; overflow: hidden; opacity: .9 }
 .hero { display: grid; grid-template-columns: 1.25fr 1fr; gap: 40px; align-items: end; padding-top: 24px }
 .hero h1 { font-size: clamp(40px, 6vw, 76px) }
 .hero .lead { font-size: 18px; color: var(--muted); max-width: 52ch; margin-top: 18px }
+.hero-c { text-align: center; padding-top: 18px }
+.hero-c h1 { font-size: clamp(42px, 6.4vw, 86px); line-height: 1.02; max-width: 15ch; margin: 0 auto }
+.hero-c .lead { font-size: 18px; color: var(--muted); max-width: 58ch; margin: 18px auto 0 }
+.hero-c .search { max-width: 760px; margin: 26px auto 0; text-align: left }
+.hero-c .stats { justify-content: center }
+
+/* Yelpig'ich: chetdagi kartochkalar ko'proq og'adi va pastroq turadi, markazda telefon */
+.fan { display: flex; justify-content: center; align-items: flex-start; margin-top: 48px; padding-bottom: 56px }
+.fan-card { position: relative; flex: 0 0 auto; width: clamp(140px, 14.5vw, 205px); aspect-ratio: 3 / 4.6; margin: 0 -6px; border-radius: 26px; overflow: hidden; background: var(--soft); box-shadow: 0 24px 50px -22px #000e; transform: translateY(var(--y)) rotate(var(--rot)); transition: transform .3s ease; text-decoration: none }
+.fan-card:hover { transform: translateY(calc(var(--y) - 10px)) rotate(var(--rot)); z-index: 3 }
+.fan-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
+.fan-card .pill { position: absolute; left: 10px; right: 10px; bottom: 12px; z-index: 1; text-align: center; font-family: var(--display); font-size: 16px; font-weight: 600; color: #fff; background: #0b1312d9; padding: 10px 12px; border-radius: 999px; backdrop-filter: blur(8px) }
+.phone { position: relative; z-index: 2; flex: 0 0 auto; width: clamp(230px, 22vw, 300px); margin: -26px 22px 0; padding: 14px 12px 16px; border-radius: 42px; background: var(--bg); border: 8px solid #1f2b29; box-shadow: 0 40px 90px -24px #000, 0 0 0 1px #3cc2cb40; text-align: left }
+.ph-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px }
+.ph-loc { font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line) }
+.ph-ic { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); color: var(--ink) }
+.ph-hl { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 18px; background: radial-gradient(120% 140% at 100% 0%, #3cc2cb 0%, #1d6f74 45%, #123534 100%); color: #fff }
+.ph-hl b { font-family: var(--display); font-size: 19px; font-weight: 600 }
+.ph-hl span:last-child { font-size: 12px; opacity: .85 }
+.ph-badge { align-self: flex-start; font-size: 10px; font-weight: 700; letter-spacing: .06em; color: var(--accent-ink); background: #c9f27a; padding: 3px 8px; border-radius: 999px }
+.ph-tabs { display: flex; gap: 4px; margin: 12px 0; padding: 4px; border-radius: 999px; background: var(--surface) }
+.ph-tabs a { flex: 1; text-align: center; font-size: 12px; font-weight: 600; padding: 7px 4px; border-radius: 999px; color: var(--muted); text-decoration: none; white-space: nowrap }
+.ph-tabs a.on { background: var(--accent); color: var(--accent-ink) }
+.ph-row { display: flex; justify-content: space-between; align-items: baseline; margin: 2px 2px 8px; font-size: 14px }
+.ph-row a { font-size: 12px; color: var(--accent-strong); text-decoration: none }
+.ph-pick { display: block; border-radius: 18px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); text-decoration: none }
+.ph.ph-img { aspect-ratio: 16 / 10; background: var(--sand) }
+.ph-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
+.ph-img svg { opacity: .42 }
+.ph.ph-img .ini { width: 56px; height: 56px; font-size: 22px }
+.ph-chip { position: absolute; left: 8px; top: 8px; font-size: 11px; font-weight: 600; background: var(--accent); color: var(--accent-ink); padding: 3px 9px; border-radius: 999px }
+.ph-b { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px 12px }
+.ph-b .nm { display: inline-flex; gap: 4px; align-items: center; font-weight: 600; font-size: 15px }
+.ph-b .pr { font-family: var(--display); font-size: 18px; font-weight: 600; margin-top: 2px }
+@media (max-width: 900px) {
+  .fan { justify-content: flex-start; overflow-x: auto; scroll-snap-type: x mandatory; margin: 30px -16px 0; padding: 24px 24px 36px; gap: 14px; scrollbar-width: none }
+  .fan::-webkit-scrollbar { display: none }
+  .fan-card { margin: 0; width: 200px; scroll-snap-align: center; transform: rotate(calc(var(--rot) * .4)) }
+  .fan-card:hover { transform: rotate(calc(var(--rot) * .4)) }
+  .phone { order: -1; margin: 0; width: 260px; scroll-snap-align: center }
+}
+@media (max-width: 560px) { .hero-c h1 { font-size: 40px } }
 .free { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; border: 1px solid var(--ink); border-radius: 999px; padding: 4px 12px; margin-bottom: 18px }
 .free::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent) }
 .search { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 8px }
@@ -127,33 +158,6 @@ main { padding-block: 24px 72px }
 .cat p { font-size: 13px; color: var(--muted); margin-top: 4px }
 .cat .c { font-size: 13px; font-weight: 600 }
 
-/* Mutaxassislar vitrinasi: yelpig'ich kartochkalar va markazda telefon */
-.showcase { text-align: center; padding: 28px 0 8px }
-.showcase h2 { font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 4.6vw, 60px); line-height: 1.04; letter-spacing: -.015em; margin-top: 10px }
-.showcase .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 26px }
-.btn.xl { height: 58px; padding: 0 30px; font-size: 17px; font-weight: 600 }
-.btn.dark { background: var(--surface); border-color: var(--line); color: var(--ink) }
-.btn.dark:hover { background: var(--soft); border-color: var(--accent) }
-.fan { display: flex; justify-content: center; align-items: flex-start; margin-top: 44px; padding: 0 0 40px }
-.fan-card { position: relative; flex: 0 0 auto; width: clamp(92px, 8.6vw, 126px); aspect-ratio: 3 / 4.7; margin: 0 -8px; border-radius: 22px; overflow: hidden; background: var(--soft); border: 1px solid var(--line); box-shadow: 0 18px 40px -18px #000c; transform: translateY(var(--y)) rotate(var(--rot)); transition: transform .25s ease; text-decoration: none }
-.fan-card:hover { transform: translateY(calc(var(--y) - 10px)) rotate(var(--rot)) scale(1.04); z-index: 3 }
-.fan-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
-.fan-card svg { opacity: .55 }
-.fan-card .fan-ic { position: absolute; left: 50%; top: 40%; width: 44px; height: 44px; transform: translate(-50%, -50%); color: var(--accent-strong); opacity: 1 }
-.fan-card .pill { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 1; display: inline-flex; gap: 5px; align-items: center; white-space: nowrap; font-size: 11.5px; font-weight: 600; color: var(--ink); background: #0b1312e6; padding: 6px 11px; border-radius: 999px; backdrop-filter: blur(6px) }
-.fan-card .pill b { color: var(--accent-strong); font-weight: 600 }
-.phone { position: relative; z-index: 2; flex: 0 0 auto; width: clamp(220px, 19vw, 262px); margin: -18px 14px 0; padding: 30px 14px 16px; border-radius: 38px; background: var(--bg); border: 7px solid #26332f; box-shadow: 0 30px 70px -20px #000e, 0 0 0 1px #3cc2cb33; text-align: left }
-.phone .notch { position: absolute; top: 8px; left: 50%; width: 70px; height: 18px; transform: translateX(-50%); border-radius: 999px; background: #26332f }
-.phone .ph-t { font-size: 13px; font-weight: 600; margin: 4px 2px 8px }
-.ph-pick { display: flex; flex-direction: column; gap: 2px; text-decoration: none; margin-bottom: 14px }
-.ph-pick .ph-img { position: relative; aspect-ratio: 4 / 3.4; border-radius: 16px; overflow: hidden; background: var(--soft); margin-bottom: 8px }
-.ph-pick .ph-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
-.ph-pick .ph-img .ini { width: 54px; height: 54px; font-size: 18px }
-.ph-pick .nm { font-weight: 600; font-size: 14px; display: inline-flex; gap: 4px; align-items: center }
-.ph-cats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
-.ph-cats a { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); font-size: 12px; font-weight: 600; text-decoration: none }
-.ph-cats a:hover { border-color: var(--accent) }
-.ph-cats .ic { width: 24px; height: 24px; color: var(--accent) }
 
 .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px }
 .grid.three { grid-template-columns: repeat(3, 1fr) }
@@ -343,8 +347,7 @@ dialog::backdrop { background: rgb(0 0 0 / .4) }
 }
 @media (max-width: 800px) {
   .navlinks { display: none }
-  .hero, .hero-x, .join, .cat-layout, .su, .admin-layout { grid-template-columns: 1fr }
-  .collage { height: 300px }
+  .hero, .join, .cat-layout, .su, .admin-layout { grid-template-columns: 1fr }
   .filters, .steps, .admin-nav { position: static }
   .steps { flex-direction: row; overflow-x: auto; gap: 12px }
   .steps div span { display: none }
@@ -375,20 +378,6 @@ dialog::backdrop { background: rgb(0 0 0 / .4) }
   .tumans { grid-template-columns: 1fr }
   .nav .join-btn { display: none }
   .ad-banner .cta { width: 100%; justify-content: center }
-  .hero h1, .hero-x h1 { font-size: 40px }
-  .collage { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr; height: 180px }
-  .collage .arch:nth-child(1) { grid-row: auto }
-  .collage .arch:nth-child(n+4) { display: none }
+  .hero h1 { font-size: 40px }
 }
-@media (max-width: 1000px) {
-  .fan-card:nth-child(1), .fan-card:nth-last-child(1) { display: none }
-}
-@media (max-width: 800px) {
-  .fan { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scroll-snap-type: x mandatory; margin: 30px -16px 0; padding: 20px 26px 34px; gap: 14px; scrollbar-width: none }
-  .fan::-webkit-scrollbar { display: none }
-  .fan-card, .fan-card:nth-child(1), .fan-card:nth-last-child(1) { display: block; margin: 0; width: 132px; scroll-snap-align: center; transform: rotate(calc(var(--rot) * .5)) }
-  .fan-card:hover { transform: rotate(calc(var(--rot) * .5)) }
-  .phone { order: -1; margin: 0; width: 220px; scroll-snap-align: center }
-}
-@media (max-width: 560px) { .btn.xl { height: 52px; padding: 0 22px; font-size: 16px; flex: 1 1 100% } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important } }

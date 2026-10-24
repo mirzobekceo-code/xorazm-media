@@ -1,21 +1,20 @@
 import Link from "next/link";
 import { getDistricts, getProfessions, searchProfiles } from "@/lib/queries";
 import ProfileCard from "@/components/ProfileCard";
-import Showcase from "@/components/Showcase";
+import { ProfIcon } from "@/components/Icons";
+import HeroFan, { type FanItem } from "@/components/HeroFan";
 import Ad from "@/components/Ad";
 import HeroSearch from "./HeroSearch";
-import Tile from "@/components/Tile";
 
 /**
- * Bosh sahifa kollaji (public/hero/). Rasm bo'lmagan joyda koshin naqshi.
- * Vercel'da public/ server funksiyasiga kirmaydi, shuning uchun ro'yxat qo'lda yuritiladi.
- * pos — rasmni joyga qirqishda yuz ko'rinib turishi uchun (object-position).
+ * Bosh sahifa yelpig'ichi (public/hero/). Vercel'da public/ server funksiyasiga kirmaydi,
+ * shuning uchun ro'yxat qo'lda yuritiladi. pos — yuz ko'rinib turishi uchun (object-position).
  */
-const HERO: { label: string; src?: string; pos?: string }[] = [
-  { label: "Bloger", src: "/hero/bloger.webp", pos: "center 35%" },
-  { label: "Operator", src: "/hero/operator.webp", pos: "center 28%" },
-  { label: "Brand Face", src: "/hero/brandface.webp", pos: "center 22%" },
-  { label: "Montajor", src: "/hero/montajor.webp", pos: "center 40%" },
+const HERO: FanItem[] = [
+  { label: "Blogerlar", href: "/mutaxassislar/bloger", src: "/hero/bloger.webp", pos: "center 30%" },
+  { label: "Operatorlar", href: "/mutaxassislar/operator", src: "/hero/operator.webp", pos: "center 28%" },
+  { label: "Brand Face", href: "/mutaxassislar/brand-face", src: "/hero/brandface.webp", pos: "center 22%" },
+  { label: "Montajorlar", href: "/mutaxassislar/montajor", src: "/hero/montajor.webp", pos: "30% 40%" },
 ];
 
 export const dynamic = "force-dynamic";
@@ -26,29 +25,31 @@ export default async function Home() {
   const items = top.items.slice(0, 7);
   return (
     <div className="view">
-      <div className="hero-x">
-        <div>
-          <span className="free">Hammasi bepul — kontaktlar ochiq</span>
-          <h1>Xorazmdagi media mutaxassislar <em>bir joyda</em></h1>
-          <p className="lead">Bloger, brand face, operator, fotograf, montajor, dizayner, targetolog va SMM manager toping. Profilni ko‘ring va to‘g‘ridan-to‘g‘ri bog‘laning. To‘lov yo‘q, vositachi yo‘q.</p>
-          <HeroSearch profs={profs.map((p) => [p.slug, p.nameUz])} dists={dists.map((d) => [d.slug, d.nameUz])} />
-          <div className="stats">
-            <div><b className="num">{total}</b><span>tasdiqlangan profil</span></div>
-            <div><b className="num">{dists.length}</b><span>shahar va tuman</span></div>
-            <div><b className="num">0 so‘m</b><span>kontakt ochish</span></div>
-          </div>
+      <div className="hero-c">
+        <span className="free">Hammasi bepul — kontaktlar ochiq</span>
+        <h1>Xorazmdagi media mutaxassislar <em>bir joyda</em></h1>
+        <p className="lead">Bloger, brand face, operator, fotograf, montajor, dizayner, targetolog va SMM manager toping. Profilni ko‘ring va to‘g‘ridan-to‘g‘ri bog‘laning. To‘lov yo‘q, vositachi yo‘q.</p>
+        <HeroSearch profs={profs.map((p) => [p.slug, p.nameUz])} dists={dists.map((d) => [d.slug, d.nameUz])} />
+        <div className="stats">
+          <div><b className="num">{total}</b><span>tasdiqlangan profil</span></div>
+          <div><b className="num">{dists.length}</b><span>shahar va tuman</span></div>
+          <div><b className="num">0 so‘m</b><span>kontakt ochish</span></div>
         </div>
-        <div className="collage" aria-hidden="true">
-          {HERO.map((h, i) => (
-            <div className="arch" key={h.label}>
-              {h.src ? <img src={h.src} alt="" style={{ objectPosition: h.pos }} fetchPriority={i === 0 ? "high" : undefined} /> : <Tile seed={i} scale={1.4} />}
-              <span className="label">{h.label}</span>
-            </div>
-          ))}
-        </div>
+        <HeroFan items={HERO} top={items} profs={profs} />
       </div>
 
-      <Showcase profs={profs} top={items} />
+      <section>
+        <div className="sec-head"><h2>Yo‘nalishlar</h2></div>
+        <div className="cats">
+          {profs.map((p) => (
+            <Link key={p.slug} className="cat" href={`/mutaxassislar/${p.slug}`}>
+              <ProfIcon svg={p.icon} />
+              <div><h3>{p.nameUz}</h3><p>{p.description}</p></div>
+              <span className="c num">{p.count} ta profil →</span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <section>
         <div className="sec-head">
