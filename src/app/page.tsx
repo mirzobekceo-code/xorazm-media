@@ -6,12 +6,17 @@ import Ad from "@/components/Ad";
 import HeroSearch from "./HeroSearch";
 import Tile from "@/components/Tile";
 
-const HERO_LABELS = ["Bloger", "Operator", "Brand Face", "Montajor"];
 /**
- * Bosh sahifa kollaji rasmlari (public/hero/). Ro'yxat bo'sh yoki rasm yetishmasa — koshin naqshi.
+ * Bosh sahifa kollaji (public/hero/). Rasm bo'lmagan joyda koshin naqshi.
  * Vercel'da public/ server funksiyasiga kirmaydi, shuning uchun ro'yxat qo'lda yuritiladi.
+ * pos — rasmni joyga qirqishda yuz ko'rinib turishi uchun (object-position).
  */
-const HERO_IMAGES: string[] = [];
+const HERO: { label: string; src?: string; pos?: string }[] = [
+  { label: "Bloger", src: "/hero/bloger.webp", pos: "center 35%" },
+  { label: "Operator", src: "/hero/operator.webp", pos: "center 28%" },
+  { label: "Brand Face" },
+  { label: "Montajor", src: "/hero/montajor.webp", pos: "center 40%" },
+];
 
 export const dynamic = "force-dynamic";
 
@@ -34,10 +39,10 @@ export default async function Home() {
           </div>
         </div>
         <div className="collage" aria-hidden="true">
-          {HERO_LABELS.map((label, i) => (
-            <div className="arch" key={label}>
-              {HERO_IMAGES[i] ? <img src={HERO_IMAGES[i]} alt="" /> : <Tile seed={i} scale={1.4} />}
-              <span className="label">{label}</span>
+          {HERO.map((h, i) => (
+            <div className="arch" key={h.label}>
+              {h.src ? <img src={h.src} alt="" style={{ objectPosition: h.pos }} fetchPriority={i === 0 ? "high" : undefined} /> : <Tile seed={i} scale={1.4} />}
+              <span className="label">{h.label}</span>
             </div>
           ))}
         </div>
