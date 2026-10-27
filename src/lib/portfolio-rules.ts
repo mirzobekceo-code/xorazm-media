@@ -3,12 +3,15 @@
  * Klient (forma) va server (submitForReview) bir xil qoidani ishlatadi.
  */
 export type PortfolioRule = {
-  /** Kamida nechta rasm (muqova ham hisoblanadi) */
-  minImages: number;
-  /** Rasmlar uchun ko'rsatma */
-  imageHint: string;
-  /** Kamida nechta havola (video, ovoz yoki sahifa) */
-  minLinks: number;
+  /** Profil rasmidan tashqari kamida nechta portfolio ishi (rasm yoki video) */
+  minWorks: number;
+  /** Portfolio uchun ko'rsatma */
+  worksHint: string;
+  /** Kamida nechta video ish — yuklangan video yoki havola hisoblanadi (video talab qiladigan kasblar) */
+  minVideos: number;
+  /** minVideos uchun nom: "Showreel", "Reels yoki TikTok videolari"… */
+  videoLabel: string;
+  /** Ixtiyoriy havolalar maydoni (Instagram, YouTube…) */
   linkLabel: string;
   linkHint: string;
   /** Natija yoki statistika skrinshoti: faqat moderator ko'radi */
@@ -16,64 +19,77 @@ export type PortfolioRule = {
 };
 
 const DEFAULT: PortfolioRule = {
-  minImages: 1, imageHint: "Ishlaringizdan rasmlar",
-  minLinks: 0, linkLabel: "Ishlaringiz havolalari", linkHint: "YouTube, Instagram, TikTok, Telegram yoki Google Drive",
+  minWorks: 0, worksHint: "Ishlaringizdan rasm yoki video",
+  minVideos: 0, videoLabel: "Video", linkLabel: "Ishlaringiz havolalari", linkHint: "YouTube, Instagram, TikTok, Telegram yoki Google Drive",
 };
 
 export const PORTFOLIO: Record<string, PortfolioRule> = {
   "brand-face": {
-    minImages: 4, imageHint: "Yuz yaqindan, to‘liq bo‘y va reklama kadri — kamida 4 ta",
-    minLinks: 1, linkLabel: "Showreel yoki reklama videolaringiz", linkHint: "Ishtirok etgan reklamangiz yoki Reels havolasi",
+    minWorks: 3, worksHint: "Yuz yaqindan, to‘liq bo‘y, reklama kadri yoki showreel video",
+    minVideos: 1, videoLabel: "Showreel yoki reklama videosi",
+    linkLabel: "Reklama videolaringiz havolalari", linkHint: "Ishtirok etgan reklamangiz yoki Reels havolasi",
   },
   operator: {
-    minImages: 3, imageHint: "Suratga olgan kadrlaringiz — kamida 3 ta",
-    minLinks: 1, linkLabel: "Showreel havolasi", linkHint: "Eng yaxshi ishlaringiz jamlangan video (YouTube, Instagram, Drive)",
+    minWorks: 3, worksHint: "Suratga olgan kadrlaringiz va videolaringiz",
+    minVideos: 1, videoLabel: "Showreel",
+    linkLabel: "Showreel havolasi", linkHint: "Eng yaxshi ishlaringiz jamlangan video (YouTube, Instagram, Drive)",
   },
   mobilograf: {
-    minImages: 1, imageHint: "Muqova uchun rasm",
-    minLinks: 3, linkLabel: "Reels yoki TikTok havolalari", linkHint: "O‘zingiz olgan kamida 3 ta video",
+    minWorks: 0, worksHint: "O‘zingiz olgan Reels va TikTok videolar",
+    minVideos: 3, videoLabel: "Reels yoki TikTok videolari",
+    linkLabel: "Reels yoki TikTok havolalari", linkHint: "Instagram yoki TikTok’dagi videolaringiz",
   },
   montajor: {
-    minImages: 1, imageHint: "Muqova uchun rasm yoki ishingizdan kadr",
-    minLinks: 2, linkLabel: "Montaj qilgan videolaringiz", linkHint: "Kamida 2 ta video havola",
+    minWorks: 0, worksHint: "Montaj qilgan videolaringiz",
+    minVideos: 2, videoLabel: "Montaj qilgan videolar",
+    linkLabel: "Montaj qilgan videolaringiz havolalari", linkHint: "YouTube, Instagram yoki Google Drive",
   },
   marketolog: {
-    minImages: 1, imageHint: "Muqova uchun rasm yoki keysdan slayd",
-    minLinks: 0, linkLabel: "Keys yoki taqdimot havolalari", linkHint: "Ixtiyoriy: keys, taqdimot yoki loyiha sahifasi",
+    minWorks: 0, worksHint: "Keysdan slaydlar yoki natijalar",
+    minVideos: 0, videoLabel: "Video",
+    linkLabel: "Keys yoki taqdimot havolalari", linkHint: "Keys, taqdimot yoki loyiha sahifasi",
   },
   targetolog: {
-    minImages: 1, imageHint: "Muqova uchun rasm",
-    minLinks: 0, linkLabel: "Keys yoki sahifa havolalari", linkHint: "Ixtiyoriy: natijalar haqida post yoki keys",
+    minWorks: 0, worksHint: "Reklama kreativlari yoki natijalar",
+    minVideos: 0, videoLabel: "Video",
+    linkLabel: "Keys yoki sahifa havolalari", linkHint: "Natijalar haqida post yoki keys",
     proof: { label: "Reklama kabinetidan natija skrinshoti", hint: "Lidlar soni, narxi va budjet ko‘rinsin. Faqat moderator ko‘radi.", required: true },
   },
   smm: {
-    minImages: 1, imageHint: "Muqova uchun rasm yoki ishingizdan namuna",
-    minLinks: 2, linkLabel: "Yuritgan sahifalaringiz", linkHint: "Kamida 2 ta Instagram yoki Telegram sahifa havolasi",
+    minWorks: 0, worksHint: "Postlar, stories yoki Reels namunalari",
+    minVideos: 2, videoLabel: "Ish namunasi (video yoki yuritgan sahifangiz havolasi)",
+    linkLabel: "Yuritgan sahifalaringiz", linkHint: "Instagram yoki Telegram sahifa havolalari",
   },
   bloger: {
-    minImages: 1, imageHint: "Reklama namunalari va muqova",
-    minLinks: 0, linkLabel: "Reklama namunalari havolalari", linkHint: "Oldingi reklamalaringiz (Reels, stories highlights)",
+    minWorks: 0, worksHint: "Reklama namunalari",
+    minVideos: 0, videoLabel: "Video",
+    linkLabel: "Reklama namunalari havolalari", linkHint: "Oldingi reklamalaringiz (Reels, stories highlights)",
     proof: { label: "Instagram Insights skrinshotlari", hint: "Auditoriya (jins, yosh, shaharlar) va oxirgi 30 kun qamrovi. Faqat moderator ko‘radi.", required: true },
   },
   fotograf: {
-    minImages: 6, imageHint: "Eng yaxshi suratlaringiz — kamida 6 ta",
-    minLinks: 0, linkLabel: "Portfolio havolasi", linkHint: "Ixtiyoriy: Instagram yoki Drive albom",
+    minWorks: 6, worksHint: "Eng yaxshi suratlaringiz",
+    minVideos: 0, videoLabel: "Video",
+    linkLabel: "Portfolio havolasi", linkHint: "Instagram yoki Drive albom",
   },
   dizayner: {
-    minImages: 4, imageHint: "Ishlaringiz: logotip, post, banner — kamida 4 ta",
-    minLinks: 0, linkLabel: "Qo‘shimcha ishlar havolasi", linkHint: "Ixtiyoriy",
+    minWorks: 4, worksHint: "Ishlaringiz: logotip, post, banner",
+    minVideos: 0, videoLabel: "Video",
+    linkLabel: "Qo‘shimcha ishlar havolasi", linkHint: "Behance, Instagram yoki Drive",
   },
   suhandon: {
-    minImages: 1, imageHint: "Muqova uchun rasm",
-    minLinks: 1, linkLabel: "Ovoz namunasi", linkHint: "Telegram post, Google Drive, SoundCloud yoki YouTube havolasi",
+    minWorks: 0, worksHint: "Ovozingiz yangragan videolar",
+    minVideos: 1, videoLabel: "Ovoz namunasi (video yoki havola)",
+    linkLabel: "Ovoz namunasi havolasi", linkHint: "Telegram post, Google Drive, SoundCloud yoki YouTube",
   },
   studiya: {
-    minImages: 4, imageHint: "Studiyaning umumiy ko‘rinishi, fonlar, svetlar — kamida 4 ta",
-    minLinks: 0, linkLabel: "Studiyada olingan ishlar", linkHint: "Ixtiyoriy: video tur yoki namunalar",
+    minWorks: 4, worksHint: "Studiyaning umumiy ko‘rinishi, fonlar, svetlar, video tur",
+    minVideos: 0, videoLabel: "Video",
+    linkLabel: "Studiyada olingan ishlar", linkHint: "Video tur yoki namunalar havolasi",
   },
   "texnika-ijarasi": {
-    minImages: 2, imageHint: "Texnikalaringiz rasmi — kamida 2 ta",
-    minLinks: 0, linkLabel: "Qo‘shimcha havola", linkHint: "Ixtiyoriy: Telegram kanal yoki katalog",
+    minWorks: 2, worksHint: "Texnikalaringiz rasmi yoki videosi",
+    minVideos: 0, videoLabel: "Video",
+    linkLabel: "Qo‘shimcha havola", linkHint: "Telegram kanal yoki katalog",
   },
 };
 
@@ -109,13 +125,39 @@ export function parsePriceList(raw: string | undefined): PriceRow[] {
 
 export const formatPriceList = (rows: PriceRow[]) => rows.filter((r) => r.name.trim()).map((r) => `${r.name.trim()} — ${r.price || 0}`).join("\n");
 
+export type PortfolioCounts = {
+  /** Saytdagi profil rasmi (muqova) bormi */
+  hasCover: boolean;
+  /** Profil rasmidan tashqari portfolio: rasm va videolar */
+  works: number;
+  /** Yuklangan videolar */
+  videos: number;
+  /** Instagram/YouTube va boshqa havolalar */
+  links: number;
+  /** Isbot skrinshotlari */
+  proofs: number;
+};
+
 /** Profil tekshiruvga yuborilishidan oldin portfolio talablarini tekshiradi; muammo bo'lsa matn qaytaradi. */
-export function portfolioProblem(slug: string, counts: { images: number; links: number; proofs: number }): string {
+export function portfolioProblem(slug: string, c: PortfolioCounts): string {
   const r = portfolioRule(slug);
-  if (counts.images < r.minImages) return `Kamida ${r.minImages} ta rasm yuklang (hozir ${counts.images} ta)`;
-  if (counts.links < r.minLinks) return `“${r.linkLabel}”: kamida ${r.minLinks} ta havola qo‘shing (3-qadam)`;
-  if (r.proof?.required && counts.proofs < 1) return `${r.proof.label}ni yuklang`;
+  if (!c.hasCover) return "Saytdagi profil uchun rasm yuklang";
+  if (c.works < r.minWorks) return `Portfolio: kamida ${r.minWorks} ta rasm yoki video qo‘shing (hozir ${c.works} ta)`;
+  if (c.videos + c.links < r.minVideos) {
+    return `${r.videoLabel}: kamida ${r.minVideos} ta kerak — video yuklang yoki havola qo‘shing (hozir ${c.videos + c.links} ta)`;
+  }
+  if (r.proof?.required && c.proofs < 1) return `${r.proof.label}ni yuklang`;
   return "";
+}
+
+/** Media ro'yxatidan sanoq (profil rasmi aniq tanlanmagan eski profillarda birinchi rasm hisoblanadi). */
+export function countPortfolio(media: { type: string; isCover: boolean; isStatScreenshot: boolean }[], links: number): PortfolioCounts {
+  const own = media.filter((m) => !m.isStatScreenshot);
+  const images = own.filter((m) => m.type === "image");
+  const videos = own.filter((m) => m.type === "video").length;
+  const hasCover = images.length > 0;
+  const coverCounted = hasCover ? 1 : 0;
+  return { hasCover, works: images.length - coverCounted + videos, videos, links, proofs: media.length - own.length };
 }
 
 /** Cloudflare Stream'ga yuklanadigan videolar soni (60 soniyagacha). Ro'yxatda yo'q kasblarga 1 ta. */

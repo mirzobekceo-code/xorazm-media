@@ -57,7 +57,10 @@ export default function TelegramButton({ mode, onDone, label }: { mode: "login" 
     const win = wa?.initData ? null : window.open("about:blank", "_blank");
     let t: { url: string; token: string; secret: string } | null = null;
     if (mode === "login") {
-      const res = await fetch("/api/v1/auth/telegram", { method: "POST" });
+      // Qaytish manzili: botdagi "Saytga qaytish" tugmasi shu sahifaga olib keladi
+      const res = await fetch("/api/v1/auth/telegram", {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ next: location.pathname + location.search }),
+      });
       const json = await res.json().catch(() => ({}));
       if (res.ok) t = json; else setError(json.error ?? "Xatolik");
     } else {

@@ -1,0 +1,1 @@
+ALTER TABLE "telegram_tokens" ADD COLUMN "return_path" varchar(200);

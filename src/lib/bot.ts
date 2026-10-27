@@ -6,7 +6,7 @@ import { SITE } from "./site";
 import { BOT_TEXT, send, tg } from "./telegram";
 import { approveProfileCore, cardButtons, reasonButtons, rejectProfileCore } from "./moderation";
 import { REJECT_REASONS } from "./reference";
-import { attachChat, confirmToken, pendingLoginForChat } from "./telegram-auth";
+import { attachChat, confirmToken, finishUrl, pendingLoginForChat } from "./telegram-auth";
 import { upsertUserByPhone } from "./auth";
 
 type TgUser = { id: number; first_name?: string };
@@ -107,7 +107,9 @@ export async function handleUpdate(u: Update): Promise<void> {
       return;
     }
     await confirmToken(t.token, { phone });
-    await send(chatId, "✓ Raqam tasdiqlandi. Saytga qayting — avtomatik kirasiz.\n\nTasdiqlash natijalari va statistika shu yerga keladi.", REMOVE_KB);
+    await send(chatId, "✓ Raqamingiz tasdiqlandi. Pastdagi tugma orqali saytga qayting va to‘ldirishni davom ettiring.\n\nProfil tasdiqlanishi va statistika shu yerga keladi.", {
+      reply_markup: { inline_keyboard: [[{ text: "↩ Saytga qaytish", url: finishUrl(t.token) }]] },
+    });
     return;
   }
 
@@ -134,7 +136,9 @@ export async function handleUpdate(u: Update): Promise<void> {
     await db.update(s.users).set({ telegramId: null }).where(and(eq(s.users.telegramId, tgId), ne(s.users.id, t.userId)));
     await db.update(s.users).set({ telegramId: tgId }).where(eq(s.users.id, t.userId));
     await confirmToken(t.token);
-    await send(chatId, "✓ Telegram ulandi. Profil tasdiqlanishi va haftalik statistika shu yerga keladi.");
+    await send(chatId, "✓ Telegram ulandi. Profil tasdiqlanishi va haftalik statistika shu yerga keladi.", {
+      reply_markup: { inline_keyboard: [[{ text: "↩ Kabinetga qaytish", url: `${SITE.url}/kabinet` }]] },
+    });
     return;
   }
   if (text === "/kabinet") {

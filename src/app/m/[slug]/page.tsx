@@ -159,7 +159,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
           {p.media.length > 0 && (
             <section className="box">
               <h3>{isBlogger ? "Reklama namunalari" : "Portfolio"}</h3>
-              <Gallery title={p.fullName} items={p.media.map((m) => ({ id: m.id, type: m.type, url: m.url, thumbUrl: m.thumbUrl, stream: isCfVideo(m.url) }))} />
+              <Gallery title={p.fullName} items={(p.media.length > 1 && p.media[0].type === "image" ? p.media.slice(1) : p.media).map((m) => ({ id: m.id, type: m.type, url: m.url, thumbUrl: m.thumbUrl, stream: isCfVideo(m.url) }))} />
             </section>
           )}
 

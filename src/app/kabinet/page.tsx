@@ -9,7 +9,7 @@ import InsightsChart from "./InsightsChart";
 import { getDb, schema as s } from "@/db";
 import { deleteAccountAction, logoutAction } from "@/app/actions";
 import { prettyPhone } from "@/lib/format";
-import { portfolioRule } from "@/lib/portfolio-rules";
+import { countPortfolio, portfolioRule } from "@/lib/portfolio-rules";
 import ProfileCard from "@/components/ProfileCard";
 import CabinetToggles from "./CabinetToggles";
 import DeleteAccount from "./DeleteAccount";
@@ -91,14 +91,16 @@ export default async function Cabinet({ searchParams }: { searchParams: Promise<
   const inCatalog = p.status === "approved" || p.status === "hidden";
 
   const edit = (step: number) => `/kabinet/tahrir?qadam=${step}`;
+  const c = countPortfolio(live.map((m) => ({ type: m.type, isCover: m.cover, isStatScreenshot: m.stat })), links);
   const items: Item[] = [
-    { label: "Rasmlar", detail: `${images} / ${rule.minImages}`, done: images >= rule.minImages, required: true, href: edit(4), gain: images < 5 ? "har rasm +2 reyting" : undefined },
-    ...(rule.minLinks > 0 ? [{ label: rule.linkLabel, detail: `${links} / ${rule.minLinks}`, done: links >= rule.minLinks, required: true, href: edit(2) }] : []),
+    { label: "Saytdagi profil rasmi", done: c.hasCover, required: true, href: edit(4), detail: c.hasCover ? "yuklangan" : "yo‘q" },
+    ...(rule.minWorks > 0 ? [{ label: "Portfolio: rasm yoki video", detail: `${c.works} / ${rule.minWorks}`, done: c.works >= rule.minWorks, required: true, href: edit(4) }] : []),
+    ...(rule.minVideos > 0 ? [{ label: rule.videoLabel, detail: `${c.videos + c.links} / ${rule.minVideos}`, done: c.videos + c.links >= rule.minVideos, required: true, href: edit(4) }] : []),
     ...(rule.proof?.required ? [{ label: rule.proof.label, detail: proofs ? `${proofs} ta` : "yo‘q", done: proofs > 0, required: true, href: edit(4) }] : []),
-    { label: "Muqova rasmi tanlangan", done: live.some((m) => m.cover), required: false, href: edit(4), detail: "★ bilan tanlanadi" },
+    { label: "Portfolio ishlari", detail: `${c.works} ta`, done: c.works >= Math.max(4, rule.minWorks), required: false, href: edit(4), gain: images < 5 ? "har rasm +2 reyting" : undefined },
     { label: "O‘zingiz haqingizda", detail: p.bio.length ? `${p.bio.length} belgi` : "bo‘sh", done: p.bio.length >= 40, required: false, href: edit(1), gain: "+5 reyting" },
     { label: "Narx ko‘rsatilgan", done: p.price != null, required: false, href: edit(2), gain: "+5 reyting" },
-    ...(rule.minLinks === 0 ? [{ label: "Video yoki ish havolasi", detail: `${links} ta`, done: links > 0, required: false, href: edit(2), gain: "+5 reyting" }] : []),
+    ...(rule.minVideos === 0 ? [{ label: "Video yoki ish havolasi", detail: `${c.videos + links} ta`, done: c.videos + links > 0, required: false, href: edit(4), gain: "+5 reyting" }] : []),
     ...(!isBlogger ? [{ label: "Telegram kontakti", done: !!contact?.telegram, required: false, href: edit(3), detail: "mijozlar ko‘pincha shu yerga yozadi" }] : []),
     ...(botEnabled() ? [{ label: "Telegram bot ulangan", done: !!user.telegramId, required: false, href: "#telegram", detail: "tasdiqlash natijasi va statistika" }] : []),
   ];

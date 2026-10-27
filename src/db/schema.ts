@@ -63,6 +63,8 @@ export const telegramTokens = pgTable("telegram_tokens", {
   chatId: varchar("chat_id", { length: 32 }),
   telegramId: varchar("telegram_id", { length: 32 }),
   phone: varchar("phone", { length: 20 }),
+  /** Tasdiqlangach botdagi "Saytga qaytish" tugmasi olib boradigan sahifa */
+  returnPath: varchar("return_path", { length: 200 }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("tg_tokens_chat_idx").on(t.chatId, t.createdAt)]);

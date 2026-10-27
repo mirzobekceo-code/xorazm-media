@@ -6,7 +6,7 @@ import { LANGUAGES } from "@/lib/reference";
 import { AGE_GROUPS, emptyBlogger, emptyInput, PLATFORMS, RATE_LABELS, type ProfileInputT } from "@/lib/profile-input";
 import { PLATFORM_LABELS } from "@/lib/format";
 import {
-  createVideoUploadAction, deleteMediaAction, registerVideoAction, requestCodeAction, saveProfileAction, setCoverAction, submitAction, uploadMediaAction,
+  createVideoUploadAction, deleteMediaAction, registerVideoAction, requestCodeAction, saveLinksAction, saveProfileAction, submitAction, uploadMediaAction,
   uploadModeAction, verifyCodeAction, videoStatusAction,
 } from "@/app/actions";
 import { upload as blobUpload } from "@vercel/blob/client";
@@ -14,7 +14,7 @@ import { ProfIcon } from "./Icons";
 import type { UploadLimits } from "@/lib/limits";
 import TelegramButton from "./TelegramButton";
 import { CHANNEL_HINT } from "@/lib/channel-hint";
-import { experienceFallback, formatPriceList, isBusiness, MIN_EXPERIENCE, parsePriceList, portfolioProblem, portfolioRule, type PriceRow, VIDEO_SECONDS, videoLimit } from "@/lib/portfolio-rules";
+import { countPortfolio, experienceFallback, formatPriceList, isBusiness, MIN_EXPERIENCE, parsePriceList, portfolioProblem, portfolioRule, type PriceRow, VIDEO_SECONDS, videoLimit } from "@/lib/portfolio-rules";
 
 type Prof = { slug: string; nameUz: string; description: string; icon: string; unit: string; fieldsSchema: FieldDef[] };
 type MediaItem = {
@@ -25,6 +25,7 @@ type MediaItem = {
 
 const STEPS = ["Yo‘nalish", "Asosiy ma’lumot", "Kasbga oid", "Aloqa", "Portfolio"];
 const DRAFT_KEY = "xm-signup-draft";
+const STEP_KEY = "xm-signup-step";
 const MOD_LABEL: Record<string, string> = { pending: "Tekshiruvda", approved: "Tasdiqlangan", rejected: "Rad etilgan" };
 
 export default function ProfileWizard(props: {
@@ -69,13 +70,22 @@ export default function ProfileWizard(props: {
     if (props.mode !== "signup" || props.initial) return;
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
-      if (raw) setV({ ...emptyInput(), ...JSON.parse(raw) });
+      if (raw) {
+        setV({ ...emptyInput(), ...JSON.parse(raw) });
+        // Botdan "Saytga qaytish" bilan kelinganda to'ldirgan qadamidan davom etadi (portfolio qadami saqlashdan keyin)
+        const st = Number(localStorage.getItem(STEP_KEY) ?? 0);
+        if (st > 0) setStep(Math.min(3, st));
+      }
     } catch {}
   }, [props.mode, props.initial]);
   useEffect(() => {
     if (props.mode !== "signup") return;
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(v)); } catch {}
   }, [v, props.mode]);
+  useEffect(() => {
+    if (props.mode !== "signup") return;
+    try { localStorage.setItem(STEP_KEY, String(step)); } catch {}
+  }, [step, props.mode]);
 
   const set = <K extends keyof ProfileInputT>(k: K, val: ProfileInputT[K]) => setV((x) => ({ ...x, [k]: val }));
   const b = v.blogger ?? emptyBlogger();
@@ -92,12 +102,12 @@ export default function ProfileWizard(props: {
     if (step === 2) {
       for (const f of prof?.fieldsSchema ?? []) if (f.required && !v.extra?.[f.key]) return `“${f.label}” maydonini to‘ldiring`;
       if (isBlogger && !Object.values(b.followers).some((n) => Number(n) > 0)) return "Kamida bitta platformadagi obunachilar sonini yozing";
-      if (linkCount < rule.minLinks) return `“${rule.linkLabel}”: kamida ${rule.minLinks} ta havola qo‘shing`;
     }
     if (step === 3) {
+      if (!isBlogger && (v.contacts?.phone ?? "").replace(/\D/g, "").length < 9) return "Mijozlar bog‘lanadigan telefon raqamini kiriting";
       if (!v.consent) return "Kontaktlar ochiq ko‘rinishiga rozilik bering";
       if (isBlogger && !b.admins.every((a) => a.name && a.phone)) return "Admin ismi va telefonini yozing";
-      if (!loggedIn) return "Telefon raqamingizni Telegram orqali tasdiqlang";
+      if (!loggedIn) return "Profilingizni Telegram orqali tasdiqlang";
     }
     return "";
   }
@@ -125,7 +135,7 @@ export default function ProfileWizard(props: {
       start(async () => {
         const r = await saveProfileAction({ ...v, blogger: isBlogger ? b : undefined });
         if (!r.ok) return setError(r.error);
-        if (props.mode === "signup") try { localStorage.removeItem(DRAFT_KEY); } catch {}
+        if (props.mode === "signup") try { localStorage.removeItem(DRAFT_KEY); localStorage.removeItem(STEP_KEY); } catch {}
         setStep(4);
         window.scrollTo({ top: 0 });
       });
@@ -146,11 +156,10 @@ export default function ProfileWizard(props: {
     const r = await verifyCodeAction(otp.phone, otp.code);
     if (!r.ok) return setError(r.error);
     setLoggedIn(true);
-    if (!v.contacts?.phone) set("contacts", { ...v.contacts!, phone: otp.phone });
     router.refresh();
   }
 
-  async function upload(files: FileList | null, stat = false) {
+  async function upload(files: FileList | null, stat = false, cover = false) {
     if (!files?.length) return;
     setError("");
     const list = Array.from(files); // FileList input tozalanganda bo'shab qoladi — await'dan oldin nusxalash
@@ -159,10 +168,10 @@ export default function ProfileWizard(props: {
       setUploading((n) => n + 1);
       let r: Awaited<ReturnType<typeof uploadMediaAction>>;
       try {
-        const vErr = file.type.startsWith("video/") ? await checkVideo(file, limits) : "";
+        const vErr = isVideoFile(file) ? await checkVideo(file, limits) : badFormat(file);
         if (vErr) {
           r = { ok: false, error: vErr };
-        } else if (file.type.startsWith("video/") && mode.cfVideo) {
+        } else if (isVideoFile(file) && mode.cfVideo) {
           // Cloudflare Stream: server bir martalik manzil beradi, fayl brauzerdan to'g'ridan-to'g'ri yuklanadi
           const up = await createVideoUploadAction();
           if (!up.ok) { r = up; } else {
@@ -187,6 +196,7 @@ export default function ProfileWizard(props: {
           const fd = new FormData();
           fd.set("file", file.type.startsWith("image/") ? await shrinkImage(file) : file);
           if (stat) fd.set("stat", "1");
+          if (cover) fd.set("cover", "1");
           r = await uploadMediaAction(fd);
         }
       } catch (e) {
@@ -194,7 +204,8 @@ export default function ProfileWizard(props: {
       }
       setUploading((n) => n - 1);
       if (!r.ok) { setError(`${file.name}: ${r.error}`); continue; }
-      setMedia((m) => [...m, { id: r.id, url: r.url, thumbUrl: r.thumbUrl, type: r.type, isCover: false, isStatScreenshot: stat, moderationStatus: "pending" }]);
+      const item = { id: r.id, url: r.url, thumbUrl: r.thumbUrl, type: r.type, isCover: cover, isStatScreenshot: stat, moderationStatus: "pending" };
+      setMedia((m) => [...(cover ? m.filter((x) => !x.isCover) : m), item]);
     }
   }
 
@@ -205,8 +216,10 @@ export default function ProfileWizard(props: {
     const t = setInterval(async () => {
       for (const id of processingIds.split(",").map(Number)) {
         const st = await videoStatusAction(id);
-        if (st.ok && (st.ready || st.state === "error")) {
-          if (st.state === "error") setError(`Video ishlanmadi: ${st.error ?? "fayl formati"}. O‘chirib, boshqasini yuklang.`);
+        if (st.ok && st.state === "error") {
+          setError(`Video qabul qilinmadi: ${st.error}. ${VIDEO_SECONDS} soniyagacha bo‘lgan MP4 yoki MOV video yuklang.`);
+          setMedia((m) => m.filter((x) => x.id !== id));
+        } else if (st.ok && st.ready) {
           setMedia((m) => m.map((x) => (x.id === id ? { ...x, processing: false } : x)));
         }
       }
@@ -218,8 +231,11 @@ export default function ProfileWizard(props: {
   function finish() {
     setError("");
     start(async () => {
+      // Havolalar 5-qadamda kiritiladi — avval saqlanadi
+      const saved = await saveLinksAction(String(v.videoLinks ?? ""));
+      if (!saved.ok) return setError(saved.error);
       if (props.mode === "edit" && !props.submitOnFinish) { router.push("/kabinet"); router.refresh(); return; }
-      const problem = portfolioProblem(v.profession ?? "", { images: portfolio.filter((m) => m.type === "image").length, links: linkCount, proofs: shots.length });
+      const problem = portfolioProblem(v.profession ?? "", countPortfolio(media, linkCount));
       if (problem) return setError(problem);
       const r = await submitAction();
       if (!r.ok) return setError(r.error);
@@ -234,8 +250,12 @@ export default function ProfileWizard(props: {
       <label htmlFor={id}>{label}</label>{el}{opts.hint && <small>{opts.hint}</small>}
     </div>
   );
-  const portfolio = media.filter((m) => !m.isStatScreenshot);
   const shots = media.filter((m) => m.isStatScreenshot);
+  // Saytdagi profil rasmi: aniq tanlangani, eski profillarda birinchi rasm
+  const cover = media.find((m) => m.isCover && !m.isStatScreenshot) ?? media.find((m) => m.type === "image" && !m.isStatScreenshot);
+  const portfolio = media.filter((m) => !m.isStatScreenshot && m !== cover);
+  const counts = countPortfolio(media, linkCount);
+  const removeMedia = async (id: number) => { await deleteMediaAction(id); setMedia((m) => m.filter((x) => x.id !== id)); };
 
   return (
     <div className="su">
@@ -375,19 +395,10 @@ export default function ProfileWizard(props: {
           </div>
         )}
 
-        {step === 2 && (
-          <div className="field">
-            <label htmlFor="s-vlinks">{rule.linkLabel}{rule.minLinks > 0 ? ` * (kamida ${rule.minLinks} ta · hozir ${linkCount})` : ""}</label>
-            <textarea className="inp" id="s-vlinks" rows={3} value={String(v.videoLinks ?? "")} onChange={(e) => set("videoLinks", e.target.value)}
-              placeholder={"https://youtube.com/watch?v=...\nhttps://instagram.com/reel/..."} />
-            <small>{rule.linkHint}. Har qatorda bitta havola, {props.limits.videoLinks} tagacha. YouTube videolari profilda shu yerning o‘zida ochiladi.</small>
-          </div>
-        )}
-
         {step === 3 && (
           <div className="stack" style={{ gap: 22 }}>
             <div className="fields">
-              {!isBlogger && field("c-phone", "Kontakt telefoni", <input className="inp" id="c-phone" type="tel" value={v.contacts?.phone ?? ""} onChange={(e) => set("contacts", { ...v.contacts!, phone: e.target.value })} placeholder="+998 90 123 45 67" />, { hint: "Bo‘sh qolsa, tasdiqlangan raqam ishlatiladi" })}
+              {!isBlogger && field("c-phone", "Mijozlar bog‘lanadigan raqam *", <input className="inp" id="c-phone" type="tel" autoComplete="tel" value={v.contacts?.phone ?? ""} onChange={(e) => set("contacts", { ...v.contacts!, phone: e.target.value })} placeholder="+998 90 123 45 67" />, { hint: "Profilda shu raqam ko‘rinadi. Telegram’dagi raqamingizdan farq qilishi mumkin." })}
               {!isBlogger && field("c-tg", "Telegram", <input className="inp" id="c-tg" value={v.contacts?.telegram ?? ""} onChange={(e) => set("contacts", { ...v.contacts!, telegram: e.target.value })} placeholder="@username" />)}
               {field("c-ig", isBlogger ? "Instagram sahifangiz" : "Instagram", <input className="inp" id="c-ig" value={v.contacts?.instagram ?? ""} onChange={(e) => set("contacts", { ...v.contacts!, instagram: e.target.value })} placeholder="@username" />)}
             </div>
@@ -411,8 +422,8 @@ export default function ProfileWizard(props: {
             </div>
             {!loggedIn && (
               <div className="box" style={{ background: "var(--bg)" }}>
-                <b>Telefon raqamingizni tasdiqlang</b>
-                <p className="muted small">Shu raqam bilan keyin kabinetga kirasiz.</p>
+                <b>Profilingizni Telegram orqali tasdiqlang</b>
+                <p className="muted small">Botga o‘tib, Telegram raqamingizni ulashasiz — keyin shu orqali kabinetga kirasiz. Bu raqam profilda ko‘rinmaydi; mijozlar yuqoridagi raqamni ko‘radi.</p>
                 {props.telegram && (
                   <>
                     <TelegramButton mode="login" label="Telegram orqali tasdiqlash" onDone={() => { setLoggedIn(true); router.refresh(); }} />
@@ -434,36 +445,64 @@ export default function ProfileWizard(props: {
                 </>}
               </div>
             )}
-            {loggedIn && props.mode === "signup" && <p className="ok">✓ Telefon tasdiqlangan</p>}
+            {loggedIn && props.mode === "signup" && <p className="ok">✓ Profil Telegram orqali tasdiqlangan</p>}
           </div>
         )}
 
         {step === 4 && (
-          <div className="stack" style={{ gap: 22 }}>
+          <div className="stack" style={{ gap: 26 }}>
+            <section className="pstep">
+              <h3>1. Saytdagi profil uchun rasm tanlang *</h3>
+              <p className="muted small">Katalog kartochkasi va profilingiz tepasida shu rasm chiqadi. Yuzingiz aniq ko‘ringan, yorug‘ rasm tanlang{business ? " (yoki studiya/logotip)" : ""}.</p>
+              <div className="cover-pick">
+                <div className="cover-prev">{cover ? <img src={cover.thumbUrl ?? cover.url} alt="Profil rasmi" /> : <span className="muted small">Rasm yo‘q</span>}</div>
+                <div className="stack" style={{ gap: 6 }}>
+                  <label className="btn sm" htmlFor="up-cover" style={{ cursor: "pointer", alignSelf: "flex-start" }}>{cover ? "Rasmni almashtirish" : "Rasm tanlash"}</label>
+                  <span className="muted small">JPG, PNG yoki HEIC · avtomatik kichraytiriladi</span>
+                </div>
+                <input id="up-cover" type="file" accept="image/*" hidden onChange={(e) => { upload(e.target.files, false, true); e.target.value = ""; }} />
+              </div>
+            </section>
+
             {rule.proof && (
-              <div className="stack">
-                <b>{rule.proof.label}{rule.proof.required ? " *" : ""}</b>
+              <section className="pstep">
+                <h3>{rule.proof.label}{rule.proof.required ? " *" : ""}</h3>
                 <p className="muted small">{rule.proof.hint}</p>
-                <Thumbs items={shots} onDelete={async (id) => { await deleteMediaAction(id); setMedia((m) => m.filter((x) => x.id !== id)); }} />
+                <Thumbs items={shots} onDelete={removeMedia} />
                 <label className="btn ghost sm" htmlFor="up-stat" style={{ alignSelf: "flex-start" }}>Skrinshot yuklash</label>
                 <input id="up-stat" type="file" accept="image/*" multiple hidden onChange={(e) => { upload(e.target.files, true); e.target.value = ""; }} />
-              </div>
+              </section>
             )}
-            <div className="drop">
-              <b style={{ color: "var(--ink)" }}>{rule.imageHint}</b>
-              <span className="small">
-                Yuklandi: {portfolio.filter((m) => m.type === "image").length} / kamida {rule.minImages} · {Math.max(props.limits.images, rule.minImages)} tagacha, avtomatik kichraytiriladi · ★ bilan muqovani tanlang
-                {limits.videos > 0
-                  ? ` · Video: ${limits.videos} tagacha, ${limits.videoSeconds} soniyagacha (telefon videosi bo‘ladi: MP4, MOV)`
-                  : " · Videolarni 3-qadamda havola sifatida qo‘shing"}
-              </span>
-              <label className="btn ghost sm" htmlFor="up-media" style={{ cursor: "pointer" }}>Fayl tanlash</label>
-              <input id="up-media" type="file" accept={limits.videos > 0 ? (props.cfVideo ? "image/*,video/*" : "image/*,video/mp4,video/quicktime") : "image/*"} multiple hidden onChange={(e) => { upload(e.target.files); e.target.value = ""; }} />
-            </div>
-            {uploading > 0 && <p className="muted small">Yuklanmoqda: {uploading} ta fayl…</p>}
-            {media.some((m) => m.processing && m.progress === 100) && <p className="muted small">Video ishlanmoqda — odatda bir necha soniya. Sahifani yopmang.</p>}
-            <Thumbs items={portfolio} onDelete={async (id) => { await deleteMediaAction(id); setMedia((m) => m.filter((x) => x.id !== id)); }}
-              onCover={async (id) => { await setCoverAction(id); setMedia((m) => m.map((x) => ({ ...x, isCover: x.id === id }))); }} />
+
+            <section className="pstep">
+              <h3>{rule.proof ? "3" : "2"}. Portfolio uchun rasm yoki video qo‘shing{rule.minWorks > 0 || rule.minVideos > 0 ? " *" : ""}</h3>
+              <p className="muted small">{rule.worksHint}.</p>
+              <div className="drop">
+                <ul className="req">
+                  <li><b>Rasm:</b> JPG, PNG yoki HEIC — {Math.max(props.limits.images, rule.minWorks + 1) - 1} tagacha</li>
+                  {limits.videos > 0
+                    ? <li><b>Video:</b> faqat MP4 yoki MOV, <b>{limits.videoSeconds} soniyagacha</b> — {limits.videos} tagacha. Boshqa format va uzunroq video qabul qilinmaydi.</li>
+                    : <li><b>Video:</b> hozircha pastdagi havola orqali qo‘shiladi</li>}
+                  {rule.minWorks > 0 && <li>Kamida {rule.minWorks} ta ish · hozir <b className="num">{counts.works}</b></li>}
+                  {rule.minVideos > 0 && <li>{rule.videoLabel}: kamida {rule.minVideos} ta (yuklangan video yoki havola) · hozir <b className="num">{counts.videos + linkCount}</b></li>}
+                </ul>
+                <label className="btn ghost sm" htmlFor="up-media" style={{ cursor: "pointer" }}>Rasm yoki video tanlash</label>
+                <input id="up-media" type="file" accept={limits.videos > 0 ? "image/*,video/mp4,video/quicktime,.mp4,.mov" : "image/*"} multiple hidden onChange={(e) => { upload(e.target.files); e.target.value = ""; }} />
+              </div>
+              {uploading > 0 && <p className="muted small">Yuklanmoqda: {uploading} ta fayl…</p>}
+              {media.some((m) => m.processing && m.progress === 100) && <p className="muted small">Video ishlanmoqda — odatda bir necha soniya. Sahifani yopmang.</p>}
+              <Thumbs items={portfolio} onDelete={removeMedia} />
+            </section>
+
+            <section className="pstep">
+              <h3>{rule.proof ? "4" : "3"}. Instagram yoki YouTube havolalari <span className="muted">(ixtiyoriy)</span></h3>
+              <div className="field">
+                <label htmlFor="s-vlinks">{rule.linkLabel}</label>
+                <textarea className="inp" id="s-vlinks" rows={3} value={String(v.videoLinks ?? "")} onChange={(e) => set("videoLinks", e.target.value)}
+                  placeholder={"https://instagram.com/reel/...\nhttps://youtube.com/watch?v=..."} />
+                <small>{rule.linkHint}. Har qatorda bitta havola, {props.limits.videoLinks} tagacha. YouTube videolari profilda shu yerning o‘zida ochiladi.</small>
+              </div>
+            </section>
           </div>
         )}
 
@@ -515,7 +554,7 @@ async function shrinkImage(file: File): Promise<File> {
   }
 }
 
-function Thumbs({ items, onDelete, onCover }: { items: MediaItem[]; onDelete: (id: number) => void; onCover?: (id: number) => void }) {
+function Thumbs({ items, onDelete }: { items: MediaItem[]; onDelete: (id: number) => void }) {
   if (!items.length) return null;
   return (
     <div className="thumbs">
@@ -525,11 +564,8 @@ function Thumbs({ items, onDelete, onCover }: { items: MediaItem[]; onDelete: (i
             : m.processing ? <span className="vproc">{m.progress != null && m.progress < 100 ? `${m.progress}%` : "Ishlanmoqda…"}</span>
             : m.thumbUrl ? <><img src={m.thumbUrl} alt="" /><span className="vplay" aria-hidden="true">▶</span></>
             : <video src={m.url} muted playsInline />}
-          <span className="st">{m.isCover ? "Muqova" : m.type === "video" ? "Video" : MOD_LABEL[m.moderationStatus] ?? m.moderationStatus}</span>
+          <span className="st">{m.type === "video" ? "Video" : MOD_LABEL[m.moderationStatus] ?? m.moderationStatus}</span>
           <button type="button" aria-label="O‘chirish" onClick={() => onDelete(m.id)}>×</button>
-          {onCover && m.type === "image" && !m.isCover && (
-            <button type="button" aria-label="Muqova qilish" title="Muqova qilish" style={{ right: 36 }} onClick={() => onCover(m.id)}>★</button>
-          )}
         </div>
       ))}
     </div>
@@ -571,4 +607,16 @@ function sendFile(url: string, file: File, onProgress: (pct: number) => void): P
     xhr.open("POST", url);
     xhr.send(form);
   });
+}
+
+const VIDEO_TYPES = ["video/mp4", "video/quicktime"];
+/** Video fayl: MP4 yoki MOV (ba'zi telefonlar turini yubormaydi — kengaytma bo'yicha). */
+const isVideoFile = (f: File) => VIDEO_TYPES.includes(f.type) || (!f.type && /\.(mp4|mov)$/i.test(f.name));
+
+/** Rasm yoki MP4/MOV video bo'lmasa — aniq sabab. */
+function badFormat(f: File): string {
+  if (f.type.startsWith("image/")) return "";
+  if (f.type.startsWith("audio/") || /\.(mp3|m4a|wav|ogg)$/i.test(f.name)) return "bu audio fayl. Video (MP4 yoki MOV) yuklang yoki ovoz namunasini havola qilib qo‘shing";
+  if (f.type.startsWith("video/")) return "bu video formati qabul qilinmaydi — faqat MP4 yoki MOV";
+  return "faqat rasm (JPG, PNG, HEIC) yoki video (MP4, MOV)";
 }

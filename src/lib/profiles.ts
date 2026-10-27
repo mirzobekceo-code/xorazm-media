@@ -1,10 +1,10 @@
 import "server-only";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { getDb, schema as s } from "@/db";
 import { normalizePhone, slugify } from "./format";
 import { AGE_GROUPS, RATE_LABELS, type ProfileParsed } from "./profile-input";
 import { sendModerationCard } from "./moderation";
-import { experienceFallback, isBusiness, parsePriceList, portfolioProblem } from "./portfolio-rules";
+import { countPortfolio, experienceFallback, isBusiness, parsePriceList, portfolioProblem } from "./portfolio-rules";
 
 export async function getOwnProfile(userId: number) {
   const db = await getDb();
@@ -27,6 +27,10 @@ export async function upsertProfile(userId: number, phone: string, input: Profil
   const extraProf = extraSlug ? profs.find((p) => p.slug === extraSlug && p.id !== prof.id) : undefined;
   const isBlogger = prof.slug === "bloger";
   const business = isBusiness(prof.slug);
+  // Mijozlar bog'lanadigan raqam Telegram raqamidan farq qilishi mumkin — shuning uchun alohida va majburiy
+  if (!isBlogger && !(input.contacts.phone && normalizePhone(input.contacts.phone))) {
+    return { ok: false, error: "Mijozlar bog‘lanadigan telefon raqamini to‘g‘ri kiriting (+998 …)" };
+  }
   if (!business && !input.birthYear) return { ok: false, error: "Tug‘ilgan yilni yozing" };
   if (isBlogger && !input.blogger) return { ok: false, error: "Bloger statistikasini to‘ldiring" };
   for (const f of prof.fieldsSchema) {
@@ -127,13 +131,10 @@ export async function submitForReview(userId: number): Promise<{ ok: true } | { 
   if (!p) return { ok: false, error: "Avval profilni to‘ldiring" };
   if (p.status === "blocked") return { ok: false, error: "Profil bloklangan. Admin bilan bog‘laning." };
   if (p.status === "approved" || p.status === "pending") return { ok: true };
-  const media = await db.select({ type: s.media.type, stat: s.media.isStatScreenshot }).from(s.media).where(eq(s.media.profileId, p.id));
+  const media = await db.select({ type: s.media.type, isCover: s.media.isCover, isStatScreenshot: s.media.isStatScreenshot })
+    .from(s.media).where(and(eq(s.media.profileId, p.id), ne(s.media.moderationStatus, "rejected")));
   const [prof] = await db.select({ slug: s.professions.slug }).from(s.professions).where(eq(s.professions.id, p.professionId));
-  const problem = portfolioProblem(prof.slug, {
-    images: media.filter((m) => m.type === "image" && !m.stat).length,
-    links: p.videoLinks.length,
-    proofs: media.filter((m) => m.stat).length,
-  });
+  const problem = portfolioProblem(prof.slug, countPortfolio(media, p.videoLinks.length));
   if (problem) return { ok: false, error: problem };
   await db.update(s.profiles).set({ status: "pending", rejectReason: null, updatedAt: new Date() }).where(eq(s.profiles.id, p.id));
   await sendModerationCard(p.id, "new").catch((e) => console.error("moderatsiya kartasi", e));

@@ -58,9 +58,11 @@ export async function uploadMediaAction(form: FormData): Promise<Result<{ id: nu
   if (!profile) return { ok: false, error: "Avval profil ma’lumotlarini saqlang" };
   const file = form.get("file");
   const isStat = form.get("stat") === "1";
+  /** Saytdagi profil rasmi: bittagina, yangisi eskisining o'rniga keladi */
+  const isCover = form.get("cover") === "1" && !isStat;
   if (!(file instanceof File) || !file.size) return { ok: false, error: "Fayl tanlanmadi" };
   const kind = kindOf(file);
-  if (!kind || (isStat && kind !== "image")) return { ok: false, error: "Faqat JPG, PNG, WEBP, HEIC rasm yoki MP4, MOV video" };
+  if (!kind || ((isStat || isCover) && kind !== "image")) return { ok: false, error: "Faqat JPG, PNG, WEBP, HEIC rasm yoki MP4, MOV video" };
 
   const db = await getDb();
   const [{ n }] = await db.select({ n: count() }).from(s.media).where(and(
@@ -69,13 +71,19 @@ export async function uploadMediaAction(form: FormData): Promise<Result<{ id: nu
   const L = uploadLimits();
   if (kind === "video" && L.videos === 0) return { ok: false, error: "Video yuklash hozircha o‘chirilgan — YouTube yoki Instagram havolasini qo‘shing" };
   const [pr] = await db.select({ slug: s.professions.slug }).from(s.professions).where(eq(s.professions.id, profile.professionId));
-  const limit = isStat ? L.screenshots : kind === "image" ? Math.max(L.images, portfolioRule(pr?.slug ?? "").minImages) : L.videos;
-  if (n >= limit) return { ok: false, error: `Ko‘pi bilan ${limit} ta ${isStat ? "skrinshot" : kind === "image" ? "rasm" : "video"}` };
+  const limit = isStat ? L.screenshots : kind === "image" ? Math.max(L.images, portfolioRule(pr?.slug ?? "").minWorks + 1) : L.videos;
+  if (n >= limit && !isCover) return { ok: false, error: `Ko‘pi bilan ${limit} ta ${isStat ? "skrinshot" : kind === "image" ? "rasm" : "video"}` };
 
   try {
     const saved = kind === "image" ? await saveImage(profile.id, file) : await saveVideo(profile.id, file);
+    if (isCover) {
+      // Eski profil rasmi o'chiriladi (fayli bilan)
+      const old = await db.delete(s.media).where(and(eq(s.media.profileId, profile.id), eq(s.media.isCover, true))).returning();
+      await Promise.all(old.flatMap((m) => [removeFile(m.url), removeFile(m.thumbUrl)]));
+    }
     const [row] = await db.insert(s.media).values({
-      profileId: profile.id, type: kind, url: saved.url, thumbUrl: saved.thumbUrl, sizeBytes: saved.sizeBytes, isStatScreenshot: isStat, sortOrder: n,
+      profileId: profile.id, type: kind, url: saved.url, thumbUrl: saved.thumbUrl, sizeBytes: saved.sizeBytes, isStatScreenshot: isStat,
+      isCover, sortOrder: isCover ? -1 : n,
     }).returning();
     if (isStat) {
       // Skrinshot oxirgi statistika qatoriga ham yoziladi — moderator shu bilan solishtiradi
@@ -86,6 +94,18 @@ export async function uploadMediaAction(form: FormData): Promise<Result<{ id: nu
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Fayl saqlanmadi" };
   }
+}
+
+/** Portfolio havolalari (Instagram, YouTube…) — 5-qadamda, ixtiyoriy. */
+export async function saveLinksAction(raw: string): Promise<Result> {
+  const user = await getUser();
+  const profile = user && (await getOwnProfile(user.id));
+  if (!profile) return { ok: false, error: "Ruxsat yo‘q" };
+  const parsed = ProfileInput.shape.videoLinks.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const db = await getDb();
+  await db.update(s.profiles).set({ videoLinks: parsed.data, updatedAt: new Date() }).where(eq(s.profiles.id, profile.id));
+  return { ok: true };
 }
 
 /** Brauzerdan Blob'ga yuklangan videoni profilga yozadi. */
@@ -136,9 +156,17 @@ export async function videoStatusAction(mediaId: number): Promise<Result<{ ready
   const [m] = await db.select().from(s.media).where(and(eq(s.media.id, mediaId), eq(s.media.profileId, profile.id)));
   const ref = m && cfRef(m.url);
   if (!m || ref?.kind !== "video") return { ok: false, error: "Video topilmadi" };
-  const st = await videoStatus(ref.id).catch((e) => ({ ready: false, state: "error", duration: 0, size: 0, error: String(e.message) }));
+  const st = await videoStatus(ref.id).catch(() => null);
+  if (!st) return { ok: true, ready: false, state: "unknown" }; // tarmoq xatosi — keyingi so'rovda qayta
+  if (st.state === "error") {
+    // Cloudflare rad etdi (60 soniyadan uzun yoki fayl buzilgan) — yozuv ham, fayl ham o'chiriladi
+    await db.delete(s.media).where(eq(s.media.id, m.id));
+    await removeFile(m.url);
+    const long = st.duration > VIDEO_SECONDS || /duration/i.test(st.error ?? "");
+    return { ok: true, ready: false, state: "error", error: long ? `video ${VIDEO_SECONDS} soniyadan uzun` : "fayl o‘qilmadi yoki buzilgan" };
+  }
   if (st.ready && st.size && !m.sizeBytes) await db.update(s.media).set({ sizeBytes: st.size }).where(eq(s.media.id, m.id));
-  return { ok: true, ready: st.ready, state: st.state, error: st.error };
+  return { ok: true, ready: st.ready, state: st.state };
 }
 
 export async function deleteMediaAction(mediaId: number): Promise<Result> {
