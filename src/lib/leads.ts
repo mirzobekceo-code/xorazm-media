@@ -95,7 +95,9 @@ export async function pushToSheets(sheet: "weekly" | "order", rows: Row[]): Prom
     method: "POST", headers: { "content-type": "application/json" }, redirect: "follow",
     body: JSON.stringify({ secret: process.env.GOOGLE_SHEETS_SECRET ?? "", sheet, header: SHEET_HEADER, rows }),
   });
-  return res.ok;
+  // Apps Script maxfiy so'z noto'g'ri bo'lsa ham 200 qaytaradi — javob matniga qaraymiz
+  const json = (await res.json().catch(() => null)) as { ok?: boolean } | null;
+  return res.ok && json?.ok === true;
 }
 
 const csv = (rows: Row[]) => [SHEET_HEADER, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");

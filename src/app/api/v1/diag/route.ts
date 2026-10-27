@@ -1,4 +1,5 @@
 import { sendBackupToAdmins } from "@/lib/backup";
+import { pushToSheets } from "@/lib/leads";
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import sharp from "sharp";
@@ -16,6 +17,7 @@ import { removeFile } from "@/lib/storage";
  *   ?action=image-test       sinov rasmini yuklab, o'chirish
  *   ?action=video-create     sinov videosi uchun yuklash manzili
  *   ?action=video-status&uid=…  /  ?action=video-delete&uid=…
+ *   ?action=sheets           Google Sheets ulanishini sinash (bitta sinov qatori)
  *   ?action=migrate&n=10     Blob'dagi rasmlarni Cloudflare Images'ga ko'chirish
  */
 export async function GET(req: Request) {
@@ -28,6 +30,11 @@ export async function GET(req: Request) {
   const action = url.searchParams.get("action") ?? "check";
   try {
     if (action === "backup") return NextResponse.json(await sendBackupToAdmins());
+    if (action === "sheets") {
+      // Ulanish tekshiruvi: "Haftalik" varag'iga bitta belgilangan sinov qatori
+      const row = [new Date().toISOString().slice(0, 16).replace("T", " "), "SINOV", "", "", "", "", "", "", "diag", "Ulanish tekshiruvi — bu qatorni o‘chirib yuborishingiz mumkin"];
+      return NextResponse.json({ configured: !!process.env.GOOGLE_SHEETS_WEBHOOK_URL, ok: await pushToSheets("weekly", [row]) });
+    }
     if (action === "check") return NextResponse.json(await cfCheck());
     if (!cfEnabled()) return NextResponse.json({ error: "Cloudflare o'chiq (CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN yo'q)" }, { status: 400 });
     if (action === "setup") return NextResponse.json({ created: await ensureImageVariants() });
