@@ -11,6 +11,7 @@ import { redirect } from "next/navigation";
 import { SLOTS } from "@/lib/reference";
 import { recomputeRanks } from "@/lib/rank";
 import { approveProfileCore, logModeration, rejectProfileCore } from "@/lib/moderation";
+import { approveRequest, rejectRequest } from "@/lib/requests";
 
 const log = logModeration;
 
@@ -149,4 +150,18 @@ export async function setupTelegramBot() {
   await tg("setMyDescription", { description: BOT_TEXT.description });
   await tg("setMyShortDescription", { short_description: BOT_TEXT.short });
   redirect("/admin/sozlamalar?ok=1");
+}
+
+export async function approveRequestAdmin(id: number) {
+  await requireStaff();
+  await approveRequest(id);
+  revalidatePath("/admin/sorovlar");
+}
+
+export async function rejectRequestAdmin(id: number, form: FormData) {
+  await requireStaff();
+  const reason = String(form.get("reason") ?? "").trim();
+  if (!reason) return;
+  await rejectRequest(id, reason);
+  revalidatePath("/admin/sorovlar");
 }

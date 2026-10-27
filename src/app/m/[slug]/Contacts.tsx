@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { prettyPhone } from "@/lib/format";
+import { track as trackGa } from "@/lib/client/analytics";
 
 type Data = {
   phone: string | null; telegram: string | null; instagram: string | null;
@@ -10,6 +11,7 @@ type Data = {
 function track(profileId: number, channel: string) {
   const body = JSON.stringify({ type: "contact_click", channel });
   navigator.sendBeacon?.(`/api/v1/profiles/${profileId}/events`, new Blob([body], { type: "application/json" }));
+  trackGa("contact_click", { channel, profile: profileId });
 }
 
 /** Kontaktlar HTML ichida emas, alohida so'rov bilan keladi (avtomatik yig'ishdan himoya). */

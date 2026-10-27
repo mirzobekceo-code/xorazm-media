@@ -14,6 +14,7 @@ import { kindOf, removeFile, saveImage, saveVideo } from "@/lib/storage";
 import { uploadLimits, type UploadLimits } from "@/lib/limits";
 import { head } from "@vercel/blob";
 import { createTelegramToken } from "@/lib/telegram-auth";
+import { closeRequest, createRequest, RequestInput, respondToRequest, type RequestInputT } from "@/lib/requests";
 
 /** Video qayerga yuklanadi: Cloudflare Stream (cfVideo) yoki to'g'ridan-to'g'ri Blob (directVideo). */
 export async function uploadModeAction(): Promise<{ directVideo: boolean; cfVideo: boolean; profileId: number | null; limits: UploadLimits }> {
@@ -258,4 +259,36 @@ export async function changeSlugAction(raw: string): Promise<Result<{ slug: stri
   await db.update(s.profiles).set({ slug }).where(eq(s.profiles.id, p.id));
   revalidatePath("/kabinet");
   return { ok: true, slug };
+}
+
+/** Biznes egasining so'rovi: Telegram orqali kirgan bo'lishi shart (natijalar botga keladi). */
+export async function createRequestAction(input: RequestInputT): Promise<Result<{ id: number }>> {
+  const user = await getUser();
+  if (!user) return { ok: false, error: "Avval Telegram orqali kiring" };
+  if (!user.telegramId) return { ok: false, error: "Telegram ulanmagan — javoblar botga keladi. Avval Telegram’ni ulang." };
+  if (!rateLimit(`req:${user.id}`, 5, 3_600_000)) return { ok: false, error: "Juda ko‘p urinish. Keyinroq qayta urinib ko‘ring." };
+  const parsed = RequestInput.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const r = await createRequest(user.id, parsed.data);
+  if (r.ok) revalidatePath("/kabinet");
+  return r;
+}
+
+/** Mutaxassisning "Qiziqaman" tugmasi: faqat tasdiqlangan profil egasi. */
+export async function respondRequestAction(requestId: number): Promise<Result<{ first: boolean }>> {
+  const user = await getUser();
+  if (!user) return { ok: false, error: "Avval kiring" };
+  const p = await getOwnProfile(user.id);
+  if (!p || p.status !== "approved") return { ok: false, error: "Javob berish uchun profilingiz tasdiqlangan bo‘lishi kerak" };
+  const r = await respondToRequest(requestId, p);
+  if (r.ok) revalidatePath(`/sorovlar/${requestId}`);
+  return r;
+}
+
+export async function closeRequestAction(requestId: number): Promise<void> {
+  const user = await getUser();
+  if (!user) redirect("/kirish");
+  await closeRequest(requestId, user.id);
+  revalidatePath(`/sorovlar/${requestId}`);
+  revalidatePath("/kabinet");
 }

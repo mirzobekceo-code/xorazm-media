@@ -1,3 +1,4 @@
+import { sendBackupToAdmins } from "@/lib/backup";
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import sharp from "sharp";
@@ -26,6 +27,7 @@ export async function GET(req: Request) {
   }
   const action = url.searchParams.get("action") ?? "check";
   try {
+    if (action === "backup") return NextResponse.json(await sendBackupToAdmins());
     if (action === "check") return NextResponse.json(await cfCheck());
     if (!cfEnabled()) return NextResponse.json({ error: "Cloudflare o'chiq (CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN yo'q)" }, { status: 400 });
     if (action === "setup") return NextResponse.json({ created: await ensureImageVariants() });

@@ -85,6 +85,10 @@ export async function loginByPhone(phone: string, opts: { telegramId?: string } 
   const userId = await upsertUserByPhone(phone, opts);
   const db = await getDb();
   await db.update(s.users).set({ lastLoginAt: new Date() }).where(eq(s.users.id, userId));
+  // Manba faqat yangi ro'yxatdan o'tganlarga yoziladi (eski akkauntlarga hozirgi tashrif manbasi noto'g'ri bo'ladi)
+  const src = (await cookies()).get("xm_src")?.value;
+  if (src) await db.update(s.users).set({ signupSource: src.slice(0, 80) })
+    .where(and(eq(s.users.id, userId), isNull(s.users.signupSource), gt(s.users.createdAt, new Date(Date.now() - 86_400_000))));
   await createSession(userId);
   return userId;
 }

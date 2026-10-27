@@ -539,3 +539,12 @@ dialog::backdrop { background: rgb(0 0 0 / .4) }
   .hero h1 { font-size: 40px }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+
+/* So'rovlar */
+.req-list { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) }
+.req-card { text-decoration: none; gap: 8px; transition: border-color .15s }
+.req-card:hover { border-color: var(--accent) }
+.req-card h3 { font-size: 19px; line-height: 1.3 }
+.req-dl { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0 }
+.req-dl dt { font-size: 12px; color: var(--muted) } .req-dl dd { margin: 2px 0 0; font-weight: 600 }
+.req-people { margin: 0; padding-left: 18px; display: grid; gap: 6px }

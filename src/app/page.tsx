@@ -87,6 +87,22 @@ export default async function Home() {
         </div>
       </section>
 
+      <div className="join">
+        <div>
+          <p className="eyebrow">Bizneslar uchun</p>
+          <h2>Qidirishga vaqt yo‘qmi? So‘rov qoldiring.</h2>
+          <ul>
+            <li>Nima kerakligini yozasiz — 1 daqiqa</li>
+            <li>Mos mutaxassislarga Telegram orqali yuboriladi</li>
+            <li>Qiziqqanlar portfoliosi bilan sizga o‘zi yozadi</li>
+          </ul>
+        </div>
+        <div className="stack" style={{ alignItems: "flex-start" }}>
+          <Link className="btn" href="/sorov">So‘rov qoldirish</Link>
+          <p className="muted small">Bepul · Telegram orqali</p>
+        </div>
+      </div>
+
       <Ad slot="A5" variant="banner" />
 
     </div>

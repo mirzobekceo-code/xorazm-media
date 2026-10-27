@@ -14,6 +14,7 @@ import ProfileCard from "@/components/ProfileCard";
 import CabinetToggles from "./CabinetToggles";
 import DeleteAccount from "./DeleteAccount";
 import TelegramLink from "./TelegramLink";
+import MyRequests from "./MyRequests";
 import { botEnabled, botUsername } from "@/lib/telegram";
 
 export const metadata = { title: "Kabinet", robots: { index: false } };
@@ -64,9 +65,10 @@ export default async function Cabinet({ searchParams }: { searchParams: Promise<
   if (!p) {
     return (
       <div className="form" style={{ maxWidth: 560 }}>
-        <h2>Profil hali yo‘q</h2>
-        <p className="muted">{prettyPhone(user.phone)} raqami bilan kirdingiz. Portfoliongizni qo‘shing — bepul.</p>
+        <h2>Kabinet</h2>
+        <p className="muted">{prettyPhone(user.phone)} raqami bilan kirdingiz. Mutaxassis bo‘lsangiz, portfoliongizni qo‘shing — bepul.</p>
         <div className="row"><Link className="btn" href="/qoshilish">Portfolio qo‘shish</Link><form action={logoutAction}><button className="btn ghost">Chiqish</button></form></div>
+        <MyRequests userId={user.id} always />
       </div>
     );
   }
@@ -128,6 +130,8 @@ export default async function Cabinet({ searchParams }: { searchParams: Promise<
           <Link className="btn" href="/kabinet/tahrir">Tahrirlash</Link>
         </div>
       </div>
+
+      <MyRequests userId={user.id} />
 
       {yuborildi && p.status === "pending" && (
         <div className="notice"><b>Profil tekshiruvga yuborildi.</b> Moderator 24 soat ichida tekshiradi; tasdiqlangach profilingiz katalogda ✓ belgisi bilan chiqadi.</div>

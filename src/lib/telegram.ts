@@ -24,6 +24,24 @@ export async function tg<T = unknown>(method: string, body: Record<string, unkno
   }
 }
 
+/** Fayl yuborish (sendDocument): multipart/form-data. Yetkazilsa true. */
+export async function tgDocument(chatId: string, file: Buffer, filename: string, caption: string): Promise<boolean> {
+  if (!botEnabled()) return false;
+  const form = new FormData();
+  form.set("chat_id", chatId);
+  form.set("caption", caption.slice(0, 1000));
+  form.set("document", new Blob([new Uint8Array(file)], { type: "application/gzip" }), filename);
+  try {
+    const res = await fetch(`${apiBase()}/bot${token()}/sendDocument`, { method: "POST", body: form });
+    const json = (await res.json()) as { ok: boolean; description?: string };
+    if (!json.ok) console.error("Telegram sendDocument:", json.description);
+    return json.ok;
+  } catch (e) {
+    console.error("Telegram sendDocument", e);
+    return false;
+  }
+}
+
 let username: string | null = null;
 /** Bot username (deep link uchun). TELEGRAM_BOT_USERNAME yoki getMe orqali. */
 export async function botUsername(): Promise<string | null> {

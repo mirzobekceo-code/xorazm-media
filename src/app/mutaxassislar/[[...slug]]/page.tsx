@@ -130,10 +130,11 @@ export default async function Catalog(props: Props) {
           </div>
         ) : (
           <>
-            <div className="empty">Bu filtr bo‘yicha hozircha profil yo‘q. Tumanni “Butun Xorazm” qilib ko‘ring.</div>
+            <div className="empty">Bu filtr bo‘yicha hozircha profil yo‘q. Tumanni “Butun Xorazm” qilib ko‘ring yoki <Link className="link" href={`/sorov${prof ? `?kasb=${prof.slug}` : ""}`}>so‘rov qoldiring</Link> — mos mutaxassislar o‘zi yozadi.</div>
             <div className="grid three"><Ad slot="A2" variant="card" ctx={adCtx} /></div>
           </>
         )}
+        <p className="muted small" style={{ marginTop: 16 }}>Tanlash qiyinmi? <Link className="link" href={`/sorov${prof ? `?kasb=${prof.slug}` : ""}`}>So‘rov qoldiring</Link> — mos mutaxassislar o‘zi Telegram’da yozadi.</p>
         {res.pages > 1 && (
           <nav className="pager" aria-label="Sahifalar">
             {Array.from({ length: res.pages }, (_, i) => i + 1).map((n) =>

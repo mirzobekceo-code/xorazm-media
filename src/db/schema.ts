@@ -17,6 +17,7 @@ export const creativeTypeEnum = pgEnum("creative_type", ["text", "image", "video
 export const tgPurposeEnum = pgEnum("tg_token_purpose", ["login", "link"]);
 export const tgStatusEnum = pgEnum("tg_token_status", ["pending", "confirmed", "used"]);
 export const campaignStatusEnum = pgEnum("campaign_status", ["draft", "active", "paused", "ended"]);
+export const requestStatusEnum = pgEnum("request_status", ["pending", "open", "closed", "rejected", "expired"]);
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -28,6 +29,8 @@ export const users = pgTable("users", {
   phone: varchar("phone", { length: 20 }).notNull().unique(),
   telegramId: varchar("telegram_id", { length: 32 }).unique(),
   role: roleEnum("role").notNull().default("specialist"),
+  /** Birinchi kirishdagi manba (utm_source yoki qaysi saytdan kelgani) — e'lonlar samarasi uchun */
+  signupSource: varchar("signup_source", { length: 80 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
 });
@@ -273,6 +276,38 @@ export const adEvents = pgTable("ad_events", {
   page: varchar("page", { length: 200 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("ad_events_idx").on(t.creativeId, t.createdAt)]);
+
+/** Biznes egasining so'rovi: moderatsiyadan keyin mos mutaxassislarga botda yuboriladi. */
+export const requests = pgTable("requests", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  professionId: integer("profession_id").notNull().references(() => professions.id),
+  /** null — butun Xorazm */
+  districtId: integer("district_id").references(() => districts.id),
+  title: varchar("title", { length: 120 }).notNull(),
+  description: text("description").notNull().default(""),
+  /** so'm; null — kelishiladi */
+  budget: integer("budget"),
+  deadline: varchar("deadline", { length: 40 }).notNull().default(""),
+  businessName: varchar("business_name", { length: 80 }),
+  contactPhone: varchar("contact_phone", { length: 20 }).notNull(),
+  contactTelegram: varchar("contact_telegram", { length: 64 }),
+  status: requestStatusEnum("status").notNull().default("pending"),
+  rejectReason: text("reject_reason"),
+  notifiedCount: integer("notified_count").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+}, (t) => [index("requests_status_idx").on(t.status, t.createdAt), index("requests_user_idx").on(t.userId)]);
+
+/** Mutaxassisning "Qiziqaman" javobi. */
+export const requestResponses = pgTable("request_responses", {
+  id: serial("id").primaryKey(),
+  requestId: integer("request_id").notNull().references(() => requests.id, { onDelete: "cascade" }),
+  profileId: integer("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [uniqueIndex("request_responses_uniq").on(t.requestId, t.profileId)]);
 
 export const settings = pgTable("settings", {
   key: varchar("key", { length: 60 }).primaryKey(),

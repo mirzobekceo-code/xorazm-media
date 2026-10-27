@@ -11,7 +11,17 @@ export function middleware(req: NextRequest) {
   // Layout'dagi reklama sahifa kontekstini (kasb) bilishi uchun so'rov manzilini uzatadi
   const headers = new Headers(req.headers);
   headers.set("x-url", req.nextUrl.pathname + req.nextUrl.search);
-  return NextResponse.next({ request: { headers } });
+  const res = NextResponse.next({ request: { headers } });
+  // Birinchi tashrif manbasi (30 kun): utm_source, kelgan sayt yoki "direct" — ro'yxatdan o'tganda users.signup_source'ga yoziladi
+  if (!req.cookies.has("xm_src")) {
+    const utm = req.nextUrl.searchParams.get("utm_source");
+    let ref = "";
+    try { ref = new URL(req.headers.get("referer") ?? "").hostname.replace(/^www\./, ""); } catch { /* yo'q */ }
+    const own = SITE && ref && SITE.includes(ref);
+    const src = (utm || (ref && !own ? ref : "") || "direct").toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 60) || "direct";
+    res.cookies.set("xm_src", src, { maxAge: 30 * 86_400, sameSite: "lax", path: "/" });
+  }
+  return res;
 }
 
 export const config = { matcher: ["/((?!api|_next|uploads|hero|brand|favicon|icon).*)"] };

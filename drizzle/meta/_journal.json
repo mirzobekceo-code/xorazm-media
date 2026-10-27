@@ -43,6 +43,13 @@
       "when": 1793081929384,
       "tag": "0005_telegram_return_path",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793082889226,
+      "tag": "0006_requests_signup_source",
+      "breakpoints": true
     }
   ]
 }

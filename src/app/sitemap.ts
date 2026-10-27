@@ -16,6 +16,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: u("/"), changeFrequency: "daily", priority: 1 },
     { url: u("/mutaxassislar"), changeFrequency: "daily", priority: 0.9 },
+    { url: u("/sorov"), priority: 0.8 },
+    { url: u("/sorovlar"), changeFrequency: "daily", priority: 0.7 },
     ...profs.map((p) => ({ url: u(`/mutaxassislar/${p.slug}`), changeFrequency: "daily" as const, priority: 0.8 })),
     ...profs.flatMap((p) => dists.map((d) => ({ url: u(`/mutaxassislar/${p.slug}/${d.slug}`), changeFrequency: "weekly" as const, priority: 0.6 }))),
     ...profiles.map((p) => ({ url: u(`/m/${p.slug}`), lastModified: p.updatedAt, changeFrequency: "weekly" as const, priority: 0.7 })),

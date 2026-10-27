@@ -8,6 +8,7 @@ import { approveProfileCore, cardButtons, reasonButtons, rejectProfileCore } fro
 import { REJECT_REASONS } from "./reference";
 import { attachChat, confirmToken, finishUrl, pendingLoginForChat } from "./telegram-auth";
 import { upsertUserByPhone } from "./auth";
+import { approveRequest, getRequest, rejectRequest, REQUEST_REJECT_REASONS, requestModButtons, requestReasonButtons } from "./requests";
 
 type TgUser = { id: number; first_name?: string };
 type CallbackQuery = { id: string; from: TgUser; data?: string; message?: { chat: { id: number }; message_id: number } };
@@ -34,6 +35,7 @@ function menu(hasProfile: boolean) {
     reply_markup: {
       inline_keyboard: [
         [appBtn("Mutaxassis topish", "/")],
+        [appBtn("So‘rov qoldirish", "/sorov")],
         [hasProfile ? appBtn("Kabinet", "/kabinet") : appBtn("Portfolio qo‘shish", "/qoshilish")],
       ],
     },
@@ -50,14 +52,15 @@ async function hasProfile(tgId: string): Promise<boolean> {
 /** Moderator tugmalari: mod:a:<id> tasdiqlash, mod:r:<id> sabablar, mod:x:<id>:<n> rad etish, mod:b:<id> orqaga. */
 async function handleCallback(q: CallbackQuery): Promise<void> {
   const answer = (text?: string) => tg("answerCallbackQuery", { callback_query_id: q.id, ...(text ? { text } : {}) });
-  const m = (q.data ?? "").match(/^mod:(a|r|b|x):(\d+)(?::(\d+))?$/);
+  const m = (q.data ?? "").match(/^(mod|rq):(a|r|b|x):(\d+)(?::(\d+))?$/);
   if (!m || !q.message) { await answer(); return; }
   const db = await getDb();
   const [staff] = await db.select({ id: s.users.id }).from(s.users)
     .where(and(eq(s.users.telegramId, String(q.from.id)), inArray(s.users.role, ["moderator", "admin"]))).limit(1);
   if (!staff) { await answer("Ruxsat yo‘q"); return; }
-  const [act, idRaw, n] = [m[1], Number(m[2]), m[3]];
+  const [act, idRaw, n] = [m[2], Number(m[3]), m[4]];
   const markup = (reply_markup: unknown) => tg("editMessageReplyMarkup", { chat_id: q.message!.chat.id, message_id: q.message!.message_id, reply_markup });
+  if (m[1] === "rq") return requestCallback(act, idRaw, n, answer, markup);
   const [p] = await db.select({ status: s.profiles.status, slug: s.profiles.slug }).from(s.profiles).where(eq(s.profiles.id, idRaw)).limit(1);
   if (!p) { await answer("Profil topilmadi (o‘chirilgan bo‘lishi mumkin)"); await markup({ inline_keyboard: [] }); return; }
   if (act === "r") { await markup(reasonButtons(idRaw)); await answer(); return; }
@@ -78,6 +81,28 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
   const r = await rejectProfileCore(idRaw, staff.id, reason);
   await markup({ inline_keyboard: [[{ text: `✕ Rad etildi: ${reason}`, url: `${SITE.url}/admin/moderatsiya/${idRaw}` }]] });
   await answer(r?.notified ? "Rad etildi, mutaxassisga sababi yuborildi" : "Rad etildi (mutaxassis sababni kabinetda ko‘radi)");
+}
+
+/** So'rov moderatsiyasi: rq:a e'lon qilish, rq:r sabablar, rq:x rad etish, rq:b orqaga. */
+async function requestCallback(act: string, id: number, n: string | undefined, answer: (t?: string) => Promise<unknown>, markup: (m: unknown) => Promise<unknown>) {
+  const r = await getRequest(id);
+  if (!r) { await answer("So‘rov topilmadi"); await markup({ inline_keyboard: [] }); return; }
+  if (act === "r") { await markup(requestReasonButtons(id)); await answer(); return; }
+  if (act === "b") { await markup(requestModButtons(id)); await answer(); return; }
+  const done = (text: string) => markup({ inline_keyboard: [[{ text, url: `${SITE.url}/sorovlar/${id}` }]] });
+  if (r.status !== "pending") { await answer(`Allaqachon ko‘rib chiqilgan: ${r.status}`); await done(`Holati: ${r.status}`); return; }
+  if (act === "a") {
+    // Telegram callback'ga tez javob kutadi; yuborish uzoq cho'zilishi mumkin
+    await answer("E’lon qilinmoqda…");
+    const sent = await approveRequest(id);
+    await done(`✓ E’lon qilindi · ${sent} ta mutaxassisga yuborildi`);
+    return;
+  }
+  const reason = REQUEST_REJECT_REASONS[Number(n)];
+  if (!reason) { await answer(); return; }
+  await rejectRequest(id, reason);
+  await done(`✕ Rad etildi: ${reason}`);
+  await answer("Rad etildi, egasiga sababi yuborildi");
 }
 
 /** Bot xabarlarini qayta ishlaydi (webhook'dan). Faqat shaxsiy chatlar. */

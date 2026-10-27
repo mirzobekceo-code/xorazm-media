@@ -7,6 +7,7 @@ const LINKS = [
   ["/", "Bosh sahifa"],
   ["/xizmatlar", "Xizmatlar"],
   ["/mutaxassislar", "Mutaxassislar"],
+  ["/sorov", "So‘rov qoldirish"],
   ["/qoshilish", "Mutaxassis bo‘lish"],
   ["/aloqa", "Aloqa"],
 ] as const;
@@ -16,7 +17,7 @@ export default function NavLinks({ account }: { account: { href: string; label: 
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [path]);
   const links = LINKS.map(([href, label]) => (
-    <Link key={href} href={href} aria-current={(href === "/" ? path === "/" : path.startsWith(href)) ? "page" : undefined}>{label}</Link>
+    <Link key={href} href={href} aria-current={(href === "/" ? path === "/" : path === href || path.startsWith(href + "/")) ? "page" : undefined}>{label}</Link>
   ));
   return (
     <>

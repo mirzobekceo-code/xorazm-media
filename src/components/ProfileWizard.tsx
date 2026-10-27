@@ -1,4 +1,5 @@
 "use client";
+import { track } from "@/lib/client/analytics";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { FieldDef } from "@/db/schema";
@@ -240,6 +241,7 @@ export default function ProfileWizard(props: {
       const r = await submitAction();
       if (!r.ok) return setError(r.error);
       try { localStorage.removeItem(DRAFT_KEY); } catch {}
+      track("signup_complete", { profession: v.profession ?? "" });
       router.push("/kabinet?yuborildi=1");
       router.refresh();
     });

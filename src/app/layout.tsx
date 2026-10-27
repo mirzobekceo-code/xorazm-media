@@ -5,6 +5,7 @@ import { SITE } from "@/lib/site";
 import { getProfessions } from "@/lib/queries";
 import { getUser } from "@/lib/auth";
 import { getOwnProfile } from "@/lib/profiles";
+import { userRequests } from "@/lib/requests";
 import NavLinks from "@/components/NavLinks";
 import Logo from "@/components/Logo";
 import Ad from "@/components/Ad";
@@ -12,6 +13,8 @@ import { headers } from "next/headers";
 import { adContextFromUrl } from "@/lib/ads";
 import PublicOnly from "@/components/PublicOnly";
 import TelegramMiniApp from "@/components/TelegramMiniApp";
+import Analytics from "@/components/Analytics";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -26,9 +29,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [profs, user] = await Promise.all([getProfessions(), getUser()]);
   // Kabinet faqat portfolio qo'shganlarga; qolgan kirgan foydalanuvchiga — "Portfolio qo'shish"
   const ownProfile = user?.role === "specialist" ? await getOwnProfile(user.id) : null;
+  // So'rov qoldirgan biznes egasi ham o'z so'rovlarini kabinetda ko'radi
+  const hasRequests = user?.role === "specialist" && !ownProfile ? (await userRequests(user.id)).length > 0 : false;
   const account = !user ? { href: "/kirish", label: "Kirish" }
     : user.role !== "specialist" ? { href: "/admin", label: "Admin" }
-    : ownProfile ? { href: "/kabinet", label: "Kabinet" } : { href: "/qoshilish", label: "Portfolio qo‘shish" };
+    : ownProfile || hasRequests ? { href: "/kabinet", label: "Kabinet" } : { href: "/qoshilish", label: "Portfolio qo‘shish" };
   const url = (await headers()).get("x-url");
   const adCtx = await adContextFromUrl(url, profs);
   // Profil sahifasi mutaxassisning shaxsiy sahifasi (landing): tepada banner yo'q
@@ -67,6 +72,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <div><h4>Platforma</h4>
                 <Link href="/xizmatlar">Xizmatlar</Link>
                 <Link href="/mutaxassislar">Mutaxassislar</Link>
+                <Link href="/sorov">So‘rov qoldirish</Link>
+                <Link href="/sorovlar">Bizneslar so‘rovlari</Link>
                 <Link href="/qoshilish">Mutaxassis bo‘lish</Link>
                 <Link href="/savollar">Savollar</Link>
                 <Link href="/shartlar">Foydalanish shartlari</Link>
@@ -82,6 +89,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </footer>
         <TelegramMiniApp loggedIn={!!user} />
+        <Suspense><Analytics /></Suspense>
       </body>
     </html>
   );

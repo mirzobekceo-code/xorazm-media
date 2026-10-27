@@ -23,6 +23,8 @@ export default function TelegramMiniApp({ loggedIn }: { loggedIn: boolean }) {
       if (!w?.initData) return;
       wa.current = w;
       document.documentElement.classList.add("tg-app");
+      // Mini App'da referrer bo'lmaydi: manba "direct" emas, Telegram ilovasi
+      if (/(?:^|; )xm_src=direct(?:;|$)/.test(document.cookie)) document.cookie = "xm_src=tg_miniapp; path=/; max-age=2592000; samesite=lax";
       w.ready?.();
       w.expand?.();
       w.setHeaderColor?.(BG);
