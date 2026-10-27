@@ -2,7 +2,8 @@ import { z } from "zod";
 import { isVideoLink } from "./limits";
 
 /** Ro'yxatdan o'tish va tahrirlash formasining umumiy sxemasi (klient va server). */
-const pct = z.coerce.number().min(0).max(100);
+const pct = z.coerce.number<number>().min(0).max(100);
+const count = z.coerce.number<number>().int().min(0).max(100_000_000).default(0);
 const handle = z.string().trim().max(64).regex(/^@?[A-Za-z0-9_.]*$/, "Faqat lotin harflari, raqam, _ va .").transform((v) => (v ? (v.startsWith("@") ? v : "@" + v) : ""));
 
 export const RATE_LABELS = ["Stories (1 ta)", "Post", "Reels", "Integratsiya (video ichida)"] as const;
@@ -10,14 +11,14 @@ export const AGE_GROUPS = ["13–17", "18–24", "25–34", "35+"] as const;
 export const PLATFORMS = ["instagram", "telegram", "tiktok", "youtube"] as const;
 
 export const BloggerInput = z.object({
-  followers: z.object(Object.fromEntries(PLATFORMS.map((p) => [p, z.coerce.number().int().min(0).max(100_000_000).default(0)])) as Record<(typeof PLATFORMS)[number], z.ZodDefault<z.ZodNumber>>),
-  er: z.coerce.number().min(0).max(100).optional(),
-  avgViews: z.coerce.number().int().min(0).optional(),
-  storiesReach: z.coerce.number().int().min(0).optional(),
+  followers: z.object(Object.fromEntries(PLATFORMS.map((p) => [p, count])) as Record<(typeof PLATFORMS)[number], typeof count>),
+  er: z.coerce.number<number>().min(0).max(100).optional(),
+  avgViews: z.coerce.number<number>().int().min(0).optional(),
+  storiesReach: z.coerce.number<number>().int().min(0).optional(),
   genderF: pct,
   ages: z.array(pct).length(4),
   cities: z.array(z.tuple([z.string().trim().max(30), pct])).max(4),
-  rates: z.array(z.coerce.number().int().min(0)).length(RATE_LABELS.length),
+  rates: z.array(z.coerce.number<number>().int().min(0)).length(RATE_LABELS.length),
   topics: z.string().trim().max(200).default(""),
   noAds: z.string().trim().max(200).default(""),
   admins: z.array(z.object({
@@ -34,13 +35,13 @@ export const ProfileInput = z.object({
   fullName: z.string().trim().min(3, "To‘liq ismni yozing").max(80),
   /** Studiya va texnika ijarasida so'ralmaydi (isBusiness) */
   birthYear: z.preprocess((v) => (v === "" || v == null ? undefined : v),
-    z.coerce.number().int().min(1940).max(new Date().getFullYear() - 14, "Yosh kamida 14").optional()),
+    z.coerce.number<number>().int().min(1940).max(new Date().getFullYear() - 14, "Yosh kamida 14").optional()),
   gender: z.enum(["f", "m"]).optional(),
   languages: z.array(z.enum(["uz", "ru", "en"])).min(1, "Kamida bitta til"),
   districts: z.array(z.string()).min(1, "Kamida bitta tuman tanlang").max(14),
   bio: z.string().trim().max(500).default(""),
-  experienceYears: z.coerce.number().int().min(0).max(60),
-  price: z.coerce.number().int().min(0).max(1_000_000_000).optional(),
+  experienceYears: z.coerce.number<number>().int().min(0).max(60),
+  price: z.coerce.number<number>().int().min(0).max(1_000_000_000).optional(),
   priceNegotiable: z.boolean().default(false),
   tags: z.string().max(200).default("").transform((v) => v.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 5)),
   extra: z.record(z.string(), z.string().trim().max(1000)).default({}),
@@ -51,7 +52,7 @@ export const ProfileInput = z.object({
     .refine((a) => a.every(isVideoLink), "Havola YouTube, Instagram, TikTok, Vimeo, Telegram, Google Drive yoki SoundCloud’dan bo‘lsin (https://...)"),
   contacts: z.object({ phone: z.string().trim().optional().default(""), telegram: handle.default(""), instagram: handle.default("") }),
   blogger: BloggerInput.optional(),
-  consent: z.literal(true, { errorMap: () => ({ message: "Kontaktlar ochiq ko‘rinishiga rozilik kerak" }) }),
+  consent: z.literal(true, { error: "Kontaktlar ochiq ko‘rinishiga rozilik kerak" }),
 });
 
 export type ProfileInputT = z.input<typeof ProfileInput>;
