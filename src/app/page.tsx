@@ -14,7 +14,7 @@ import HeroSearch from "./HeroSearch";
 const HERO: FanItem[] = [
   { label: "Blogerlar", href: "/mutaxassislar/bloger", src: "/hero/bloger.webp", pos: "center 30%", m: "c" },
   { label: "Operatorlar", href: "/mutaxassislar/operator", src: "/hero/operator.webp", pos: "center 30%", m: "l" },
-  { label: "Brand Face", href: "/mutaxassislar/brand-face", src: "/hero/brandface.webp", pos: "center 22%", m: "r" },
+  { label: "Brand Face", href: "/mutaxassislar/brand-face", src: "/hero/brandface.webp", pos: "center 20%", m: "r" },
   { label: "Montajorlar", href: "/mutaxassislar/montajor", src: "/hero/montajor.webp", pos: "center 30%" },
 ];
 
