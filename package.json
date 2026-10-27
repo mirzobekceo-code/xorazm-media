@@ -16,7 +16,7 @@
     "@electric-sql/pglite": "^0.3.7",
     "@vercel/blob": "^2.8.1",
     "drizzle-orm": "^0.44.5",
-    "next": "^15.5.27",
+    "next": "^15.5.28",
     "postgres": "^3.4.7",
     "qrcode": "^1.5.4",
     "react": "^19.1.1",
