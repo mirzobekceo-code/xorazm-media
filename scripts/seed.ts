@@ -60,7 +60,7 @@ async function main() {
 async function seedTargetedAds() {
   const db = await getDb();
   const url = "https://t.me/mirzobek_bozorov";
-  const VIDEO = ["operator", "mobilograf", "montajor"];
+  const VIDEO = ["operator", "mobilograf", "montajor", "ssenarist"];
   const campaigns = [
     {
       name: "Adverto Marketing — target va SMM", professions: ["marketolog", "targetolog", "smm"],

@@ -67,7 +67,7 @@ export async function ensureWebhook(siteUrl: string) {
 }
 
 export const BOT_TEXT = {
-  description: "Xorazm Digital HUB — Xorazmdagi digital va media mutaxassislari bitta joyda: brand face, operator, mobilograf, montajor, targetolog, SMM manager, bloger, fotograf, dizayner, suhandon, studiya va texnika ijarasi. Kontaktlar bepul.",
+  description: "Xorazm Digital HUB — Xorazmdagi digital va media mutaxassislari bitta joyda: brand face, operator, mobilograf, montajor, ssenarist, targetolog, SMM manager, bloger, fotograf, dizayner, suhandon, studiya va texnika ijarasi. Kontaktlar bepul.",
   short: "Xorazmdagi digital va media mutaxassislari bitta joyda",
 };
 

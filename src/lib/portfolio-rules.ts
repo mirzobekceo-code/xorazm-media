@@ -44,6 +44,11 @@ export const PORTFOLIO: Record<string, PortfolioRule> = {
     minVideos: 2, videoLabel: "Montaj qilgan videolar",
     linkLabel: "Montaj qilgan videolaringiz havolalari", linkHint: "YouTube, Instagram yoki Google Drive",
   },
+  ssenarist: {
+    minWorks: 0, worksHint: "Ssenariysingiz bo‘yicha olingan videolar yoki ssenariy sahifalari (rasm)",
+    minVideos: 2, videoLabel: "Ssenariysingiz bo‘yicha olingan videolar (video yoki havola)",
+    linkLabel: "Videolar havolalari", linkHint: "Ssenariysini siz yozgan Reels, reklama yoki YouTube videolari",
+  },
   marketolog: {
     minWorks: 0, worksHint: "Keysdan slaydlar yoki natijalar",
     minVideos: 0, videoLabel: "Video",
@@ -162,7 +167,7 @@ export function countPortfolio(media: { type: string; isCover: boolean; isStatSc
 
 /** Cloudflare Stream'ga yuklanadigan videolar soni (60 soniyagacha). Ro'yxatda yo'q kasblarga 1 ta. */
 export const VIDEO_LIMITS: Record<string, number> = {
-  "brand-face": 2, operator: 3, mobilograf: 3, montajor: 3, fotograf: 2, studiya: 2, bloger: 2, "texnika-ijarasi": 1,
+  "brand-face": 2, operator: 3, mobilograf: 3, montajor: 3, ssenarist: 3, fotograf: 2, studiya: 2, bloger: 2, "texnika-ijarasi": 1,
 };
 export const VIDEO_SECONDS = 60;
 export const videoLimit = (slug: string | undefined) => (slug ? VIDEO_LIMITS[slug] ?? 1 : 1);

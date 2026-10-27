@@ -42,6 +42,14 @@ export const PROFESSIONS: ProfessionDef[] = ([
       { key: "turnaround", label: "Topshirish muddati", type: "text", placeholder: "24 soat" },
       { key: "extras", label: "Qo‘shimcha xizmatlar", type: "text", placeholder: "Subtitr, rang to‘g‘rilash, sound design" },
     ] },
+  { slug: "ssenarist", nameUz: "Ssenarist", nameRu: "Сценарист", description: "Reels, reklama va YouTube ssenariylari", unit: "ssenariy",
+    icon: '<path d="M10 4h14l7 7v25H10z"/><path d="M24 4v7h7"/><path d="M15 18h11M15 23h11M15 28h7"/>',
+    fields: [
+      { key: "formats", label: "Formatlar", type: "text", placeholder: "Reels, reklama roligi, YouTube, podkast", required: true },
+      { key: "industries", label: "Sohalar", type: "text", placeholder: "Restoran, klinika, ta’lim" },
+      { key: "case", label: "Eng yaxshi ishingiz (natija bilan)", type: "textarea", placeholder: "Kafe uchun 4 ta reels ssenariysi: 1-video 120 ming ko‘rish" },
+      { key: "turnaround", label: "Topshirish muddati", type: "text", placeholder: "1 ta ssenariy — 24 soat" },
+    ] },
   { slug: "marketolog", nameUz: "Marketolog", nameRu: "Маркетолог", description: "Strategiya, brend, savdo voronkasi · 3+ yil tajriba", unit: "oy",
     icon: '<path d="M6 34V24M14 34V18M22 34V22M30 34V12"/><path d="M5 15l8-6 8 5 13-9"/><path d="M28 5h6v6"/>',
     fields: [

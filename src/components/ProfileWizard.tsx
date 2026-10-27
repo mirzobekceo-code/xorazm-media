@@ -335,7 +335,7 @@ export default function ProfileWizard(props: {
                 return (
                   <div className="field full" key={f.key}>
                     <span>{f.label}{f.required ? " *" : ""}</span>
-                    <PriceListInput idPrefix={id} value={val} onChange={put} />
+                    <PriceListInput idPrefix={id} value={val} onChange={put} kind={f.key} />
                     {f.hint && <small>{f.hint}</small>}
                   </div>
                 );
@@ -575,7 +575,14 @@ function Thumbs({ items, onDelete }: { items: MediaItem[]; onDelete: (id: number
 }
 
 /** Narxli ro'yxat: har qatorda nomi va kunlik narxi. Matn ko'rinishida saqlanadi ("Nomi — narx"). */
-function PriceListInput({ idPrefix, value, onChange }: { idPrefix: string; value: string; onChange: (v: string) => void }) {
+/** Narxli ro'yxat yozuvlari: texnika ijarasi (kunlik narx) yoki xizmat paketlari. */
+const PRICE_LIST_TEXT = {
+  items: { name: "Texnika nomi", namePh: "Sony FX3", price: "Kunlik narxi, so‘m", pricePh: "so‘m / kun", add: "+ Texnika qo‘shish" },
+  packages: { name: "Paket nomi", namePh: "Masalan: 4 ta reels + ssenariy", price: "Paket narxi, so‘m", pricePh: "so‘m", add: "+ Paket qo‘shish" },
+};
+
+function PriceListInput({ idPrefix, value, onChange, kind }: { idPrefix: string; value: string; onChange: (v: string) => void; kind: string }) {
+  const L = kind === "items" ? PRICE_LIST_TEXT.items : PRICE_LIST_TEXT.packages;
   const [rows, setRows] = useState<PriceRow[]>(() => {
     const r = parsePriceList(value);
     return r.length ? r : [{ name: "", price: 0 }];
@@ -585,14 +592,14 @@ function PriceListInput({ idPrefix, value, onChange }: { idPrefix: string; value
     <div className="stack" style={{ gap: 8 }}>
       {rows.map((r, i) => (
         <div className="row" key={i} style={{ flexWrap: "nowrap" }}>
-          <input className="inp" id={`${idPrefix}-n${i}`} aria-label="Texnika nomi" placeholder="Sony FX3" value={r.name}
+          <input className="inp" id={`${idPrefix}-n${i}`} aria-label={L.name} placeholder={L.namePh} value={r.name}
             onChange={(e) => update(rows.map((x, j) => (j === i ? { ...x, name: e.target.value.replace(/[—–]/g, "-") } : x)))} />
-          <input className="inp" id={`${idPrefix}-p${i}`} aria-label="Kunlik narxi, so‘m" style={{ width: 150 }} inputMode="numeric" placeholder="so‘m / kun"
+          <input className="inp" id={`${idPrefix}-p${i}`} aria-label={L.price} style={{ width: 150 }} inputMode="numeric" placeholder={L.pricePh}
             value={r.price ? String(r.price) : ""} onChange={(e) => update(rows.map((x, j) => (j === i ? { ...x, price: Number(e.target.value.replace(/\D/g, "")) || 0 } : x)))} />
           {rows.length > 1 && <button type="button" className="btn ghost sm" aria-label="Qatorni o‘chirish" onClick={() => update(rows.filter((_, j) => j !== i))}>×</button>}
         </div>
       ))}
-      {rows.length < 20 && <div><button type="button" className="btn ghost sm" onClick={() => setRows([...rows, { name: "", price: 0 }])}>+ Texnika qo‘shish</button></div>}
+      {rows.length < 20 && <div><button type="button" className="btn ghost sm" onClick={() => setRows([...rows, { name: "", price: 0 }])}>{L.add}</button></div>}
     </div>
   );
 }
