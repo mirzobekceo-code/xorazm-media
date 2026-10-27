@@ -7,6 +7,7 @@ import { REJECT_REASONS } from "./reference";
 import { SITE } from "./site";
 import { notifyUser, tg } from "./telegram";
 import { parsePriceList } from "./portfolio-rules";
+import { cfRef, videoStatus } from "./cloudflare";
 
 export async function logModeration(profileId: number | null, moderatorId: number, action: string, reason?: string, mediaId?: number) {
   const db = await getDb();
@@ -106,7 +107,9 @@ export async function moderationText(profileId: number, kind: "new" | "changed")
   if (p.videoLinks.length) lines.push("", "<b>Havolalar:</b>", ...p.videoLinks.map((u) => esc(u)));
   const images = media.filter((m) => m.type === "image" && !m.isStatScreenshot).length;
   const proofs = media.filter((m) => m.isStatScreenshot).length;
-  lines.push("", `🖼 Rasmlar: ${images}${proofs ? ` · isbot skrinshotlari: ${proofs}` : ""}`);
+  const videos = media.filter((m) => m.type === "video");
+  lines.push("", `🖼 Rasmlar: ${images}${videos.length ? ` · 🎬 videolar: ${videos.length}` : ""}${proofs ? ` · isbot skrinshotlari: ${proofs}` : ""}`);
+  if (videos.length) lines.push(...videos.map((v, i) => `<a href="${esc(v.url)}">▶ ${i + 1}-videoni ko‘rish</a>`));
   return { text: lines.join("\n").slice(0, 4000), media, status: p.status };
 }
 
@@ -122,8 +125,17 @@ export async function sendModerationCard(profileId: number, kind: "new" | "chang
   const card = await moderationText(profileId, kind);
   if (!card) return;
   // Telegram faqat ochiq https manzildagi rasmni oladi (lokal /uploads emas)
-  const photos = card.media.filter((m) => m.type === "image" && m.url.startsWith("https://")).slice(0, 10)
-    .map((m) => ({ type: "photo", media: m.url, ...(m.isStatScreenshot ? { caption: "Isbot skrinshoti" } : {}) }));
+  // Video muqovasi faqat Cloudflare videoni o'girib bo'lgach mavjud — tayyor bo'lmaganini albomga qo'shmaymiz (aks holda butun albom rad etiladi)
+  const ready = await Promise.all(card.media.map(async (m) => {
+    if (m.type === "image") return m.url.startsWith("https://");
+    const ref = cfRef(m.url);
+    return ref?.kind === "video" && !!m.thumbUrl && (await videoStatus(ref.id).then((v) => v.ready, () => false));
+  }));
+  const photos = card.media.filter((m, i) => ready[i]).slice(0, 10).map((m) => ({
+    type: "photo",
+    media: m.type === "video" ? m.thumbUrl! : m.url,
+    ...(m.type === "video" ? { caption: "▶ Video (havolasi pastda)" } : m.isStatScreenshot ? { caption: "Isbot skrinshoti" } : {}),
+  }));
   await Promise.all(staff.map(async ({ tg: chatId }) => {
     if (photos.length > 1) await tg("sendMediaGroup", { chat_id: chatId, media: photos });
     else if (photos.length === 1) await tg("sendPhoto", { chat_id: chatId, photo: photos[0].media });

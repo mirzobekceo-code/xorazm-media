@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import sharp from "sharp";
 import { put as blobPut, del as blobDel } from "@vercel/blob";
 import { uploadLimits } from "./limits";
+import { cfEnabled, cfRef, deleteImage, deleteVideo, ensureImageVariants, uploadImage } from "./cloudflare";
 
 /**
  * Fayl xotirasi. BLOB_READ_WRITE_TOKEN bo'lsa Vercel Blob (production),
@@ -35,12 +36,23 @@ async function put(rel: string, data: Buffer, contentType: string) {
   return `/uploads/${rel}`;
 }
 
-/** Rasmni WEBP'ga o'giradi, EXIF (GPS) ni olib tashlaydi, ikki o'lcham saqlaydi. */
+let variantsReady = false;
+
+/**
+ * Rasmni WEBP'ga o'giradi, EXIF (GPS) ni olib tashlaydi. Cloudflare yoqilgan bo'lsa bitta nusxa yuklanadi
+ * (kichik nusxani Cloudflare variant sifatida o'zi yasaydi), aks holda ikki o'lcham Blob'ga yoziladi.
+ */
 export async function saveImage(profileId: number, file: File) {
   if (file.size > IMAGE_MAX) throw new Error("Rasm 10 MB dan katta");
   const input = Buffer.from(await file.arrayBuffer());
   const id = crypto.randomBytes(8).toString("hex");
   const base = sharp(input, { failOn: "none" }).rotate(); // rotate() EXIF orientatsiyani qo'llaydi; metadata saqlanmaydi
+  if (cfEnabled()) {
+    if (!variantsReady) { await ensureImageVariants(); variantsReady = true; }
+    const full = await base.resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
+    const r = await uploadImage(full, `${profileId}-${id}.webp`, { profileId: String(profileId) });
+    return { url: r.url, thumbUrl: r.thumbUrl, sizeBytes: full.length };
+  }
   const [full, thumb] = await Promise.all([
     base.clone().resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
     base.clone().resize({ width: 600, height: 760, fit: "cover" }).webp({ quality: 78 }).toBuffer(),
@@ -62,6 +74,11 @@ export async function saveVideo(profileId: number, file: File) {
 
 export async function removeFile(url: string | null) {
   if (!url) return;
+  const ref = cfRef(url);
+  if (ref) {
+    if (cfEnabled()) await (ref.kind === "image" ? deleteImage(ref.id) : deleteVideo(ref.id));
+    return;
+  }
   if (url.startsWith("https://") && url.includes(".blob.vercel-storage.com/")) {
     if (useBlob()) await blobDel(url).catch(() => {});
     return;

@@ -6,6 +6,7 @@ import { AGE_GROUPS, RATE_LABELS, type ProfileInputT } from "./profile-input";
 import { uploadLimits } from "./limits";
 import { botEnabled } from "./telegram";
 import { codeSignupAvailable } from "./otp-delivery";
+import { cfEnabled } from "./cloudflare";
 
 /** Formaga kerakli ma'lumotnomalar. */
 export async function wizardRefs() {
@@ -16,6 +17,8 @@ export async function wizardRefs() {
     limits: uploadLimits(),
     telegram: botEnabled(),
     codeSignup: codeSignupAvailable(),
+    /** Video Cloudflare Stream'ga yuklanadimi */
+    cfVideo: cfEnabled(),
   };
 }
 

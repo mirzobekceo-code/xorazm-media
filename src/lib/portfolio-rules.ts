@@ -117,3 +117,10 @@ export function portfolioProblem(slug: string, counts: { images: number; links: 
   if (r.proof?.required && counts.proofs < 1) return `${r.proof.label}ni yuklang`;
   return "";
 }
+
+/** Cloudflare Stream'ga yuklanadigan videolar soni (60 soniyagacha). Ro'yxatda yo'q kasblarga 1 ta. */
+export const VIDEO_LIMITS: Record<string, number> = {
+  "brand-face": 2, operator: 3, mobilograf: 3, montajor: 3, fotograf: 2, studiya: 2, bloger: 2, "texnika-ijarasi": 1,
+};
+export const VIDEO_SECONDS = 60;
+export const videoLimit = (slug: string | undefined) => (slug ? VIDEO_LIMITS[slug] ?? 1 : 1);

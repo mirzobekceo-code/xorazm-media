@@ -278,9 +278,6 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical }
 .spec dt, .spec dd { margin: 0; padding: 10px 0; border-bottom: 1px solid var(--line) }
 .spec dt { color: var(--muted); font-size: 14px }
 .spec dd { font-weight: 500; overflow-wrap: anywhere }
-.port { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px }
-.port a, .port video { aspect-ratio: 3/4; border-radius: 12px; overflow: hidden; background: var(--soft); display: block; width: 100%; object-fit: cover }
-.port img { width: 100%; height: 100%; object-fit: cover; display: block }
 .vids { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px }
 .vids:empty { display: none }
 .vids iframe { width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 12px; background: var(--soft) }
@@ -335,6 +332,21 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical }
 .act { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); padding-top: 20px }
 .err { color: var(--bad); font-size: 14px }
 .ok { color: var(--good); font-size: 14px }
+/* Portfolio galereyasi: katta ko'rinish va kichik ko'rinishlar */
+.gal { display: flex; flex-direction: column; gap: 10px }
+.gal-stage { position: relative; aspect-ratio: 4 / 5; max-height: 78vh; border-radius: 16px; overflow: hidden; background: #0a100f }
+.gal-stage img, .gal-stage video, .gal-stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; object-fit: contain; display: block }
+.gal-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; border: 0; background: #0b1312cc; color: #fff; font-size: 28px; line-height: 1; cursor: pointer; display: grid; place-items: center; backdrop-filter: blur(6px); z-index: 2 }
+.gal-nav.prev { left: 10px } .gal-nav.next { right: 10px }
+.gal-nav:hover { background: #0b1312 }
+.gal-count { position: absolute; left: 12px; top: 12px; z-index: 2; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: #0b1312cc; color: #fff }
+.gal-thumbs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin }
+.gal-thumbs button { position: relative; flex: 0 0 auto; width: 72px; aspect-ratio: 3 / 4; padding: 0; border-radius: 10px; overflow: hidden; border: 2px solid transparent; background: var(--soft); cursor: pointer; opacity: .7 }
+.gal-thumbs button.on { border-color: var(--accent); opacity: 1 }
+.gal-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block }
+.gal-v { display: grid; place-items: center; height: 100%; font-size: 11px; color: var(--muted) }
+.vplay { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; color: #fff; background: #0b1312b3; pointer-events: none }
+.vproc { display: grid; place-items: center; height: 100%; font-size: 13px; font-weight: 600; color: var(--accent-strong) }
 .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px }
 .thumb { position: relative; aspect-ratio: 3/4; border-radius: 10px; overflow: hidden; background: var(--soft) }
 .thumb img, .thumb video { width: 100%; height: 100%; object-fit: cover; display: block }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isCfVideo } from "@/lib/cloudflare";
 import ExtraValue from "@/components/ExtraValue";
 import { notFound } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
@@ -70,7 +71,7 @@ export default async function Review({ params }: { params: Promise<{ id: string 
           {port.map((m) => (
             <div key={m.id} className="stack" style={{ gap: 6 }}>
               <a className="thumb" href={m.url} target="_blank" rel="noopener">
-                {m.type === "image" ? <img src={m.thumbUrl ?? m.url} alt="" /> : <video src={m.url} muted />}
+                {m.type === "image" ? <img src={m.thumbUrl ?? m.url} alt="" /> : isCfVideo(m.url) ? <a href={m.url} target="_blank" rel="noopener" title="Videoni ko‘rish"><img src={m.thumbUrl ?? ""} alt="Video" /><span className="vplay" aria-hidden="true">▶</span></a> : <video src={m.url} muted controls />}
                 <span className="st">{m.moderationStatus}</span>
               </a>
               {m.moderationStatus === "pending" && (

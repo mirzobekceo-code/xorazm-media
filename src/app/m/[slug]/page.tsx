@@ -15,6 +15,8 @@ import Contacts from "./Contacts";
 import ReportButton from "./ReportButton";
 import ViewBeacon from "./ViewBeacon";
 import ShareProfile from "./ShareProfile";
+import Gallery from "./Gallery";
+import { isCfVideo } from "@/lib/cloudflare";
 import ExtraValue from "@/components/ExtraValue";
 import { isBusiness, portfolioRule } from "@/lib/portfolio-rules";
 
@@ -157,11 +159,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
           {p.media.length > 0 && (
             <section className="box">
               <h3>{isBlogger ? "Reklama namunalari" : "Portfolio"}</h3>
-              <div className="port">
-                {p.media.map((m) => m.type === "image"
-                  ? <a key={m.id} href={m.url} target="_blank" rel="noopener"><img src={m.thumbUrl ?? m.url} alt="" loading="lazy" /></a>
-                  : <video key={m.id} src={m.url} controls preload="none" playsInline />)}
-              </div>
+              <Gallery title={p.fullName} items={p.media.map((m) => ({ id: m.id, type: m.type, url: m.url, thumbUrl: m.thumbUrl, stream: isCfVideo(m.url) }))} />
             </section>
           )}
 

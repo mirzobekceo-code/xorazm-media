@@ -1,5 +1,6 @@
 "use server";
-import { portfolioRule } from "@/lib/portfolio-rules";
+import { portfolioRule, VIDEO_SECONDS, videoLimit } from "@/lib/portfolio-rules";
+import { cfEnabled, cfRef, createVideoUpload, videoStatus } from "@/lib/cloudflare";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, count, desc, eq } from "drizzle-orm";
@@ -14,11 +15,11 @@ import { uploadLimits, type UploadLimits } from "@/lib/limits";
 import { head } from "@vercel/blob";
 import { createTelegramToken } from "@/lib/telegram-auth";
 
-/** Video brauzerdan to'g'ridan-to'g'ri Blob'ga yuklanadimi (production). */
-export async function uploadModeAction(): Promise<{ directVideo: boolean; profileId: number | null; limits: UploadLimits }> {
+/** Video qayerga yuklanadi: Cloudflare Stream (cfVideo) yoki to'g'ridan-to'g'ri Blob (directVideo). */
+export async function uploadModeAction(): Promise<{ directVideo: boolean; cfVideo: boolean; profileId: number | null; limits: UploadLimits }> {
   const user = await getUser();
   const p = user && (await getOwnProfile(user.id));
-  return { directVideo: !!process.env.BLOB_READ_WRITE_TOKEN, profileId: p?.id ?? null, limits: uploadLimits() };
+  return { directVideo: !!process.env.BLOB_READ_WRITE_TOKEN, cfVideo: cfEnabled(), profileId: p?.id ?? null, limits: uploadLimits() };
 }
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -104,6 +105,40 @@ export async function registerVideoAction(url: string): Promise<Result<{ id: num
   const size = await head(url).then((h) => h.size, () => 0);
   const [row] = await db.insert(s.media).values({ profileId: profile.id, type: "video", url, sizeBytes: size, sortOrder: n }).returning();
   return { ok: true, id: row.id, url: row.url, thumbUrl: null, type: "video" };
+}
+
+/**
+ * Cloudflare Stream: bazada video yozuvini ochadi va brauzer to'g'ridan-to'g'ri yuklashi uchun bir martalik manzil beradi.
+ * Davomiylik limitini Cloudflare o'zi ham tekshiradi (maxDurationSeconds).
+ */
+export async function createVideoUploadAction(): Promise<Result<{ id: number; uploadURL: string; url: string; thumbUrl: string }>> {
+  if (!cfEnabled()) return { ok: false, error: "Video yuklash hozircha o‘chirilgan — havola qo‘shing" };
+  const user = await getUser();
+  const profile = user && (await getOwnProfile(user.id));
+  if (!profile) return { ok: false, error: "Avval profil ma’lumotlarini saqlang" };
+  const db = await getDb();
+  const [pr] = await db.select({ slug: s.professions.slug }).from(s.professions).where(eq(s.professions.id, profile.professionId));
+  const limit = videoLimit(pr?.slug);
+  const [{ n }] = await db.select({ n: count() }).from(s.media).where(and(eq(s.media.profileId, profile.id), eq(s.media.type, "video")));
+  if (n >= limit) return { ok: false, error: `Ko‘pi bilan ${limit} ta video` };
+  if (!rateLimit(`video:${profile.id}`, 10, 3_600_000)) return { ok: false, error: "Juda ko‘p urinish. Birozdan keyin qayta urinib ko‘ring." };
+  const up = await createVideoUpload(VIDEO_SECONDS, { profileId: String(profile.id) });
+  const [row] = await db.insert(s.media).values({ profileId: profile.id, type: "video", url: up.url, thumbUrl: up.thumbUrl, sortOrder: 100 + n }).returning();
+  return { ok: true, id: row.id, uploadURL: up.uploadURL, url: up.url, thumbUrl: up.thumbUrl };
+}
+
+/** Yuklangan video Cloudflare'da tayyor bo'ldimi (o'girish bir necha soniya-daqiqa oladi). */
+export async function videoStatusAction(mediaId: number): Promise<Result<{ ready: boolean; state: string; error?: string }>> {
+  const user = await getUser();
+  const profile = user && (await getOwnProfile(user.id));
+  if (!profile) return { ok: false, error: "Ruxsat yo‘q" };
+  const db = await getDb();
+  const [m] = await db.select().from(s.media).where(and(eq(s.media.id, mediaId), eq(s.media.profileId, profile.id)));
+  const ref = m && cfRef(m.url);
+  if (!m || ref?.kind !== "video") return { ok: false, error: "Video topilmadi" };
+  const st = await videoStatus(ref.id).catch((e) => ({ ready: false, state: "error", duration: 0, size: 0, error: String(e.message) }));
+  if (st.ready && st.size && !m.sizeBytes) await db.update(s.media).set({ sizeBytes: st.size }).where(eq(s.media.id, m.id));
+  return { ok: true, ready: st.ready, state: st.state, error: st.error };
 }
 
 export async function deleteMediaAction(mediaId: number): Promise<Result> {

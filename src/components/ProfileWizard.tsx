@@ -6,18 +6,22 @@ import { LANGUAGES } from "@/lib/reference";
 import { AGE_GROUPS, emptyBlogger, emptyInput, PLATFORMS, RATE_LABELS, type ProfileInputT } from "@/lib/profile-input";
 import { PLATFORM_LABELS } from "@/lib/format";
 import {
-  deleteMediaAction, registerVideoAction, requestCodeAction, saveProfileAction, setCoverAction, submitAction, uploadMediaAction,
-  uploadModeAction, verifyCodeAction,
+  createVideoUploadAction, deleteMediaAction, registerVideoAction, requestCodeAction, saveProfileAction, setCoverAction, submitAction, uploadMediaAction,
+  uploadModeAction, verifyCodeAction, videoStatusAction,
 } from "@/app/actions";
 import { upload as blobUpload } from "@vercel/blob/client";
 import { ProfIcon } from "./Icons";
 import type { UploadLimits } from "@/lib/limits";
 import TelegramButton from "./TelegramButton";
 import { CHANNEL_HINT } from "@/lib/channel-hint";
-import { experienceFallback, formatPriceList, isBusiness, MIN_EXPERIENCE, parsePriceList, portfolioProblem, portfolioRule, type PriceRow } from "@/lib/portfolio-rules";
+import { experienceFallback, formatPriceList, isBusiness, MIN_EXPERIENCE, parsePriceList, portfolioProblem, portfolioRule, type PriceRow, VIDEO_SECONDS, videoLimit } from "@/lib/portfolio-rules";
 
 type Prof = { slug: string; nameUz: string; description: string; icon: string; unit: string; fieldsSchema: FieldDef[] };
-type MediaItem = { id: number; url: string; thumbUrl: string | null; type: "image" | "video"; isCover: boolean; isStatScreenshot: boolean; moderationStatus: string };
+type MediaItem = {
+  id: number; url: string; thumbUrl: string | null; type: "image" | "video"; isCover: boolean; isStatScreenshot: boolean; moderationStatus: string;
+  /** Cloudflare videoni o'girmoqda; progress — yuklanish foizi */
+  processing?: boolean; progress?: number;
+};
 
 const STEPS = ["Yo‘nalish", "Asosiy ma’lumot", "Kasbga oid", "Aloqa", "Portfolio"];
 const DRAFT_KEY = "xm-signup-draft";
@@ -34,6 +38,8 @@ export default function ProfileWizard(props: {
   telegram: boolean;
   /** Yangi foydalanuvchi raqamini Telegram kodi bilan tasdiqlay oladimi (Gateway) */
   codeSignup: boolean;
+  /** Video Cloudflare Stream'ga yuklanadi (kasbga qarab limit, 60 soniya) */
+  cfVideo?: boolean;
   /** Tahrirlashda: qoralama yoki rad etilgan profil oxirida tekshiruvga yuboriladi */
   submitOnFinish?: boolean;
   /** Tahrirlashda qaysi qadamdan ochilsin (kabinetdagi "tuzatish" havolalari) */
@@ -53,6 +59,8 @@ export default function ProfileWizard(props: {
   const prof = useMemo(() => props.professions.find((p) => p.slug === v.profession), [v.profession, props.professions]);
   const isBlogger = v.profession === "bloger";
   const rule = portfolioRule(v.profession ?? "");
+  // Cloudflare yoqilgan bo'lsa video limiti kasbga qarab, aks holda muhit sozlamasidan
+  const limits: UploadLimits = props.cfVideo ? { ...props.limits, videos: videoLimit(v.profession), videoSeconds: VIDEO_SECONDS, videoMb: 200 } : props.limits;
   const business = isBusiness(v.profession);
   const linkCount = String(v.videoLinks ?? "").split(/\s+/).filter(Boolean).length;
 
@@ -151,9 +159,25 @@ export default function ProfileWizard(props: {
       setUploading((n) => n + 1);
       let r: Awaited<ReturnType<typeof uploadMediaAction>>;
       try {
-        const vErr = file.type.startsWith("video/") ? await checkVideo(file, props.limits) : "";
+        const vErr = file.type.startsWith("video/") ? await checkVideo(file, limits) : "";
         if (vErr) {
           r = { ok: false, error: vErr };
+        } else if (file.type.startsWith("video/") && mode.cfVideo) {
+          // Cloudflare Stream: server bir martalik manzil beradi, fayl brauzerdan to'g'ridan-to'g'ri yuklanadi
+          const up = await createVideoUploadAction();
+          if (!up.ok) { r = up; } else {
+            setMedia((m) => [...m, { id: up.id, url: up.url, thumbUrl: up.thumbUrl, type: "video", isCover: false, isStatScreenshot: false, moderationStatus: "pending", processing: true, progress: 0 }]);
+            const sent = await sendFile(up.uploadURL, file, (pct) => setMedia((m) => m.map((x) => (x.id === up.id ? { ...x, progress: pct } : x))));
+            if (!sent) {
+              await deleteMediaAction(up.id);
+              setMedia((m) => m.filter((x) => x.id !== up.id));
+              r = { ok: false, error: "video yuklanmadi (internetni tekshiring yoki 60 soniyadan qisqa video tanlang)" };
+            } else {
+              setMedia((m) => m.map((x) => (x.id === up.id ? { ...x, progress: 100 } : x)));
+              setUploading((n) => n - 1);
+              continue;
+            }
+          }
         } else if (file.type.startsWith("video/") && mode.directVideo && mode.profileId) {
           // Katta video server orqali o'tmaydi: to'g'ridan-to'g'ri Blob'ga
           const ext = file.type === "video/quicktime" ? "mov" : "mp4";
@@ -173,6 +197,23 @@ export default function ProfileWizard(props: {
       setMedia((m) => [...m, { id: r.id, url: r.url, thumbUrl: r.thumbUrl, type: r.type, isCover: false, isStatScreenshot: stat, moderationStatus: "pending" }]);
     }
   }
+
+  // Cloudflare videoni o'girib bo'lguncha holatini so'rab turamiz
+  const processingIds = media.filter((m) => m.processing && m.progress === 100).map((m) => m.id).join(",");
+  useEffect(() => {
+    if (!processingIds) return;
+    const t = setInterval(async () => {
+      for (const id of processingIds.split(",").map(Number)) {
+        const st = await videoStatusAction(id);
+        if (st.ok && (st.ready || st.state === "error")) {
+          if (st.state === "error") setError(`Video ishlanmadi: ${st.error ?? "fayl formati"}. O‘chirib, boshqasini yuklang.`);
+          setMedia((m) => m.map((x) => (x.id === id ? { ...x, processing: false } : x)));
+        }
+      }
+    }, 4000);
+    return () => clearInterval(t);
+  }, [processingIds]);
+  const busy = uploading > 0 || media.some((m) => m.processing);
 
   function finish() {
     setError("");
@@ -412,14 +453,15 @@ export default function ProfileWizard(props: {
               <b style={{ color: "var(--ink)" }}>{rule.imageHint}</b>
               <span className="small">
                 Yuklandi: {portfolio.filter((m) => m.type === "image").length} / kamida {rule.minImages} · {Math.max(props.limits.images, rule.minImages)} tagacha, avtomatik kichraytiriladi · ★ bilan muqovani tanlang
-                {props.limits.videos > 0
-                  ? ` · Video: ${props.limits.videos} tagacha, ${props.limits.videoSeconds} soniya va ${props.limits.videoMb} MB gacha (MP4, MOV)`
+                {limits.videos > 0
+                  ? ` · Video: ${limits.videos} tagacha, ${limits.videoSeconds} soniyagacha (telefon videosi bo‘ladi: MP4, MOV)`
                   : " · Videolarni 3-qadamda havola sifatida qo‘shing"}
               </span>
               <label className="btn ghost sm" htmlFor="up-media" style={{ cursor: "pointer" }}>Fayl tanlash</label>
-              <input id="up-media" type="file" accept={props.limits.videos > 0 ? "image/*,video/mp4,video/quicktime" : "image/*"} multiple hidden onChange={(e) => { upload(e.target.files); e.target.value = ""; }} />
+              <input id="up-media" type="file" accept={limits.videos > 0 ? (props.cfVideo ? "image/*,video/*" : "image/*,video/mp4,video/quicktime") : "image/*"} multiple hidden onChange={(e) => { upload(e.target.files); e.target.value = ""; }} />
             </div>
             {uploading > 0 && <p className="muted small">Yuklanmoqda: {uploading} ta fayl…</p>}
+            {media.some((m) => m.processing && m.progress === 100) && <p className="muted small">Video ishlanmoqda — odatda bir necha soniya. Sahifani yopmang.</p>}
             <Thumbs items={portfolio} onDelete={async (id) => { await deleteMediaAction(id); setMedia((m) => m.filter((x) => x.id !== id)); }}
               onCover={async (id) => { await setCoverAction(id); setMedia((m) => m.map((x) => ({ ...x, isCover: x.id === id }))); }} />
           </div>
@@ -429,7 +471,7 @@ export default function ProfileWizard(props: {
         {error && <p className="err" role="alert">{error}</p>}
         <div className="act">
           <button type="button" className="btn ghost" style={{ visibility: step === 0 || (props.mode === "edit" && step === 1) ? "hidden" : "visible" }} onClick={() => { setError(""); setStep((x) => x - 1); }}>Orqaga</button>
-          <button type="submit" className="btn" disabled={pending || uploading > 0}>
+          <button type="submit" className="btn" disabled={pending || busy}>
             {step < 3 ? "Davom etish" : step === 3 ? (pending ? "Saqlanmoqda…" : "Saqlash va davom etish") : props.mode === "edit" && !props.submitOnFinish ? "Tayyor" : pending ? "Yuborilmoqda…" : "Tekshiruvga yuborish"}
           </button>
         </div>
@@ -479,8 +521,11 @@ function Thumbs({ items, onDelete, onCover }: { items: MediaItem[]; onDelete: (i
     <div className="thumbs">
       {items.map((m) => (
         <div className="thumb" key={m.id}>
-          {m.type === "image" ? <img src={m.thumbUrl ?? m.url} alt="" /> : <video src={m.url} muted playsInline />}
-          <span className="st">{m.isCover ? "Muqova" : MOD_LABEL[m.moderationStatus] ?? m.moderationStatus}</span>
+          {m.type === "image" ? <img src={m.thumbUrl ?? m.url} alt="" />
+            : m.processing ? <span className="vproc">{m.progress != null && m.progress < 100 ? `${m.progress}%` : "Ishlanmoqda…"}</span>
+            : m.thumbUrl ? <><img src={m.thumbUrl} alt="" /><span className="vplay" aria-hidden="true">▶</span></>
+            : <video src={m.url} muted playsInline />}
+          <span className="st">{m.isCover ? "Muqova" : m.type === "video" ? "Video" : MOD_LABEL[m.moderationStatus] ?? m.moderationStatus}</span>
           <button type="button" aria-label="O‘chirish" onClick={() => onDelete(m.id)}>×</button>
           {onCover && m.type === "image" && !m.isCover && (
             <button type="button" aria-label="Muqova qilish" title="Muqova qilish" style={{ right: 36 }} onClick={() => onCover(m.id)}>★</button>
@@ -512,4 +557,18 @@ function PriceListInput({ idPrefix, value, onChange }: { idPrefix: string; value
       {rows.length < 20 && <div><button type="button" className="btn ghost sm" onClick={() => setRows([...rows, { name: "", price: 0 }])}>+ Texnika qo‘shish</button></div>}
     </div>
   );
+}
+
+/** Faylni Cloudflare'ning bir martalik manziliga yuboradi (yuklanish foizi bilan). */
+function sendFile(url: string, file: File, onProgress: (pct: number) => void): Promise<boolean> {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    const form = new FormData();
+    form.append("file", file);
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100))); };
+    xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300);
+    xhr.onerror = () => resolve(false);
+    xhr.open("POST", url);
+    xhr.send(form);
+  });
 }
