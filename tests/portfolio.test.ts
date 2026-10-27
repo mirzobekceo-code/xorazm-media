@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatPriceList, isBusiness, parsePriceList, portfolioProblem } from "../src/lib/portfolio-rules";
+import { experienceFallback, formatPriceList, isBusiness, parsePriceList, portfolioProblem } from "../src/lib/portfolio-rules";
 
 test("narxli ro'yxat: yozish va o'qish bir xil", () => {
   const rows = [{ name: "Sony FX3", price: 350000 }, { name: "Canon 24-105", price: 0 }, { name: "", price: 5 }];
@@ -24,4 +24,12 @@ test("portfolio talablari kasbga qarab", () => {
 test("studiya va texnika ijarasi — kompaniya", () => {
   assert.ok(isBusiness("studiya") && isBusiness("texnika-ijarasi"));
   assert.ok(!isBusiness("operator") && !isBusiness(undefined));
+});
+
+test("marketolog: 3 yildan kam tajriba — SMM manager", () => {
+  assert.equal(experienceFallback("marketolog", 2), "smm");
+  assert.equal(experienceFallback("marketolog", 0), "smm");
+  assert.equal(experienceFallback("marketolog", 3), null);
+  assert.equal(experienceFallback("smm", 0), null);
+  assert.equal(experienceFallback(undefined, 0), null);
 });

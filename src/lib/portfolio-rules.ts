@@ -37,6 +37,10 @@ export const PORTFOLIO: Record<string, PortfolioRule> = {
     minImages: 1, imageHint: "Muqova uchun rasm yoki ishingizdan kadr",
     minLinks: 2, linkLabel: "Montaj qilgan videolaringiz", linkHint: "Kamida 2 ta video havola",
   },
+  marketolog: {
+    minImages: 1, imageHint: "Muqova uchun rasm yoki keysdan slayd",
+    minLinks: 0, linkLabel: "Keys yoki taqdimot havolalari", linkHint: "Ixtiyoriy: keys, taqdimot yoki loyiha sahifasi",
+  },
   targetolog: {
     minImages: 1, imageHint: "Muqova uchun rasm",
     minLinks: 0, linkLabel: "Keys yoki sahifa havolalari", linkHint: "Ixtiyoriy: natijalar haqida post yoki keys",
@@ -72,6 +76,20 @@ export const PORTFOLIO: Record<string, PortfolioRule> = {
     minLinks: 0, linkLabel: "Qo‘shimcha havola", linkHint: "Ixtiyoriy: Telegram kanal yoki katalog",
   },
 };
+
+/**
+ * Minimal tajriba talab qilinadigan yo'nalishlar: kamroq bo'lsa profil boshqa yo'nalishga o'tkaziladi
+ * (masalan, 3 yildan kam tajribali "marketolog" — SMM manager).
+ */
+export const MIN_EXPERIENCE: Record<string, { years: number; fallback: string }> = {
+  marketolog: { years: 3, fallback: "smm" },
+};
+
+/** Tajriba yetmasa o'tkaziladigan yo'nalish, aks holda null. */
+export function experienceFallback(slug: string | undefined, years: number): string | null {
+  const r = slug ? MIN_EXPERIENCE[slug] : undefined;
+  return r && years < r.years ? r.fallback : null;
+}
 
 /** Kompaniya bo'lishi mumkin bo'lgan xizmatlar: tug'ilgan yil va jins so'ralmaydi. */
 export const BUSINESS = ["studiya", "texnika-ijarasi"];

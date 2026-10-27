@@ -63,7 +63,7 @@ async function seedTargetedAds() {
   const VIDEO = ["operator", "mobilograf", "montajor"];
   const campaigns = [
     {
-      name: "Adverto Marketing — target va SMM", professions: ["targetolog", "smm"],
+      name: "Adverto Marketing — target va SMM", professions: ["marketolog", "targetolog", "smm"],
       slots: ["A1", "A3", "A3b", "A5", "A6"],
       creatives: [{ style: "marketing", badge: "Kafolatlangan natija", title: "Reklamani natija uchun ishlaydigan jamoaga topshiring",
         body: "Strategiya, target va SMM bitta jamoada — har oy aniq hisobot bilan.", cta: "Bepul konsultatsiya", url }],
@@ -81,8 +81,13 @@ async function seedTargetedAds() {
     },
   ];
   for (const c of campaigns) {
-    const [exists] = await db.select({ id: s.adCampaigns.id }).from(s.adCampaigns).where(eq(s.adCampaigns.name, c.name)).limit(1);
-    if (exists) continue;
+    const [exists] = await db.select({ id: s.adCampaigns.id, professions: s.adCampaigns.professions }).from(s.adCampaigns).where(eq(s.adCampaigns.name, c.name)).limit(1);
+    if (exists) {
+      // Yangi kasb qo'shilganda (masalan, marketolog) mavjud kampaniyaga ham qo'shiladi
+      const missing = c.professions.filter((p) => !exists.professions.includes(p));
+      if (missing.length) await db.update(s.adCampaigns).set({ professions: [...exists.professions, ...missing] }).where(eq(s.adCampaigns.id, exists.id));
+      continue;
+    }
     const [row] = await db.insert(s.adCampaigns).values({
       name: c.name, advertiser: "Adverto", status: "active", slots: c.slots, professions: c.professions,
     }).returning();

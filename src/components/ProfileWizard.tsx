@@ -14,7 +14,7 @@ import { ProfIcon } from "./Icons";
 import type { UploadLimits } from "@/lib/limits";
 import TelegramButton from "./TelegramButton";
 import { CHANNEL_HINT } from "@/lib/channel-hint";
-import { formatPriceList, isBusiness, parsePriceList, portfolioProblem, portfolioRule, type PriceRow } from "@/lib/portfolio-rules";
+import { experienceFallback, formatPriceList, isBusiness, MIN_EXPERIENCE, parsePriceList, portfolioProblem, portfolioRule, type PriceRow } from "@/lib/portfolio-rules";
 
 type Prof = { slug: string; nameUz: string; description: string; icon: string; unit: string; fieldsSchema: FieldDef[] };
 type MediaItem = { id: number; url: string; thumbUrl: string | null; type: "image" | "video"; isCover: boolean; isStatScreenshot: boolean; moderationStatus: string };
@@ -43,6 +43,7 @@ export default function ProfileWizard(props: {
   const [step, setStep] = useState(props.mode === "edit" ? Math.min(4, Math.max(1, props.startStep ?? 1)) : 0);
   const [v, setV] = useState<ProfileInputT>(props.initial ?? emptyInput());
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [pending, start] = useTransition();
   const [loggedIn, setLoggedIn] = useState(props.loggedIn);
   const [otp, setOtp] = useState<{ phone: string; sent: string; code: string }>({ phone: "", sent: "", code: "" });
@@ -94,9 +95,24 @@ export default function ProfileWizard(props: {
   }
 
   function next() {
+    // Tajriba talab qilinadigan yo'nalish (marketolog: 3+ yil) — kam bo'lsa avtomatik boshqa yo'nalishga
+    if (step === 2) {
+      const exp = Number(v.experienceYears ?? 0);
+      const fb = experienceFallback(v.profession, exp);
+      if (fb) {
+        const from = prof?.nameUz ?? "";
+        const to = props.professions.find((p) => p.slug === fb)?.nameUz ?? fb;
+        setV((x) => ({ ...x, profession: fb, extra: {}, extraProfession: x.extraProfession === fb ? "" : x.extraProfession }));
+        setError("");
+        setNotice(`${from} uchun kamida ${MIN_EXPERIENCE[v.profession!].years} yil tajriba kerak. Tajribangiz ${exp} yil — profilingiz “${to}” yo‘nalishiga o‘tkazildi. Quyidagi maydonlarni to‘ldiring.`);
+        window.scrollTo({ top: 0 });
+        return;
+      }
+    }
     const e = check();
     setError(e);
     if (e) return;
+    setNotice("");
     if (step === 3) {
       start(async () => {
         const r = await saveProfileAction({ ...v, blogger: isBlogger ? b : undefined });
@@ -267,7 +283,8 @@ export default function ProfileWizard(props: {
                     placeholder={f.placeholder} value={val} onChange={(e) => put(e.target.value)} />,
               { full: f.type === "textarea", hint: f.hint });
             })}
-            {field("s-exp", "Tajriba (yil)", <input className="inp" id="s-exp" inputMode="numeric" value={String(v.experienceYears ?? 0)} onChange={(e) => set("experienceYears", Number(e.target.value.replace(/\D/g, "") || 0))} />)}
+            {field("s-exp", "Tajriba (yil)", <input className="inp" id="s-exp" inputMode="numeric" value={String(v.experienceYears ?? 0)} onChange={(e) => set("experienceYears", Number(e.target.value.replace(/\D/g, "") || 0))} />,
+              { hint: v.profession && MIN_EXPERIENCE[v.profession] ? `Kamida ${MIN_EXPERIENCE[v.profession].years} yil. Kamroq bo‘lsa, profil ${props.professions.find((p) => p.slug === MIN_EXPERIENCE[v.profession!].fallback)?.nameUz ?? ""} yo‘nalishiga o‘tkaziladi.` : undefined })}
             {field("s-price", `Narx (so‘m / ${prof?.unit})`, <input className="inp" id="s-price" inputMode="numeric" value={v.price ? String(v.price) : ""} onChange={(e) => set("price", (Number(e.target.value.replace(/\D/g, "")) || undefined) as number)} placeholder="Bo‘sh qoldirsangiz: kelishiladi" />,
               { hint: prof?.fieldsSchema.some((f) => f.type === "pricelist") ? "Bo‘sh qolsa, ro‘yxatdagi eng arzon narx ko‘rsatiladi" : undefined })}
             <div className="field"><span>Narx kelishiladimi?</span>
@@ -408,6 +425,7 @@ export default function ProfileWizard(props: {
           </div>
         )}
 
+        {notice && <div className="notice" role="status">{notice}</div>}
         {error && <p className="err" role="alert">{error}</p>}
         <div className="act">
           <button type="button" className="btn ghost" style={{ visibility: step === 0 || (props.mode === "edit" && step === 1) ? "hidden" : "visible" }} onClick={() => { setError(""); setStep((x) => x - 1); }}>Orqaga</button>

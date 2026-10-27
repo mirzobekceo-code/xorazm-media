@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getDistricts, getProfessions, searchProfiles } from "@/lib/queries";
 import ProfileCard from "@/components/ProfileCard";
 import ServiceGrid from "@/components/ServiceGrid";
+import ServiceStrip from "@/components/ServiceStrip";
 import HeroFan, { type FanItem } from "@/components/HeroFan";
 import Ad from "@/components/Ad";
 import HeroSearch from "./HeroSearch";
@@ -38,8 +39,25 @@ export default async function Home() {
 
       <section>
         <div className="sec-head"><h2>Xizmatlar</h2><Link className="link" href="/xizmatlar">Barchasi</Link></div>
-        <ServiceGrid profs={profs} />
+        <div className="svc-desktop"><ServiceGrid profs={profs} /></div>
+        <ServiceStrip profs={profs} />
       </section>
+
+      <div className="join">
+        <div>
+          <p className="eyebrow">Mutaxassislar uchun</p>
+          <h2>Portfoliongizni qo‘shing. Mijozlar o‘zi topadi.</h2>
+          <ul>
+            <li>Ro‘yxatdan o‘tish va joylashish bepul</li>
+            <li>Moderator 24 soat ichida tekshiradi, ✓ belgisi beriladi</li>
+            <li>Shaxsiy sahifa, QR-kod va ko‘rishlar statistikasi</li>
+          </ul>
+        </div>
+        <div className="stack" style={{ alignItems: "flex-start" }}>
+          <Link className="btn" href="/qoshilish">Portfolio qo‘shish</Link>
+          <p className="muted small">5 qadam · taxminan 3 daqiqa</p>
+        </div>
+      </div>
 
       <section>
         <div className="sec-head"><div><p className="eyebrow">Platformada</p><h2>Mutaxassislar</h2></div><Link className="link" href="/mutaxassislar">Hammasini ko‘rish</Link></div>
@@ -57,7 +75,7 @@ export default async function Home() {
             <Ad slot="A2" variant="card" />
             {items.slice(3).map((p) => <ProfileCard key={p.id} p={p} />)}
           </div>
-        ) : <div className="empty">Hozircha tasdiqlangan profil yo‘q. Birinchi bo‘ling — <Link className="link" href="/qoshilish">profil oching</Link>.</div>}
+        ) : <div className="empty">Hozircha tasdiqlangan profil yo‘q. Birinchi bo‘ling — <Link className="link" href="/qoshilish">portfolio qo‘shing</Link>.</div>}
       </section>
 
       <section>
@@ -71,21 +89,6 @@ export default async function Home() {
 
       <Ad slot="A5" variant="banner" />
 
-      <div className="join">
-        <div>
-          <p className="eyebrow">Mutaxassislar uchun</p>
-          <h2>Profilingizni oching. Mijozlar o‘zi topadi.</h2>
-          <ul>
-            <li>Ro‘yxatdan o‘tish va joylashish bepul</li>
-            <li>Moderator 24 soat ichida tekshiradi, ✓ belgisi beriladi</li>
-            <li>Portfolio, narxlar va auditoriya statistikangizni joylang</li>
-          </ul>
-        </div>
-        <div className="stack" style={{ alignItems: "flex-start" }}>
-          <Link className="btn" href="/qoshilish">Profil ochish</Link>
-          <p className="muted small">5 qadam · taxminan 3 daqiqa</p>
-        </div>
-      </div>
     </div>
   );
 }

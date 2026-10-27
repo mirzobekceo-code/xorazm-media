@@ -1,20 +1,18 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, schema as s } from "@/db";
 import { requireStaff } from "@/lib/auth";
 import { normalizePhone } from "@/lib/format";
-import { notifyUser, tg, webhookSecret, BOT_TEXT } from "@/lib/telegram";
+import { tg, webhookSecret, BOT_TEXT } from "@/lib/telegram";
 import { SITE } from "@/lib/site";
 import { redirect } from "next/navigation";
 import { SLOTS } from "@/lib/reference";
 import { recomputeRanks } from "@/lib/rank";
+import { approveProfileCore, logModeration, rejectProfileCore } from "@/lib/moderation";
 
-async function log(profileId: number | null, moderatorId: number, action: string, reason?: string, mediaId?: number) {
-  const db = await getDb();
-  await db.insert(s.moderationLog).values({ profileId, moderatorId, action, reason: reason ?? null, mediaId: mediaId ?? null });
-}
+const log = logModeration;
 
 export async function moderateMedia(mediaId: number, approve: boolean, reason?: string) {
   const me = await requireStaff();
@@ -28,19 +26,7 @@ export async function moderateMedia(mediaId: number, approve: boolean, reason?: 
 /** Profilni tasdiqlash: kutilayotgan barcha media ham tasdiqlanadi, bloger statistikasi belgilanadi. */
 export async function approveProfile(profileId: number, form: FormData) {
   const me = await requireStaff();
-  const db = await getDb();
-  const verifyStats = form.get("verifyStats") === "on";
-  await db.update(s.media).set({ moderationStatus: "approved" })
-    .where(and(eq(s.media.profileId, profileId), eq(s.media.moderationStatus, "pending")));
-  const [p] = await db.update(s.profiles).set({ status: "approved", rejectReason: null, verifiedAt: new Date(), updatedAt: new Date() })
-    .where(eq(s.profiles.id, profileId)).returning();
-  if (verifyStats) {
-    const [last] = await db.select().from(s.bloggerStats).where(eq(s.bloggerStats.profileId, profileId)).orderBy(desc(s.bloggerStats.createdAt)).limit(1);
-    if (last) await db.update(s.bloggerStats).set({ verifiedAt: new Date(), verifiedBy: me.id }).where(eq(s.bloggerStats.id, last.id));
-  }
-  await log(profileId, me.id, "approve", verifyStats ? "statistika tasdiqlandi" : undefined);
-  if (p) await notifyUser(p.userId, "✓ Profilingiz tasdiqlandi va katalogda ko‘rinmoqda.");
-  await recomputeRanks(profileId);
+  await approveProfileCore(profileId, me.id, { verifyStats: form.get("verifyStats") === "on" });
   revalidatePath("/admin/moderatsiya");
 }
 
@@ -50,11 +36,7 @@ export async function rejectProfile(profileId: number, form: FormData) {
   const note = String(form.get("note") ?? "").trim();
   const reason = [...reasons, note].filter(Boolean).join(". ");
   if (!reason) return;
-  const db = await getDb();
-  const [p] = await db.update(s.profiles).set({ status: "rejected", rejectReason: reason, updatedAt: new Date() })
-    .where(eq(s.profiles.id, profileId)).returning();
-  await log(profileId, me.id, "reject", reason);
-  if (p) await notifyUser(p.userId, `Profilingiz rad etildi: ${reason}. Tuzatib, kabinetdan qayta yuboring.`);
+  await rejectProfileCore(profileId, me.id, reason);
   revalidatePath("/admin/moderatsiya");
 }
 
@@ -158,7 +140,7 @@ export async function setStaffRole(form: FormData) {
 export async function setupTelegramBot() {
   await requireStaff("admin");
   await tg("setWebhook", {
-    url: `${SITE.url}/api/telegram/webhook`, secret_token: webhookSecret(), allowed_updates: ["message"], drop_pending_updates: true,
+    url: `${SITE.url}/api/telegram/webhook`, secret_token: webhookSecret(), allowed_updates: ["message", "callback_query"], drop_pending_updates: true,
   });
   await tg("setMyCommands", { commands: [{ command: "start", description: "Bosh menyu" }, { command: "kabinet", description: "Kabinetga havola" }] });
   if (SITE.url.startsWith("https://")) {

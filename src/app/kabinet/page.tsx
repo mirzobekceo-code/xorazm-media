@@ -65,8 +65,8 @@ export default async function Cabinet({ searchParams }: { searchParams: Promise<
     return (
       <div className="form" style={{ maxWidth: 560 }}>
         <h2>Profil hali yo‘q</h2>
-        <p className="muted">{prettyPhone(user.phone)} raqami bilan kirdingiz. Mutaxassis profilini oching — bepul.</p>
-        <div className="row"><Link className="btn" href="/qoshilish">Profil ochish</Link><form action={logoutAction}><button className="btn ghost">Chiqish</button></form></div>
+        <p className="muted">{prettyPhone(user.phone)} raqami bilan kirdingiz. Portfoliongizni qo‘shing — bepul.</p>
+        <div className="row"><Link className="btn" href="/qoshilish">Portfolio qo‘shish</Link><form action={logoutAction}><button className="btn ghost">Chiqish</button></form></div>
       </div>
     );
   }

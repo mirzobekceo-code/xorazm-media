@@ -4,6 +4,7 @@ import "./globals.css";
 import { SITE } from "@/lib/site";
 import { getProfessions } from "@/lib/queries";
 import { getUser } from "@/lib/auth";
+import { getOwnProfile } from "@/lib/profiles";
 import NavLinks from "@/components/NavLinks";
 import Logo from "@/components/Logo";
 import Ad from "@/components/Ad";
@@ -23,6 +24,11 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const [profs, user] = await Promise.all([getProfessions(), getUser()]);
+  // Kabinet faqat portfolio qo'shganlarga; qolgan kirgan foydalanuvchiga — "Portfolio qo'shish"
+  const ownProfile = user?.role === "specialist" ? await getOwnProfile(user.id) : null;
+  const account = !user ? { href: "/kirish", label: "Kirish" }
+    : user.role !== "specialist" ? { href: "/admin", label: "Admin" }
+    : ownProfile ? { href: "/kabinet", label: "Kabinet" } : { href: "/qoshilish", label: "Portfolio qo‘shish" };
   const url = (await headers()).get("x-url");
   const adCtx = await adContextFromUrl(url, profs);
   // Profil sahifasi mutaxassisning shaxsiy sahifasi (landing): tepada banner yo'q
@@ -39,7 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <header className="top">
           <div className="wrap nav">
             <Logo />
-            <NavLinks account={user ? { href: user.role === "specialist" ? "/kabinet" : "/admin", label: user.role === "specialist" ? "Kabinet" : "Admin" } : { href: "/kirish", label: "Kirish" }} />
+            <NavLinks account={account} />
           </div>
         </header>
 

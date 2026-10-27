@@ -3,8 +3,8 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDb, schema as s } from "@/db";
 import { normalizePhone, slugify } from "./format";
 import { AGE_GROUPS, RATE_LABELS, type ProfileParsed } from "./profile-input";
-import { notifyStaff } from "./telegram";
-import { isBusiness, parsePriceList, portfolioProblem } from "./portfolio-rules";
+import { sendModerationCard } from "./moderation";
+import { experienceFallback, isBusiness, parsePriceList, portfolioProblem } from "./portfolio-rules";
 
 export async function getOwnProfile(userId: number) {
   const db = await getDb();
@@ -19,9 +19,12 @@ export async function getOwnProfile(userId: number) {
 export async function upsertProfile(userId: number, phone: string, input: ProfileParsed): Promise<{ ok: true; profileId: number } | { ok: false; error: string }> {
   const db = await getDb();
   const profs = await db.select().from(s.professions);
-  const prof = profs.find((p) => p.slug === input.profession);
+  // Tajriba yetmasa (masalan, 3 yildan kam marketolog) — boshqa yo'nalishga o'tkaziladi
+  const slug = experienceFallback(input.profession, input.experienceYears) ?? input.profession;
+  const prof = profs.find((p) => p.slug === slug);
   if (!prof) return { ok: false, error: "Yo‘nalish topilmadi" };
-  const extraProf = input.extraProfession ? profs.find((p) => p.slug === input.extraProfession && p.id !== prof.id) : undefined;
+  const extraSlug = experienceFallback(input.extraProfession, input.experienceYears) ? undefined : input.extraProfession;
+  const extraProf = extraSlug ? profs.find((p) => p.slug === extraSlug && p.id !== prof.id) : undefined;
   const isBlogger = prof.slug === "bloger";
   const business = isBusiness(prof.slug);
   if (!business && !input.birthYear) return { ok: false, error: "Tug‘ilgan yilni yozing" };
@@ -114,7 +117,7 @@ export async function upsertProfile(userId: number, phone: string, input: Profil
     }
     if (needsReview) await db.update(s.profiles).set({ status: "pending" }).where(eq(s.profiles.id, profileId));
   }
-  if (needsReview) await notifyStaff(`Tasdiqlangan profil o‘zgardi, qayta tekshiruv: ${input.fullName}`);
+  if (needsReview) await sendModerationCard(profileId, "changed").catch((e) => console.error("moderatsiya kartasi", e));
   return { ok: true, profileId };
 }
 
@@ -133,6 +136,6 @@ export async function submitForReview(userId: number): Promise<{ ok: true } | { 
   });
   if (problem) return { ok: false, error: problem };
   await db.update(s.profiles).set({ status: "pending", rejectReason: null, updatedAt: new Date() }).where(eq(s.profiles.id, p.id));
-  await notifyStaff(`Yangi profil tekshiruvga keldi: ${p.fullName}`);
+  await sendModerationCard(p.id, "new").catch((e) => console.error("moderatsiya kartasi", e));
   return { ok: true };
 }

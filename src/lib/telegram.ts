@@ -4,13 +4,15 @@ import { eq, inArray } from "drizzle-orm";
 import { getDb, schema as s } from "@/db";
 
 const token = () => process.env.TELEGRAM_BOT_TOKEN ?? "";
+/** Bot API manzili: odatda api.telegram.org (o'z Bot API serveri yoki sinov uchun almashtiriladi). */
+const apiBase = () => process.env.TELEGRAM_API_URL ?? "https://api.telegram.org";
 export const botEnabled = () => !!token();
 
 /** Bot API chaqiruvi. Token bo'lmasa yoki xato bo'lsa null (sayt ishlashda davom etadi). */
 export async function tg<T = unknown>(method: string, body: Record<string, unknown> = {}): Promise<T | null> {
   if (!botEnabled()) return null;
   try {
-    const res = await fetch(`https://api.telegram.org/bot${token()}/${method}`, {
+    const res = await fetch(`${apiBase()}/bot${token()}/${method}`, {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
     });
     const json = (await res.json()) as { ok: boolean; result?: T; description?: string };
@@ -38,9 +40,10 @@ let webhookChecked = false;
 export async function ensureWebhook(siteUrl: string) {
   if (webhookChecked || !botEnabled() || !siteUrl.startsWith("https://")) return;
   const url = `${siteUrl}/api/telegram/webhook`;
-  const info = await tg<{ url: string }>("getWebhookInfo");
-  if (info && info.url !== url) {
-    await tg("setWebhook", { url, secret_token: webhookSecret(), allowed_updates: ["message"] });
+  const info = await tg<{ url: string; allowed_updates?: string[] }>("getWebhookInfo");
+  // Moderator tugmalari (callback_query) ham kelishi kerak
+  if (info && (info.url !== url || (info.allowed_updates && !info.allowed_updates.includes("callback_query")))) {
+    await tg("setWebhook", { url, secret_token: webhookSecret(), allowed_updates: ["message", "callback_query"] });
   }
   webhookChecked = !!info;
 }
@@ -77,10 +80,11 @@ export async function send(chatId: string, text: string, extra: Record<string, u
   return !!(await tg("sendMessage", { chat_id: chatId, text, disable_web_page_preview: true, ...extra }));
 }
 
-export async function notifyUser(userId: number, text: string) {
+/** Foydalanuvchiga Telegram xabari; yetkazilsa true (Telegram ulanmagan bo'lsa false). */
+export async function notifyUser(userId: number, text: string): Promise<boolean> {
   const db = await getDb();
   const [u] = await db.select({ tg: s.users.telegramId }).from(s.users).where(eq(s.users.id, userId)).limit(1);
-  if (u?.tg) await send(u.tg, text);
+  return u?.tg ? send(u.tg, text) : false;
 }
 
 export async function notifyStaff(text: string) {

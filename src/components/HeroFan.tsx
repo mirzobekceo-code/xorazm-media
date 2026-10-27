@@ -65,7 +65,7 @@ function Phone({ top, profs }: { top: Card[]; profs: Prof[] }) {
         ) : (
           <Link className="ph-pick" href="/qoshilish">
             <div className="ph ph-img"><Tile seed={5} scale={1.3} /><span className="ph-chip">Siz</span></div>
-            <div className="ph-b"><span className="nm">Birinchi bo‘ling</span><span className="muted small">Profil ochish bepul</span></div>
+            <div className="ph-b"><span className="nm">Birinchi bo‘ling</span><span className="muted small">Portfolio qo‘shish bepul</span></div>
           </Link>
         )}
         <div className="ph-cats">

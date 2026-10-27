@@ -34,6 +34,14 @@ export const PROFESSIONS: {
       { key: "turnaround", label: "Topshirish muddati", type: "text", placeholder: "24 soat" },
       { key: "extras", label: "Qo‘shimcha xizmatlar", type: "text", placeholder: "Subtitr, rang to‘g‘rilash, sound design" },
     ] },
+  { slug: "marketolog", nameUz: "Marketolog", nameRu: "Маркетолог", description: "Strategiya, brend, savdo voronkasi · 3+ yil tajriba", unit: "oy",
+    icon: '<path d="M6 34V24M14 34V18M22 34V22M30 34V12"/><path d="M5 15l8-6 8 5 13-9"/><path d="M28 5h6v6"/>',
+    fields: [
+      { key: "services", label: "Xizmatlar", type: "text", placeholder: "Marketing strategiya, brend, savdo voronkasi", required: true },
+      { key: "industries", label: "Sohalar", type: "text", placeholder: "Klinika, ta’lim, savdo" },
+      { key: "case", label: "Eng yaxshi keys (raqamlar bilan)", type: "textarea", placeholder: "Klinika: 6 oyda murojaatlar 2,4 barobar oshdi", required: true },
+      { key: "team", label: "Jamoangiz", type: "text", placeholder: "Targetolog, dizayner, mobilograf" },
+    ] },
   { slug: "targetolog", nameUz: "Targetolog", nameRu: "Таргетолог", description: "Meta, Telegram Ads, Google", unit: "oy",
     icon: '<circle cx="20" cy="20" r="12.5" stroke-width="5"/><circle cx="20" cy="20" r="4.5" fill="currentColor" stroke="none"/>',
     fields: [

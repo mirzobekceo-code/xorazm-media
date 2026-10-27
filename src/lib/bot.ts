@@ -1,15 +1,19 @@
 import "server-only";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { getDb, schema as s } from "@/db";
 import { normalizePhone } from "./format";
 import { SITE } from "./site";
-import { BOT_TEXT, send } from "./telegram";
+import { BOT_TEXT, send, tg } from "./telegram";
+import { approveProfileCore, cardButtons, reasonButtons, rejectProfileCore } from "./moderation";
+import { REJECT_REASONS } from "./reference";
 import { attachChat, confirmToken, pendingLoginForChat } from "./telegram-auth";
 import { upsertUserByPhone } from "./auth";
 
 type TgUser = { id: number; first_name?: string };
+type CallbackQuery = { id: string; from: TgUser; data?: string; message?: { chat: { id: number }; message_id: number } };
 export type Update = {
   update_id: number;
+  callback_query?: CallbackQuery;
   message?: {
     chat: { id: number; type: string };
     from?: TgUser;
@@ -24,19 +28,61 @@ const REMOVE_KB = { reply_markup: { remove_keyboard: true } };
 const appBtn = (text: string, path: string) =>
   SITE.url.startsWith("https://") ? { text, web_app: { url: `${SITE.url}${path}` } } : { text, url: `${SITE.url}${path}` };
 
-function menu() {
+/** Asosiy tugmalar. Kabinet faqat portfolio qo'shganlarga (profili borlarga) ko'rinadi. */
+function menu(hasProfile: boolean) {
   return {
     reply_markup: {
       inline_keyboard: [
-        [appBtn("Mutaxassis topish", "/mutaxassislar")],
-        [appBtn("Mutaxassis bo‘lish", "/qoshilish"), appBtn("Kabinet", "/kabinet")],
+        [appBtn("Mutaxassis topish", "/")],
+        [hasProfile ? appBtn("Kabinet", "/kabinet") : appBtn("Portfolio qo‘shish", "/qoshilish")],
       ],
     },
   };
 }
 
+async function hasProfile(tgId: string): Promise<boolean> {
+  const db = await getDb();
+  const [r] = await db.select({ id: s.profiles.id }).from(s.profiles)
+    .innerJoin(s.users, eq(s.users.id, s.profiles.userId)).where(eq(s.users.telegramId, tgId)).limit(1);
+  return !!r;
+}
+
+/** Moderator tugmalari: mod:a:<id> tasdiqlash, mod:r:<id> sabablar, mod:x:<id>:<n> rad etish, mod:b:<id> orqaga. */
+async function handleCallback(q: CallbackQuery): Promise<void> {
+  const answer = (text?: string) => tg("answerCallbackQuery", { callback_query_id: q.id, ...(text ? { text } : {}) });
+  const m = (q.data ?? "").match(/^mod:(a|r|b|x):(\d+)(?::(\d+))?$/);
+  if (!m || !q.message) { await answer(); return; }
+  const db = await getDb();
+  const [staff] = await db.select({ id: s.users.id }).from(s.users)
+    .where(and(eq(s.users.telegramId, String(q.from.id)), inArray(s.users.role, ["moderator", "admin"]))).limit(1);
+  if (!staff) { await answer("Ruxsat yo‘q"); return; }
+  const [act, idRaw, n] = [m[1], Number(m[2]), m[3]];
+  const markup = (reply_markup: unknown) => tg("editMessageReplyMarkup", { chat_id: q.message!.chat.id, message_id: q.message!.message_id, reply_markup });
+  const [p] = await db.select({ status: s.profiles.status, slug: s.profiles.slug }).from(s.profiles).where(eq(s.profiles.id, idRaw)).limit(1);
+  if (!p) { await answer("Profil topilmadi (o‘chirilgan bo‘lishi mumkin)"); await markup({ inline_keyboard: [] }); return; }
+  if (act === "r") { await markup(reasonButtons(idRaw)); await answer(); return; }
+  if (act === "b") { await markup(cardButtons(idRaw)); await answer(); return; }
+  if (p.status !== "pending") {
+    await answer(`Allaqachon ko‘rib chiqilgan: ${p.status}`);
+    await markup({ inline_keyboard: [[{ text: `Holati: ${p.status}`, url: `${SITE.url}/admin/moderatsiya/${idRaw}` }]] });
+    return;
+  }
+  if (act === "a") {
+    const r = await approveProfileCore(idRaw, staff.id);
+    await markup({ inline_keyboard: [[{ text: "✓ Tasdiqlandi — sahifani ochish", url: `${SITE.url}/m/${p.slug}` }]] });
+    await answer(r?.notified ? "✓ Tasdiqlandi, mutaxassisga xabar yuborildi" : "✓ Tasdiqlandi (mutaxassis Telegram’ni ulamagan — natijani kabinetda ko‘radi)");
+    return;
+  }
+  const reason = REJECT_REASONS[Number(n)];
+  if (!reason) { await answer(); return; }
+  const r = await rejectProfileCore(idRaw, staff.id, reason);
+  await markup({ inline_keyboard: [[{ text: `✕ Rad etildi: ${reason}`, url: `${SITE.url}/admin/moderatsiya/${idRaw}` }]] });
+  await answer(r?.notified ? "Rad etildi, mutaxassisga sababi yuborildi" : "Rad etildi (mutaxassis sababni kabinetda ko‘radi)");
+}
+
 /** Bot xabarlarini qayta ishlaydi (webhook'dan). Faqat shaxsiy chatlar. */
 export async function handleUpdate(u: Update): Promise<void> {
+  if (u.callback_query) return handleCallback(u.callback_query);
   const m = u.message;
   if (!m || m.chat.type !== "private" || !m.from) return;
   const chatId = String(m.chat.id);
@@ -92,7 +138,11 @@ export async function handleUpdate(u: Update): Promise<void> {
     return;
   }
   if (text === "/kabinet") {
-    await send(chatId, "Kabinetingiz: statistika, sahifa havolasi va QR-kod.", { reply_markup: { inline_keyboard: [[appBtn("Kabinetni ochish", "/kabinet")]] } });
+    if (await hasProfile(tgId)) {
+      await send(chatId, "Kabinetingiz: statistika, sahifa havolasi va QR-kod.", { reply_markup: { inline_keyboard: [[appBtn("Kabinetni ochish", "/kabinet")]] } });
+    } else {
+      await send(chatId, "Kabinet portfolio qo‘shgan mutaxassislar uchun. Portfoliongizni bepul qo‘shing:", { reply_markup: { inline_keyboard: [[appBtn("Portfolio qo‘shish", "/qoshilish")]] } });
+    }
     return;
   }
   // Ulashilgan havola: t.me/<bot>?start=m_<manzil> — profilni Telegram ichida ochish tugmasi
@@ -108,5 +158,5 @@ export async function handleUpdate(u: Update): Promise<void> {
       return;
     }
   }
-  await send(chatId, BOT_TEXT.description, menu());
+  await send(chatId, BOT_TEXT.description, menu(await hasProfile(tgId)));
 }

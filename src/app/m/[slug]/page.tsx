@@ -195,7 +195,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
           )}
           {!p.isOwner && (
             <div className="notice made-with">
-              <b>Siz ham mutaxassismisiz?</b> Shunday portfolio sahifani bepul oching va havolasini Instagram bio’ga qo‘ying. <Link className="link" href="/qoshilish">Sahifa ochish →</Link>
+              <b>Siz ham mutaxassismisiz?</b> Shunday portfolio sahifani bepul oching va havolasini Instagram bio’ga qo‘ying. <Link className="link" href="/qoshilish">Portfolio qo‘shish →</Link>
             </div>
           )}
         </div>
