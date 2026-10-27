@@ -34,7 +34,7 @@ async function main() {
   if (!fallback) {
     const [c] = await db.insert(s.adCampaigns).values({
       name: "Adverto — standart", advertiser: "Adverto", isFallback: true, status: "active",
-      slots: ["A1", "A2", "A3", "A3b", "A4", "A5", "A6"],
+      slots: ["A1", "A2", "A3", "A3b", "A5", "A6"],
     }).returning();
     await db.insert(s.adCreatives).values({ campaignId: c.id, ...AD });
   } else {
@@ -64,13 +64,13 @@ async function seedTargetedAds() {
   const campaigns = [
     {
       name: "Adverto Marketing — target va SMM", professions: ["targetolog", "smm"],
-      slots: ["A1", "A3", "A3b", "A4", "A5", "A6"],
+      slots: ["A1", "A3", "A3b", "A5", "A6"],
       creatives: [{ style: "marketing", badge: "Kafolatlangan natija", title: "Reklamani natija uchun ishlaydigan jamoaga topshiring",
         body: "Strategiya, target va SMM bitta jamoada — har oy aniq hisobot bilan.", cta: "Bepul konsultatsiya", url }],
     },
     {
       name: "Adverto Production — video", professions: VIDEO,
-      slots: ["A1", "A3", "A3b", "A4", "A5", "A6"],
+      slots: ["A1", "A3", "A3b", "A5", "A6"],
       creatives: [{ style: "production", badge: "Tayyor kontent", title: "Videoni Instagram’ga tayyor holda topshiramiz",
         body: "Ssenariy, suratga olish, montaj va joylash — Adverto Production jamoasi.", cta: "Narxini bilish", url }],
     },

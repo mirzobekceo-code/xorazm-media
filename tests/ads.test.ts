@@ -32,5 +32,5 @@ test("kasbga mo'ljallangan kampaniya boshqa kasbda chiqmaydi", () => {
 });
 
 test("slotga mos kreativ bo'lmasa null", () => {
-  assert.equal(pick([cr(1, camp({ slots: ["A1"] }))], new Set(), "A4", {}), null);
+  assert.equal(pick([cr(1, camp({ slots: ["A1"] }))], new Set(), "A5", {}), null);
 });

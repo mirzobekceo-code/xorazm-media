@@ -1,9 +1,8 @@
 import { getAdPicker, type AdContext, type Creative } from "@/lib/ads";
 import type { Slot } from "@/lib/reference";
 import AdBeacon from "./AdBeacon";
-import AdStickyClose from "./AdStickyClose";
 
-type Variant = "banner" | "card" | "side" | "sticky";
+type Variant = "banner" | "card" | "side";
 
 const LOGO = "/brand/adverto-white.png";
 
@@ -23,7 +22,7 @@ export default async function Ad({ slot, variant, ctx }: { slot: Slot; variant: 
 function render(variant: Variant, c: Creative, href: string, slot: Slot) {
   const cta = <a className="cta" href={href} target="_blank" rel="noopener sponsored">{c.cta}</a>;
 
-  if (c.type === "image" && c.imageDesktop && variant !== "sticky") {
+  if (c.type === "image" && c.imageDesktop) {
     return (
       <aside className="ad" aria-label="Reklama" data-slot={slot}>
         <a href={href} target="_blank" rel="noopener sponsored">
@@ -39,16 +38,6 @@ function render(variant: Variant, c: Creative, href: string, slot: Slot) {
   const badge = c.badge ? <span className="badge">{c.badge}</span> : null;
   const cls = `ad s-${c.style}`;
 
-  if (variant === "sticky") {
-    return (
-      <aside className={`${cls} ad-sticky`} aria-label="Reklama" data-slot={slot}>
-        <img className="logo" src={LOGO} alt="adverto" style={{ height: 16 }} />
-        <span className="txt">{c.title}</span>
-        <a className="cta" href={href} target="_blank" rel="noopener sponsored" style={{ height: 32, fontSize: 13 }}>{c.cta}</a>
-        <AdStickyClose />
-      </aside>
-    );
-  }
   if (variant === "banner") {
     return (
       <aside className={`${cls} ad-banner`} aria-label="Reklama" data-slot={slot}>

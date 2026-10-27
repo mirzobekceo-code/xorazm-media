@@ -113,7 +113,6 @@ export const SLOTS = {
   A2: "Lenta ichidagi kartochka",
   A3: "Profil yon paneli",
   A3b: "Profil ichidagi banner",
-  A4: "Mobil sticky",
   A5: "Sahifa o‘rtasi",
   A6: "Footer banner",
 } as const;

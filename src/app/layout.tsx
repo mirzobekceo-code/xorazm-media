@@ -25,7 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [profs, user] = await Promise.all([getProfessions(), getUser()]);
   const url = (await headers()).get("x-url");
   const adCtx = await adContextFromUrl(url, profs);
-  // Profil sahifasi mutaxassisning shaxsiy sahifasi (landing): tepada banner va yopishqoq reklama yo'q
+  // Profil sahifasi mutaxassisning shaxsiy sahifasi (landing): tepada banner yo'q
   const landing = !!url?.startsWith("/m/");
   return (
     <html lang="uz" suppressHydrationWarning>
@@ -75,7 +75,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <p className="muted small" style={{ marginTop: 28 }}>© {new Date().getFullYear()} {SITE.name} · Urganch</p>
           </div>
         </footer>
-        {!landing && <PublicOnly><Ad slot="A4" variant="sticky" ctx={adCtx} /></PublicOnly>}
         <TelegramMiniApp loggedIn={!!user} />
       </body>
     </html>
