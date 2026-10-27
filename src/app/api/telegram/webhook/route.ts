@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { handleUpdate, type Update } from "@/lib/bot";
-import { botEnabled, ensureBotMenu, webhookSecret } from "@/lib/telegram";
+import { botEnabled, ensureBotMenu, ensureWebhook, webhookSecret } from "@/lib/telegram";
 import { SITE } from "@/lib/site";
 
 /** Telegram bot webhook. setWebhook paytida berilgan secret_token bilan himoyalangan. */
@@ -18,6 +18,8 @@ export async function POST(req: Request) {
     await Promise.all([
       handleUpdate(update).catch((e) => console.error("bot", e)),
       ensureBotMenu(SITE.url).catch(() => {}),
+      // Domen o'zgarsa (eski manzilga kelgan xabar), webhook yangi domenga ko'chadi
+      ensureWebhook(SITE.url).catch(() => {}),
     ]);
   }
   return NextResponse.json({ ok: true });
