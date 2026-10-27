@@ -10,7 +10,7 @@ import { getDb, query, schema as s } from "@/db";
 export const BACKUP_TABLES = [
   "users", "professions", "districts", "profiles", "profile_districts", "profile_contacts", "profile_slugs",
   "blogger_admins", "blogger_stats", "media", "moderation_log", "reports", "events",
-  "ad_campaigns", "ad_creatives", "ad_events", "settings", "requests", "request_responses",
+  "ad_campaigns", "ad_creatives", "ad_events", "settings", "requests", "request_responses", "leads",
 ] as const;
 
 export type Backup = { version: 1; createdAt: string; tables: Record<string, unknown[]> };

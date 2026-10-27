@@ -6,6 +6,9 @@ import ServiceStrip from "@/components/ServiceStrip";
 import HeroFan, { type FanItem } from "@/components/HeroFan";
 import Ad from "@/components/Ad";
 import HeroSearch from "./HeroSearch";
+import QuickRequest from "@/components/QuickRequest";
+import { getUser } from "@/lib/auth";
+import { prettyPhone } from "@/lib/format";
 
 /**
  * Bosh sahifa yelpig'ichi (public/hero/). Vercel'da public/ server funksiyasiga kirmaydi,
@@ -21,7 +24,7 @@ const HERO: FanItem[] = [
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [profs, dists, top] = await Promise.all([getProfessions(), getDistricts(), searchProfiles({ sort: "top" })]);
+  const [profs, dists, top, user] = await Promise.all([getProfessions(), getDistricts(), searchProfiles({ sort: "top" }), getUser()]);
   const total = profs.reduce((a, p) => a + p.count, 0);
   const items = top.items.slice(0, 7);
   return (
@@ -64,6 +67,10 @@ export default async function Home() {
         <HeroFan items={HERO} top={items} profs={profs} />
       </section>
 
+      <section className="qr-wrap" id="sorov">
+        <QuickRequest districts={dists.map((d) => ({ slug: d.slug, nameUz: d.nameUz }))} phone={user ? prettyPhone(user.phone) : ""} />
+      </section>
+
       <section>
         <div className="sec-head">
           <div><p className="eyebrow">Tavsiya</p><h2>TOP profillar</h2></div>
@@ -87,21 +94,6 @@ export default async function Home() {
         </div>
       </section>
 
-      <div className="join">
-        <div>
-          <p className="eyebrow">Bizneslar uchun</p>
-          <h2>Qidirishga vaqt yo‘qmi? So‘rov qoldiring.</h2>
-          <ul>
-            <li>Nima kerakligini yozasiz — 1 daqiqa</li>
-            <li>Mos mutaxassislarga Telegram orqali yuboriladi</li>
-            <li>Qiziqqanlar portfoliosi bilan sizga o‘zi yozadi</li>
-          </ul>
-        </div>
-        <div className="stack" style={{ alignItems: "flex-start" }}>
-          <Link className="btn" href="/sorov">So‘rov qoldirish</Link>
-          <p className="muted small">Bepul · Telegram orqali</p>
-        </div>
-      </div>
 
       <Ad slot="A5" variant="banner" />
 

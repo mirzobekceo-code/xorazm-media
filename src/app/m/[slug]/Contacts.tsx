@@ -1,6 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { prettyPhone } from "@/lib/format";
+import TelegramButton from "@/components/TelegramButton";
 import { track as trackGa } from "@/lib/client/analytics";
 
 type Data = {
@@ -14,14 +16,32 @@ function track(profileId: number, channel: string) {
   trackGa("contact_click", { channel, profile: profileId });
 }
 
-/** Kontaktlar HTML ichida emas, alohida so'rov bilan keladi (avtomatik yig'ishdan himoya). */
-export default function Contacts({ profileId }: { profileId: number }) {
+/**
+ * Kontaktlar HTML ichida emas, alohida so'rov bilan keladi (avtomatik yig'ishdan himoya) va faqat
+ * Telegram orqali kirganlarga ochiladi: kim qaysi mutaxassis bilan bog'langani lid sifatida yoziladi.
+ */
+export default function Contacts({ profileId, name, src }: { profileId: number; name: string; src?: string }) {
+  const router = useRouter();
   const [data, setData] = useState<Data | null>(null);
+  const [gated, setGated] = useState(false);
+  const [modal, setModal] = useState(false);
   const [err, setErr] = useState(false);
   const [toast, setToast] = useState("");
+  const load = useCallback(() => {
+    fetch(`/api/v1/profiles/${profileId}/contacts${src ? `?src=${encodeURIComponent(src)}` : ""}`).then(async (r) => {
+      if (r.status === 401) { setGated(true); return; }
+      if (!r.ok) throw new Error();
+      setGated(false); setModal(false);
+      setData(await r.json());
+    }).catch(() => setErr(true));
+  }, [profileId, src]);
+  useEffect(load, [load]);
   useEffect(() => {
-    fetch(`/api/v1/profiles/${profileId}/contacts`).then((r) => (r.ok ? r.json() : Promise.reject())).then(setData, () => setErr(true));
-  }, [profileId]);
+    if (!modal) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setModal(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [modal]);
 
   const copy = (v: string, channel: string) => {
     track(profileId, channel);
@@ -30,6 +50,25 @@ export default function Contacts({ profileId }: { profileId: number }) {
   const say = (m: string) => { setToast(m); setTimeout(() => setToast(""), 1800); };
 
   if (err) return <p className="err">Kontaktlarni yuklab bo‘lmadi. Sahifani yangilang.</p>;
+  if (gated) {
+    return (
+      <>
+        <button type="button" className="btn gate-btn" onClick={() => { setModal(true); trackGa("contact_gate_open", { profile: profileId }); }}>📞 Bog‘lanish / Raqamni ko‘rish</button>
+        <p className="muted small">Raqam va Telegram bir marta Telegram orqali tasdiqlangach ochiladi — bot kontaktlarni sizga ham yuboradi.</p>
+        {modal && (
+          <div className="modal-back" onClick={(e) => e.target === e.currentTarget && setModal(false)}>
+            <div className="modal" role="dialog" aria-modal="true" aria-labelledby="gate-h">
+              <button type="button" className="modal-x" aria-label="Yopish" onClick={() => setModal(false)}>×</button>
+              <span className="qr-badge">Bepul · 10 soniya</span>
+              <h2 id="gate-h">Mutaxassis bilan bog‘lanish va kontaktlarni ochish uchun Telegram orqali davom eting</h2>
+              <p className="muted small">Botga o‘tib “📱 Raqamni ulashish”ni bosasiz — {name} kontaktlari shu yerda ochiladi va Telegram’ga ham keladi. Parol kerak emas.</p>
+              <TelegramButton mode="login" label="Telegram orqali ochish" onDone={() => { trackGa("contact_gate_done", { profile: profileId }); load(); router.refresh(); }} />
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
   if (!data) return <p className="muted small">Yuklanmoqda…</p>;
 
   const row = (label: string, value: string, channel: string, link?: string) => (

@@ -3,7 +3,7 @@ import { userRequests } from "@/lib/requests";
 
 const LABEL: Record<string, [string, string]> = {
   pending: ["Tekshiruvda", "pending"], open: ["Ochiq", "approved"], closed: ["Yopilgan", "hidden"],
-  rejected: ["Rad etilgan", "rejected"], expired: ["Muddati tugagan", "hidden"],
+  rejected: ["Rad etilgan", "rejected"], expired: ["Muddati tugagan", "hidden"], adverto: ["Adverto jamoasi oldi", "approved"],
 };
 
 /** Kabinet: biznes egasi sifatida qoldirilgan so'rovlar. */

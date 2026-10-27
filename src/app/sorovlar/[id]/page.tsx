@@ -14,15 +14,15 @@ export const dynamic = "force-dynamic";
 
 const STATUS: Record<string, [string, string]> = {
   pending: ["Tekshiruvda", "pending"], open: ["Ochiq", "approved"], closed: ["Yopilgan", "hidden"],
-  rejected: ["Rad etilgan", "rejected"], expired: ["Muddati tugagan", "hidden"],
+  rejected: ["Rad etilgan", "rejected"], expired: ["Muddati tugagan", "hidden"], adverto: ["Adverto jamoasi oldi", "approved"],
 };
 
 type P = { params: Promise<{ id: string }>; searchParams: Promise<{ yangi?: string }> };
 
 export async function generateMetadata({ params }: P): Promise<Metadata> {
   const r = await getRequest(Number((await params).id) || 0);
-  if (!r || r.status === "pending" || r.status === "rejected") return { title: "So‘rov", robots: { index: false } };
-  return { title: `${r.title} — ${r.profession}`, description: `${r.profession} kerak · ${r.district} · ${budgetText(r.budget)}`, robots: { index: r.status === "open" } };
+  if (!r || r.status !== "open" && r.status !== "closed" && r.status !== "expired") return { title: "So‘rov", robots: { index: false } };
+  return { title: r.profession ? `${r.title} — ${r.profession}` : r.title, description: `${r.profession || "Mutaxassis"} kerak · ${r.district} · ${budgetText(r)}`, robots: { index: r.status === "open" } };
 }
 
 export default async function RequestPage({ params, searchParams }: P) {
@@ -32,7 +32,7 @@ export default async function RequestPage({ params, searchParams }: P) {
   const user = await getUser();
   const owner = user?.id === r.userId;
   const staff = user?.role === "admin" || user?.role === "moderator";
-  if ((r.status === "pending" || r.status === "rejected") && !owner && !staff) notFound();
+  if ((r.status === "pending" || r.status === "rejected" || r.status === "adverto") && !owner && !staff) notFound();
   const profile = user && !owner ? await getOwnProfile(user.id) : null;
   const specialist = profile?.status === "approved";
   const seeContacts = owner || staff || specialist;
@@ -55,15 +55,15 @@ export default async function RequestPage({ params, searchParams }: P) {
       )}
       {owner && r.status === "rejected" && <div className="notice">Rad etildi: {r.rejectReason}. <Link className="link" href="/sorov">Yangi so‘rov yuborish</Link></div>}
       <div className="box">
-        <p className="eyebrow">{r.profession} · {r.district}</p>
+        <p className="eyebrow">{r.profession ? `${r.profession} · ` : ""}{r.district}</p>
         <h1 style={{ fontSize: "clamp(26px,3.4vw,36px)" }}>{r.title}</h1>
         <div className="row" style={{ gap: 8 }}><span className={`pill ${cls}`}>{label}</span>{r.businessName && <span className="muted small">{r.businessName}</span>}</div>
         <dl className="req-dl">
-          <div><dt>Budjet</dt><dd>{budgetText(r.budget)}</dd></div>
-          <div><dt>Muddat</dt><dd>{r.deadline}</dd></div>
+          <div><dt>Budjet</dt><dd>{budgetText(r)}</dd></div>
+          {r.deadline && <div><dt>Muddat</dt><dd>{r.deadline}</dd></div>}
           {r.expiresAt && r.status === "open" && <div><dt>Ochiq</dt><dd>{new Date(r.expiresAt).toLocaleDateString("uz-UZ")} gacha</dd></div>}
         </dl>
-        {r.description && <p style={{ whiteSpace: "pre-wrap" }}>{r.description}</p>}
+        {r.description && r.description !== r.title && <p style={{ whiteSpace: "pre-wrap" }}>{r.description}</p>}
       </div>
 
       {seeContacts ? (

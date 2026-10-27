@@ -14,7 +14,10 @@ import { kindOf, removeFile, saveImage, saveVideo } from "@/lib/storage";
 import { uploadLimits, type UploadLimits } from "@/lib/limits";
 import { head } from "@vercel/blob";
 import { createTelegramToken } from "@/lib/telegram-auth";
-import { closeRequest, createRequest, RequestInput, respondToRequest, type RequestInputT } from "@/lib/requests";
+import { closeRequest, createQuickRequest, respondToRequest } from "@/lib/requests";
+import { QuickRequestInput, type QuickRequestInputT } from "@/lib/request-input";
+import { createOrderLead } from "@/lib/leads";
+import { SITE } from "@/lib/site";
 
 /** Video qayerga yuklanadi: Cloudflare Stream (cfVideo) yoki to'g'ridan-to'g'ri Blob (directVideo). */
 export async function uploadModeAction(): Promise<{ directVideo: boolean; cfVideo: boolean; profileId: number | null; limits: UploadLimits }> {
@@ -261,16 +264,14 @@ export async function changeSlugAction(raw: string): Promise<Result<{ slug: stri
   return { ok: true, slug };
 }
 
-/** Biznes egasining so'rovi: Telegram orqali kirgan bo'lishi shart (natijalar botga keladi). */
-export async function createRequestAction(input: RequestInputT): Promise<Result<{ id: number }>> {
-  const user = await getUser();
-  if (!user) return { ok: false, error: "Avval Telegram orqali kiring" };
-  if (!user.telegramId) return { ok: false, error: "Telegram ulanmagan — javoblar botga keladi. Avval Telegram’ni ulang." };
-  if (!rateLimit(`req:${user.id}`, 5, 3_600_000)) return { ok: false, error: "Juda ko‘p urinish. Keyinroq qayta urinib ko‘ring." };
-  const parsed = RequestInput.safeParse(input);
+/** "Muammoni yozing": kirish shart emas, faqat raqam. Kirgan foydalanuvchining so'rovi kabinetida ham ko'rinadi. */
+export async function createQuickRequestAction(input: QuickRequestInputT): Promise<Result<{ id: number }>> {
+  if (!rateLimit(`qreq-ip:${await clientIp()}`, 5, 3_600_000)) return { ok: false, error: "Juda ko‘p so‘rov. Birozdan keyin qayta urinib ko‘ring." };
+  const parsed = QuickRequestInput.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-  const r = await createRequest(user.id, parsed.data);
-  if (r.ok) revalidatePath("/kabinet");
+  const user = await getUser();
+  const r = await createQuickRequest(user?.id ?? null, parsed.data);
+  if (r.ok && user) revalidatePath("/kabinet");
   return r;
 }
 
@@ -291,4 +292,20 @@ export async function closeRequestAction(requestId: number): Promise<void> {
   await closeRequest(requestId, user.id);
   revalidatePath(`/sorovlar/${requestId}`);
   revalidatePath("/kabinet");
+}
+
+/** Portfolio sahifasidagi "Buyurtma berish": mijoz ismi va raqami mutaxassisga (botda) va Google Sheets'ga. */
+export async function createOrderAction(profileId: number, input: { name: string; phone: string; message: string; ref: string; website?: string }): Promise<Result> {
+  if (input.website) return { ok: true }; // bot-to'ldirgich
+  if (!rateLimit(`order-ip:${await clientIp()}`, 5, 3_600_000)) return { ok: false, error: "Juda ko‘p urinish. Birozdan keyin qayta urinib ko‘ring." };
+  const name = String(input.name ?? "").trim().slice(0, 80);
+  if (name.length < 2) return { ok: false, error: "Ismingizni yozing" };
+  const phone = normalizePhone(String(input.phone ?? ""));
+  if (!phone) return { ok: false, error: "Telefon raqamini +998 XX XXX XX XX ko‘rinishida yozing" };
+  // Katalogdan emas, tashqaridan (Instagram bio, Telegram, QR) to'g'ridan-to'g'ri kelgan — mutaxassisning o'z havolasi
+  let ref = "";
+  try { ref = new URL(input.ref).host; } catch { /* yo'q */ }
+  const source = ref && SITE.url.includes(ref) ? "catalog" : "direct_portfolio_link";
+  const ok = await createOrderLead(profileId, { name, phone, message: String(input.message ?? "").trim().slice(0, 500), source });
+  return ok ? { ok: true } : { ok: false, error: "Profil topilmadi" };
 }

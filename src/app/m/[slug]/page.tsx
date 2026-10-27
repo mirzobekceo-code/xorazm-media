@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { getProfile, getSimilar, movedSlug } from "@/lib/queries";
+import { getProfile, movedSlug } from "@/lib/queries";
 import { getUser } from "@/lib/auth";
 import { ageFrom, kfmt, money, PLATFORM_LABELS, totalFollowers } from "@/lib/format";
 import { LANGUAGES } from "@/lib/reference";
 import { SITE } from "@/lib/site";
 import { linkLabel, youtubeId } from "@/lib/limits";
-import ProfileCard, { Placeholder } from "@/components/ProfileCard";
-import Ad from "@/components/Ad";
+import { Placeholder } from "@/components/ProfileCard";
 import Bars from "@/components/Bars";
 import { Verified } from "@/components/Icons";
 import Contacts from "./Contacts";
 import ReportButton from "./ReportButton";
 import ViewBeacon from "./ViewBeacon";
-import ShareProfile from "./ShareProfile";
+import ShareKit from "./ShareKit";
+import OrderButton from "./OrderButton";
+import { parsePriceList } from "@/lib/portfolio-rules";
 import Gallery from "./Gallery";
 import { isCfVideo } from "@/lib/cloudflare";
 import ExtraValue from "@/components/ExtraValue";
@@ -40,29 +41,36 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${p.fullName} — ${p.profession.nameUz.toLowerCase()}, ${where}`,
     description: p.bio.slice(0, 160) || `${p.profession.nameUz}, ${where}. Portfolio, narx va kontaktlar.`,
     alternates: { canonical: `/m/${p.slug}` },
+    openGraph: {
+      type: "profile", url: `/m/${p.slug}`, siteName: SITE.name, locale: "uz_UZ",
+      title: `${p.fullName} — ${p.profession.nameUz}`,
+      description: p.bio.slice(0, 200) || `${p.profession.nameUz}, ${where}. Portfolio, narxlar va kontaktlar.`,
+    },
+    twitter: { card: "summary_large_image" },
     robots: p.status === "approved" ? undefined : { index: false },
   };
 }
 
 export default async function ProfilePage({ params, searchParams }: Props) {
-  const p = await load((await params).slug);
+  const [p, sp] = await Promise.all([load((await params).slug), searchParams]);
   if (!p) {
     // Manzil o'zgargan bo'lsa, eski ulashilgan havola yangisiga o'tadi
     const moved = await movedSlug((await params).slug);
     if (moved) {
-      const q = new URLSearchParams(await searchParams).toString();
+      const q = new URLSearchParams(sp).toString();
       permanentRedirect(`/m/${moved}${q ? `?${q}` : ""}`);
     }
     notFound();
   }
   const isBlogger = p.profession.slug === "bloger";
   const cover = p.media.find((m) => m.type === "image");
-  const similar = await getSimilar(p.id, p.profession.slug, 3);
   const b = p.blogger;
   const plats = b ? Object.entries(b.followers).filter(([, v]) => v > 0) : [];
   const age = isBusiness(p.profession.slug) ? null : ageFrom(p.birthYear);
   const langs = p.languages.map((l) => LANGUAGES.find(([k]) => k === l)?.[1] ?? l).join(", ");
-  const ctx = { profession: p.profession.slug, district: p.districts[0]?.slug };
+  // Narxli ro'yxatlar (xizmat paketlari, texnikalar) alohida blokda; qolgan maydonlar "Ma'lumotlar"da
+  const priceFields = p.profession.fieldsSchema.filter((f) => f.type === "pricelist" && p.extra[f.key]);
+  const infoFields = p.profession.fieldsSchema.filter((f) => f.type !== "pricelist" && p.extra[f.key]);
   const statFresh = b?.statDate && Date.now() - new Date(b.statDate).getTime() < 60 * 86_400_000;
 
   const jsonLd = {
@@ -98,7 +106,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
               <div className="tags">{p.tags.map((t) => <span key={t} className="tg">{t}</span>)}</div>
               <div className="row pf-actions">
                 <a className="btn" href="#kontakt">Bog‘lanish</a>
-                <ShareProfile url={`${SITE.url}/m/${p.slug}`} title={`${p.fullName} — ${p.profession.nameUz.toLowerCase()}`} />
+                <ShareKit url={`${SITE.url}/m/${p.slug}`} slug={p.slug} title={`${p.fullName} — ${p.profession.nameUz.toLowerCase()}`} />
               </div>
             </div>
           </div>
@@ -142,11 +150,21 @@ export default async function ProfilePage({ params, searchParams }: Props) {
                 <div><span>Tillar</span><b style={{ fontSize: 16 }}>{langs || "—"}</b><span /></div>
                 <div><span>Hudud</span><b style={{ fontSize: 16 }}>{p.districts.length} ta tuman</b><span /></div>
               </div>
-              {p.profession.fieldsSchema.some((f) => p.extra[f.key]) && (
+              {priceFields.map((f) => (
+                <section className="box" key={f.key}>
+                  <h3>{f.key === "packages" ? "Xizmat paketlari (Narxlar)" : f.label}</h3>
+                  <div className="pkgs">
+                    {parsePriceList(p.extra[f.key]).map((r, i) => (
+                      <div className="pkg" key={i}><span>{r.name}</span><b className="num">{r.price ? `${money(r.price)} so‘m` : "Kelishiladi"}</b></div>
+                    ))}
+                  </div>
+                </section>
+              ))}
+              {infoFields.length > 0 && (
                 <section className="box">
                   <h3>Ma’lumotlar</h3>
                   <dl className="spec">
-                    {p.profession.fieldsSchema.filter((f) => p.extra[f.key]).map((f) => (
+                    {infoFields.map((f) => (
                       [<dt key={f.key + "t"}>{f.label}</dt>,
                        <dd key={f.key + "d"}><ExtraValue f={f} value={p.extra[f.key]} /></dd>]
                     ))}
@@ -183,14 +201,8 @@ export default async function ProfilePage({ params, searchParams }: Props) {
             </section>
           )}
 
-          <Ad slot="A3b" variant="banner" ctx={ctx} />
+          {p.status === "approved" && !p.isOwner && <OrderButton profileId={p.id} name={p.fullName} />}
 
-          {similar.length > 0 && (
-            <section>
-              <div className="sec-head"><h2 style={{ fontSize: 28 }}>O‘xshash profillar</h2></div>
-              <div className="grid three">{similar.map((s) => <ProfileCard key={s.id} p={s} />)}</div>
-            </section>
-          )}
           {!p.isOwner && (
             <div className="notice made-with">
               <b>Siz ham mutaxassismisiz?</b> Shunday portfolio sahifani bepul oching va havolasini Instagram bio’ga qo‘ying. <Link className="link" href="/qoshilish">Portfolio qo‘shish →</Link>
@@ -203,11 +215,10 @@ export default async function ProfilePage({ params, searchParams }: Props) {
             <div className="row" style={{ justifyContent: "space-between" }}>
               <h3>{isBlogger ? "Reklama uchun adminlar" : "Kontaktlar"}</h3><span className="tg" style={{ fontWeight: 600 }}>Bepul</span>
             </div>
-            {p.status === "approved" ? <Contacts profileId={p.id} /> : <p className="muted small">Kontaktlar profil tasdiqlangach ko‘rinadi.</p>}
+            {p.status === "approved" ? <Contacts profileId={p.id} name={p.fullName} src={sp.s} /> : <p className="muted small">Kontaktlar profil tasdiqlangach ko‘rinadi.</p>}
             <p className="muted small">Murojaat qilganda “Xorazm Digital HUB orqali topdim” deb yozing.</p>
             <ReportButton profileId={p.id} />
           </section>
-          <Ad slot="A3" variant="side" ctx={ctx} />
         </div>
       </div>
     </div>

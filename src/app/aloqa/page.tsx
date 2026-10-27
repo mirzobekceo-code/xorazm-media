@@ -17,7 +17,7 @@ export default async function Contact() {
       <div className="contacts">
         <a className="cat" href={SITE.telegram} target="_blank" rel="noopener">
           <span className="arrow" aria-hidden="true">↗</span>
-          <div><h3>Telegram</h3><p>Platforma bo‘yicha savollar va takliflar</p></div>
+          <div><h3>@mirzobek_admin</h3><p>Xorazm Digital HUB bo‘yicha savollar va takliflar</p></div>
         </a>
         {bot && (
           <a className="cat" href={`https://t.me/${bot}`} target="_blank" rel="noopener">
@@ -25,6 +25,10 @@ export default async function Contact() {
             <div><h3>@{bot}</h3><p>Kirish kodlari, profil holati va xabarnomalar</p></div>
           </a>
         )}
+        <a className="cat" href={SITE.advertoTelegram} target="_blank" rel="noopener">
+          <span className="arrow" aria-hidden="true">↗</span>
+          <div><h3>@mirzobek_bozorov</h3><p>Adverto: marketing, target, video production</p></div>
+        </a>
         <Link className="cat" href="/reklama">
           <span className="arrow" aria-hidden="true">→</span>
           <div><h3>Reklama joylashtirish</h3><p>Sayt sahifalaridagi reklama joylari — Adverto orqali</p></div>

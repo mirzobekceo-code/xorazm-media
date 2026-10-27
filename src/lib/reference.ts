@@ -1,9 +1,17 @@
 import type { FieldDef } from "@/db/schema";
 
 /** Boshlang'ich kasblar. Keyin admin paneldan o'zgartiriladi. */
-export const PROFESSIONS: {
-  slug: string; nameUz: string; nameRu: string; description: string; unit: string; icon: string; fields: FieldDef[];
-}[] = [
+type ProfessionDef = { slug: string; nameUz: string; nameRu: string; description: string; unit: string; icon: string; fields: FieldDef[] };
+
+/** Portfolio sahifasidagi "Xizmat paketlari" — o'z narxli ro'yxati bor kasblardan (bloger, texnika) tashqari hammada ixtiyoriy. */
+const PACKAGES: FieldDef = {
+  key: "packages", label: "Xizmat paketlari (narxlar)", type: "pricelist",
+  hint: "Masalan: “1 ta reels — 300 000”, “4 ta reels + ssenariy — 1 000 000”. Sahifangizda alohida blok bo‘lib chiqadi.",
+};
+const withPackages = (p: ProfessionDef): ProfessionDef =>
+  p.slug === "bloger" || p.fields.some((f) => f.type === "pricelist") ? p : { ...p, fields: [...p.fields, PACKAGES] };
+
+export const PROFESSIONS: ProfessionDef[] = ([
   { slug: "brand-face", nameUz: "Brand Face", nameRu: "Бренд-фейс", description: "Model, aktyor, reklama yuzi", unit: "video",
     icon: '<circle cx="20" cy="14" r="7"/><path d="M6 36c2-8 8-12 14-12s12 4 14 12"/>',
     fields: [
@@ -97,7 +105,7 @@ export const PROFESSIONS: {
       { key: "terms", label: "Ijara shartlari", type: "text", placeholder: "Pasport yoki zalog bilan" },
       { key: "delivery", label: "Yetkazib berish", type: "text", placeholder: "Urganch bo‘ylab bepul" },
     ] },
-];
+] as ProfessionDef[]).map(withPackages);
 
 export const DISTRICTS: { slug: string; nameUz: string; nameRu: string }[] = [
   { slug: "urganch-shahri", nameUz: "Urganch shahri", nameRu: "г. Ургенч" },

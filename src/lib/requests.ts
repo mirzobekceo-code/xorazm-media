@@ -1,112 +1,128 @@
 import "server-only";
-import { and, desc, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
-import { z } from "zod";
+import { and, asc, desc, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
+import type { z } from "zod";
 import { getDb, schema as s } from "@/db";
-import { money, normalizePhone } from "./format";
+import { money, normalizePhone, prettyPhone } from "./format";
 import { SITE } from "./site";
 import { notifyUser, send, tg } from "./telegram";
+import { QuickRequestInput, REMOTE, requestTitle } from "./request-input";
 
-/** So'rov muddati variantlari (biznes egasi tanlaydi). */
-export const REQUEST_DEADLINES = ["Shoshilinch (1–2 kun)", "Shu hafta", "Shu oy", "Kelishiladi"] as const;
 export const REQUEST_REJECT_REASONS = ["Spam yoki reklama", "Ma’lumot yetarli emas", "Platformaga mos emas"] as const;
 /** E'lon qilingan so'rov shuncha kun ochiq turadi */
 export const REQUEST_DAYS = 14;
-/** Bir foydalanuvchining bir vaqtdagi faol (tekshiruvda yoki ochiq) so'rovlari */
+/** Bir foydalanuvchi (yoki raqam) uchun bir vaqtdagi faol (tekshiruvda yoki ochiq) so'rovlar */
 export const MAX_ACTIVE_REQUESTS = 3;
 
-const handle = z.string().trim().max(64).regex(/^@?[A-Za-z0-9_.]*$/, "Telegram: faqat lotin harflari, raqam, _ va .")
-  .transform((v) => (v ? (v.startsWith("@") ? v : "@" + v) : ""));
-
-export const RequestInput = z.object({
-  profession: z.string().min(1, "Qaysi mutaxassis kerakligini tanlang"),
-  district: z.string().default(""),
-  title: z.string().trim().min(5, "Qisqacha nima kerakligini yozing (kamida 5 belgi)").max(120),
-  description: z.string().trim().max(1000).default(""),
-  budget: z.preprocess((v) => (v === "" || v == null ? undefined : String(v).replace(/\D/g, "")), z.coerce.number<number>().int().min(0).max(1_000_000_000).optional()),
-  deadline: z.enum(REQUEST_DEADLINES, { error: "Muddatni tanlang" }),
-  businessName: z.string().trim().max(80).default(""),
-  contactPhone: z.string().trim().min(9, "Bog‘lanish uchun telefon raqamini kiriting"),
-  contactTelegram: handle.default(""),
-});
-export type RequestInputT = z.input<typeof RequestInput>;
-
-export async function createRequest(userId: number, input: z.output<typeof RequestInput>): Promise<{ ok: true; id: number } | { ok: false; error: string }> {
+/**
+ * Tezkor so'rov ("Muammoni yozing"): kirish shart emas, faqat raqam. Moderatorga botda boradi —
+ * u Adverto o'zi olishini yoki qaysi kasbdagi mutaxassislarga yuborishni tanlaydi.
+ */
+export async function createQuickRequest(userId: number | null, input: z.output<typeof QuickRequestInput>)
+  : Promise<{ ok: true; id: number } | { ok: false; error: string }> {
   const db = await getDb();
-  const phone = normalizePhone(input.contactPhone);
+  const phone = normalizePhone(input.phone);
   if (!phone) return { ok: false, error: "Telefon raqami noto‘g‘ri (+998 …)" };
-  const [prof] = await db.select({ id: s.professions.id }).from(s.professions).where(eq(s.professions.slug, input.profession));
-  if (!prof) return { ok: false, error: "Yo‘nalish topilmadi" };
-  const [dist] = input.district ? await db.select({ id: s.districts.id }).from(s.districts).where(eq(s.districts.slug, input.district)) : [];
+  const remote = input.place === REMOTE;
+  const [dist] = input.place && !remote ? await db.select({ id: s.districts.id }).from(s.districts).where(eq(s.districts.slug, input.place)) : [];
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(s.requests)
-    .where(and(eq(s.requests.userId, userId), inArray(s.requests.status, ["pending", "open"])));
-  if (n >= MAX_ACTIVE_REQUESTS) return { ok: false, error: `Bir vaqtda ${MAX_ACTIVE_REQUESTS} tagacha faol so‘rov. Eskisini yoping yoki muddati tugashini kuting.` };
+    .where(and(userId ? eq(s.requests.userId, userId) : eq(s.requests.contactPhone, phone), inArray(s.requests.status, ["pending", "open"])));
+  if (n >= MAX_ACTIVE_REQUESTS) return { ok: false, error: `Bu raqamdan ${MAX_ACTIVE_REQUESTS} ta so‘rov ko‘rib chiqilmoqda. Mutaxassislar tez orada bog‘lanadi.` };
   const [row] = await db.insert(s.requests).values({
-    userId, professionId: prof.id, districtId: dist?.id ?? null, title: input.title, description: input.description,
-    budget: input.budget || null, deadline: input.deadline, businessName: input.businessName || null,
-    contactPhone: phone, contactTelegram: input.contactTelegram || null,
+    userId, districtId: dist?.id ?? null, remote, title: requestTitle(input.text), description: input.text,
+    budgetLabel: input.budget || null, contactPhone: phone,
   }).returning({ id: s.requests.id });
   await sendRequestModeration(row.id).catch((e) => console.error("so'rov moderatsiyasi", e));
   return { ok: true, id: row.id };
 }
 
-/** So'rov va unga oid nomlar (kasb, hudud). */
+/** So'rov va unga oid nomlar (kasblar, hudud). */
 export async function getRequest(id: number) {
   const db = await getDb();
   const [r] = await db.select({
-    req: s.requests, profession: s.professions.nameUz, professionSlug: s.professions.slug, district: s.districts.nameUz,
+    req: s.requests, district: s.districts.nameUz,
     responses: sql<number>`(select count(*)::int from ${s.requestResponses} rr where rr.request_id = ${sql.raw(`"requests"."id"`)})`,
   }).from(s.requests)
-    .innerJoin(s.professions, eq(s.professions.id, s.requests.professionId))
     .leftJoin(s.districts, eq(s.districts.id, s.requests.districtId))
     .where(eq(s.requests.id, id));
-  return r ? { ...r.req, profession: r.profession, professionSlug: r.professionSlug, district: r.district ?? "Butun Xorazm", responses: r.responses } : null;
+  if (!r) return null;
+  const profs = await targetProfessions(r.req);
+  return {
+    ...r.req, district: placeText(r.req.remote, r.district), responses: r.responses,
+    profession: profs.map((p) => p.nameUz).join(", "), professionSlugs: profs.map((p) => p.slug),
+  };
 }
 export type RequestFull = NonNullable<Awaited<ReturnType<typeof getRequest>>>;
 
-export const budgetText = (b: number | null) => (b ? `${money(b)} so‘m` : "Kelishiladi");
+const placeText = (remote: boolean, district: string | null) => (remote ? "Masofaviy" : district ?? "Butun Xorazm");
+
+/** Moderator tanlagan kasblar (eski to'liq formada biznesning o'zi tanlagan kasb). */
+async function targetProfessions(r: { professionIds: number[]; professionId: number | null }) {
+  const ids = r.professionIds.length ? r.professionIds : r.professionId ? [r.professionId] : [];
+  if (!ids.length) return [];
+  const db = await getDb();
+  return db.select({ id: s.professions.id, nameUz: s.professions.nameUz, slug: s.professions.slug })
+    .from(s.professions).where(inArray(s.professions.id, ids)).orderBy(asc(s.professions.sortOrder));
+}
+
+export const budgetText = (r: { budgetLabel: string | null; budget: number | null }) =>
+  r.budgetLabel || (r.budget ? `${money(r.budget)} so‘m` : "Kelishiladi");
 
 /** Ochiq so'rovlar ro'yxati (ixtiyoriy kasb bo'yicha). */
 export async function listOpenRequests(professionSlug?: string) {
   const db = await getDb();
+  const [prof] = professionSlug ? await db.select({ id: s.professions.id }).from(s.professions).where(eq(s.professions.slug, professionSlug)) : [];
+  if (professionSlug && !prof) return [];
   const rows = await db.select({
-    req: s.requests, profession: s.professions.nameUz, professionSlug: s.professions.slug, district: s.districts.nameUz,
+    req: s.requests, district: s.districts.nameUz,
     responses: sql<number>`(select count(*)::int from ${s.requestResponses} rr where rr.request_id = ${sql.raw(`"requests"."id"`)})`,
   }).from(s.requests)
-    .innerJoin(s.professions, eq(s.professions.id, s.requests.professionId))
     .leftJoin(s.districts, eq(s.districts.id, s.requests.districtId))
-    .where(and(eq(s.requests.status, "open"), professionSlug ? eq(s.professions.slug, professionSlug) : undefined))
+    .where(and(eq(s.requests.status, "open"), prof ? or(sql`${prof.id} = any(${s.requests.professionIds})`, eq(s.requests.professionId, prof.id)) : undefined))
     .orderBy(desc(s.requests.approvedAt)).limit(100);
-  return rows.map((r) => ({ ...r.req, profession: r.profession, professionSlug: r.professionSlug, district: r.district ?? "Butun Xorazm", responses: r.responses }));
+  const allProfs = await db.select({ id: s.professions.id, nameUz: s.professions.nameUz }).from(s.professions);
+  const name = (id: number) => allProfs.find((p) => p.id === id)?.nameUz ?? "";
+  return rows.map((r) => {
+    const ids = r.req.professionIds.length ? r.req.professionIds : r.req.professionId ? [r.req.professionId] : [];
+    return { ...r.req, profession: ids.map(name).join(", "), district: placeText(r.req.remote, r.district), responses: r.responses };
+  });
 }
 
-function summary(r: RequestFull) {
-  return [
-    `<b>${esc(r.title)}</b>`,
-    `${esc(r.profession)} · ${esc(r.district)}`,
-    `Budjet: ${budgetText(r.budget)} · Muddat: ${esc(r.deadline)}`,
-    ...(r.description ? ["", esc(r.description.slice(0, 600))] : []),
-  ].join("\n");
-}
 const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const appBtn = (text: string, path: string) =>
   SITE.url.startsWith("https://") ? { text, web_app: { url: `${SITE.url}${path}` } } : { text, url: `${SITE.url}${path}` };
 
-/** Yangi so'rov moderator va adminlarga (Telegram): tasdiqlash yoki rad etish tugmalari bilan. */
-export async function sendRequestModeration(id: number) {
+/** Botdagi so'rov matni: muammo, hudud, budjet (+ kerak bo'lsa aloqa raqami). */
+function requestText(r: RequestFull, withContact: boolean) {
+  return [
+    esc(r.description.slice(0, 1500)),
+    "",
+    `📍 ${esc(r.district)} · 💰 ${esc(budgetText(r))}${r.deadline ? ` · ⏱ ${esc(r.deadline)}` : ""}`,
+    ...(r.profession ? [`👥 ${esc(r.profession)}`] : []),
+    ...(withContact ? [`📞 ${prettyPhone(r.contactPhone)}${r.contactTelegram ? ` · ${esc(r.contactTelegram)}` : ""}`] : []),
+    ...(withContact && r.businessName ? [`🏢 ${esc(r.businessName)}`] : []),
+  ].join("\n");
+}
+
+async function staffChats() {
   const db = await getDb();
+  return db.select({ tg: s.users.telegramId }).from(s.users)
+    .where(and(inArray(s.users.role, ["moderator", "admin"]), isNotNull(s.users.telegramId)));
+}
+
+/** Yangi so'rov moderator va adminlarga (Telegram): Adverto oladi / mutaxassislarga / rad etish. */
+export async function sendRequestModeration(id: number) {
   const r = await getRequest(id);
   if (!r) return;
-  const staff = await db.select({ tg: s.users.telegramId }).from(s.users)
-    .where(and(inArray(s.users.role, ["moderator", "admin"]), isNotNull(s.users.telegramId)));
-  const text = `📝 <b>Yangi so‘rov tekshiruvga keldi</b>\n\n${summary(r)}\n\n📞 ${esc(r.contactPhone)}${r.contactTelegram ? ` · ${esc(r.contactTelegram)}` : ""}${r.businessName ? `\n🏢 ${esc(r.businessName)}` : ""}`;
-  await Promise.all(staff.map(({ tg: chatId }) => tg("sendMessage", {
+  const text = `📝 <b>Yangi so‘rov #${id}</b>\n\n${requestText(r, true)}`;
+  await Promise.all((await staffChats()).map(({ tg: chatId }) => tg("sendMessage", {
     chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true, reply_markup: requestModButtons(id),
   })));
 }
 
 export const requestModButtons = (id: number) => ({
   inline_keyboard: [
-    [{ text: "✓ E’lon qilish", callback_data: `rq:a:${id}` }, { text: "✕ Rad etish", callback_data: `rq:r:${id}` }],
+    [{ text: "🏢 Adverto oladi", callback_data: `rq:v:${id}` }, { text: "👥 Mutaxassislarga", callback_data: `rq:p:${id}` }],
+    [{ text: "✕ Rad etish", callback_data: `rq:r:${id}` }],
   ],
 });
 export const requestReasonButtons = (id: number) => ({
@@ -116,33 +132,73 @@ export const requestReasonButtons = (id: number) => ({
   ],
 });
 
-/** Tasdiqlash: so'rov ochiladi va mos mutaxassislarga botda yuboriladi. Nechta mutaxassisga yetgani qaytadi. */
-export async function approveRequest(id: number): Promise<number> {
+/** Kasblarni tanlash tugmalari: bir nechtasini belgilab, "Yuborish" bosiladi. */
+export async function requestProfessionButtons(id: number) {
   const db = await getDb();
-  const [r0] = await db.update(s.requests).set({ status: "open", approvedAt: new Date(), expiresAt: new Date(Date.now() + REQUEST_DAYS * 86_400_000) })
+  const [r] = await db.select({ ids: s.requests.professionIds }).from(s.requests).where(eq(s.requests.id, id));
+  const profs = await db.select({ id: s.professions.id, nameUz: s.professions.nameUz }).from(s.professions)
+    .where(eq(s.professions.isActive, true)).orderBy(asc(s.professions.sortOrder));
+  const picked = new Set(r?.ids ?? []);
+  const btns = profs.map((p) => ({ text: `${picked.has(p.id) ? "✅" : "▫️"} ${p.nameUz}`, callback_data: `rq:t:${id}:${p.id}` }));
+  const rows: (typeof btns)[] = [];
+  for (let i = 0; i < btns.length; i += 2) rows.push(btns.slice(i, i + 2));
+  return {
+    inline_keyboard: [...rows, [{ text: "← Orqaga", callback_data: `rq:b:${id}` }, { text: `📤 Yuborish (${picked.size})`, callback_data: `rq:s:${id}` }]],
+  };
+}
+
+/** Kasbni tanlash/olib tashlash (faqat tekshiruvdagi so'rovda). */
+export async function toggleRequestProfession(id: number, professionId: number) {
+  const db = await getDb();
+  await db.update(s.requests).set({
+    professionIds: sql`case when ${professionId} = any(${s.requests.professionIds})
+      then array_remove(${s.requests.professionIds}, ${professionId}) else array_append(${s.requests.professionIds}, ${professionId}) end`,
+  }).where(and(eq(s.requests.id, id), eq(s.requests.status, "pending")));
+}
+
+/** So'rovni Adverto o'zi oladi: mutaxassislarga yuborilmaydi. */
+export async function takeByAdverto(id: number) {
+  const db = await getDb();
+  const [r] = await db.update(s.requests).set({ status: "adverto", approvedAt: new Date(), closedAt: new Date() })
+    .where(and(eq(s.requests.id, id), eq(s.requests.status, "pending"))).returning();
+  if (r?.userId) await notifyUser(r.userId, "✓ So‘rovingiz qabul qilindi. Adverto jamoasi tez orada siz bilan bog‘lanadi.");
+  return !!r;
+}
+
+/**
+ * Tasdiqlash: so'rov ochiladi va tanlangan kasblardagi mos mutaxassislarga botda (aloqa raqami bilan) yuboriladi.
+ * Nechta mutaxassisga yetgani qaytadi; kasb tanlanmagan bo'lsa null.
+ */
+export async function approveRequest(id: number): Promise<number | null> {
+  const db = await getDb();
+  const [cur] = await db.select().from(s.requests).where(eq(s.requests.id, id));
+  if (!cur || cur.status !== "pending") return 0;
+  const ids = cur.professionIds.length ? cur.professionIds : cur.professionId ? [cur.professionId] : [];
+  if (!ids.length) return null;
+  const [r0] = await db.update(s.requests).set({ status: "open", professionIds: ids, approvedAt: new Date(), expiresAt: new Date(Date.now() + REQUEST_DAYS * 86_400_000) })
     .where(and(eq(s.requests.id, id), eq(s.requests.status, "pending"))).returning();
   if (!r0) return 0;
   const r = (await getRequest(id))!;
-  // Mos kasb (asosiy yoki qo'shimcha), tanlangan hudud (yoki butun Xorazm), Telegram'i ulangan, band emas
+  // Kasbi (asosiy yoki qo'shimcha) mos, tanlangan tumanda (masofaviy yoki butun Xorazm — hamma), Telegram'i ulangan, band emas
   const inDistrict = r.districtId
     ? sql`exists (select 1 from ${s.profileDistricts} pd where pd.profile_id = ${sql.raw(`"profiles"."id"`)} and pd.district_id = ${r.districtId})`
     : sql`true`;
-  const targets = await db.select({ tg: s.users.telegramId }).from(s.profiles)
+  const targets = await db.selectDistinct({ tg: s.users.telegramId }).from(s.profiles)
     .innerJoin(s.users, eq(s.users.id, s.profiles.userId))
     .where(and(
       eq(s.profiles.status, "approved"), eq(s.profiles.isAvailable, true), isNotNull(s.users.telegramId),
-      or(eq(s.profiles.professionId, r.professionId), eq(s.profiles.extraProfessionId, r.professionId)), inDistrict,
-    )).limit(300);
+      or(inArray(s.profiles.professionId, ids), inArray(s.profiles.extraProfessionId, ids)), inDistrict,
+    )).limit(500);
   let sent = 0;
   for (const t of targets) {
-    if (t.tg === undefined || t.tg === null) continue;
-    const ok = await send(t.tg, `🆕 <b>Yangi so‘rov sizning yo‘nalishingizda</b>\n\n${summary(r)}`, {
-      parse_mode: "HTML", reply_markup: { inline_keyboard: [[appBtn("Ko‘rish va javob berish", `/sorovlar/${id}`)]] },
+    if (!t.tg) continue;
+    const ok = await send(t.tg, `🆕 <b>Yangi so‘rov — mijoz mutaxassis qidiryapti</b>\n\n${requestText(r, true)}\n\nO‘zingiz qo‘ng‘iroq qiling yoki “Qiziqaman” bosing.`, {
+      parse_mode: "HTML", reply_markup: { inline_keyboard: [[appBtn("👋 Qiziqaman / batafsil", `/sorovlar/${id}`)]] },
     });
     if (ok) sent++;
   }
   await db.update(s.requests).set({ notifiedCount: sent }).where(eq(s.requests.id, id));
-  await notifyUser(r.userId, `✓ So‘rovingiz e’lon qilindi va ${sent} ta mos mutaxassisga yuborildi. Qiziqqanlar shu yerga va kabinetingizga keladi.\n\n${SITE.url}/sorovlar/${id}`);
+  if (r.userId) await notifyUser(r.userId, `✓ So‘rovingiz ${sent} ta mos mutaxassisga yuborildi. Ular tez orada siz bilan bog‘lanadi.\n\n${SITE.url}/sorovlar/${id}`);
   return sent;
 }
 
@@ -150,11 +206,11 @@ export async function rejectRequest(id: number, reason: string) {
   const db = await getDb();
   const [r] = await db.update(s.requests).set({ status: "rejected", rejectReason: reason })
     .where(and(eq(s.requests.id, id), eq(s.requests.status, "pending"))).returning();
-  if (r) await notifyUser(r.userId, `So‘rovingiz e’lon qilinmadi: ${reason}.\n\nTuzatib, qayta yuborishingiz mumkin: ${SITE.url}/sorov`);
+  if (r?.userId) await notifyUser(r.userId, `So‘rovingiz e’lon qilinmadi: ${reason}.\n\nTuzatib, qayta yuborishingiz mumkin: ${SITE.url}/sorov`);
   return !!r;
 }
 
-/** Mutaxassisning "Qiziqaman" javobi: biznes egasiga profil havolasi bilan xabar boradi. */
+/** Mutaxassisning "Qiziqaman" javobi: so'rov egasiga (Telegram'i bo'lsa) profil havolasi bilan xabar boradi. */
 export async function respondToRequest(requestId: number, profile: { id: number; fullName: string; slug: string; professionId: number })
   : Promise<{ ok: true; first: boolean } | { ok: false; error: string }> {
   const db = await getDb();
@@ -163,9 +219,9 @@ export async function respondToRequest(requestId: number, profile: { id: number;
   const [row] = await db.insert(s.requestResponses).values({ requestId, profileId: profile.id }).onConflictDoNothing().returning();
   if (!row) return { ok: true, first: false };
   const [p] = await db.select({ name: s.professions.nameUz }).from(s.professions).where(eq(s.professions.id, profile.professionId));
-  const owner = await db.select({ tg: s.users.telegramId }).from(s.users).where(eq(s.users.id, r.userId));
-  if (owner[0]?.tg) {
-    await send(owner[0].tg, `👋 <b>${esc(profile.fullName)}</b> (${esc(p?.name ?? "")}) so‘rovingizga qiziqdi:\n«${esc(r.title)}»\n\nPortfolio va kontaktlarini ko‘ring:`, {
+  const [owner] = r.userId ? await db.select({ tg: s.users.telegramId }).from(s.users).where(eq(s.users.id, r.userId)) : [];
+  if (owner?.tg) {
+    await send(owner.tg, `👋 <b>${esc(profile.fullName)}</b> (${esc(p?.name ?? "")}) so‘rovingizga qiziqdi:\n«${esc(r.title)}»\n\nPortfolio va kontaktlarini ko‘ring:`, {
       parse_mode: "HTML", reply_markup: { inline_keyboard: [[appBtn("Profilni ochish", `/m/${profile.slug}`)], [appBtn("Barcha javoblar", `/sorovlar/${requestId}`)]] },
     });
   }

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import { getDb, schema as s } from "@/db";
 import { normalizePhone } from "./format";
 import { SITE } from "./site";
@@ -8,9 +8,12 @@ import { approveProfileCore, cardButtons, reasonButtons, rejectProfileCore } fro
 import { REJECT_REASONS } from "./reference";
 import { attachChat, confirmToken, finishUrl, pendingLoginForChat } from "./telegram-auth";
 import { upsertUserByPhone } from "./auth";
-import { approveRequest, getRequest, rejectRequest, REQUEST_REJECT_REASONS, requestModButtons, requestReasonButtons } from "./requests";
+import { getContacts } from "./queries";
+import { recordContactLead } from "./leads";
+import { prettyPhone } from "./format";
+import { approveRequest, getRequest, rejectRequest, REQUEST_REJECT_REASONS, requestModButtons, requestProfessionButtons, requestReasonButtons, takeByAdverto, toggleRequestProfession } from "./requests";
 
-type TgUser = { id: number; first_name?: string };
+type TgUser = { id: number; first_name?: string; username?: string };
 type CallbackQuery = { id: string; from: TgUser; data?: string; message?: { chat: { id: number }; message_id: number } };
 export type Update = {
   update_id: number;
@@ -52,7 +55,7 @@ async function hasProfile(tgId: string): Promise<boolean> {
 /** Moderator tugmalari: mod:a:<id> tasdiqlash, mod:r:<id> sabablar, mod:x:<id>:<n> rad etish, mod:b:<id> orqaga. */
 async function handleCallback(q: CallbackQuery): Promise<void> {
   const answer = (text?: string) => tg("answerCallbackQuery", { callback_query_id: q.id, ...(text ? { text } : {}) });
-  const m = (q.data ?? "").match(/^(mod|rq):(a|r|b|x):(\d+)(?::(\d+))?$/);
+  const m = (q.data ?? "").match(/^(mod|rq):(a|r|b|x|v|p|t|s):(\d+)(?::(\d+))?$/);
   if (!m || !q.message) { await answer(); return; }
   const db = await getDb();
   const [staff] = await db.select({ id: s.users.id }).from(s.users)
@@ -83,26 +86,72 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
   await answer(r?.notified ? "Rad etildi, mutaxassisga sababi yuborildi" : "Rad etildi (mutaxassis sababni kabinetda ko‘radi)");
 }
 
-/** So'rov moderatsiyasi: rq:a e'lon qilish, rq:r sabablar, rq:x rad etish, rq:b orqaga. */
+/**
+ * So'rov moderatsiyasi: rq:v Adverto oladi, rq:p kasblarni tanlash, rq:t:<id>:<kasb> belgilash,
+ * rq:s tanlanganlarga yuborish, rq:r sabablar, rq:x:<id>:<n> rad etish, rq:b orqaga.
+ */
 async function requestCallback(act: string, id: number, n: string | undefined, answer: (t?: string) => Promise<unknown>, markup: (m: unknown) => Promise<unknown>) {
   const r = await getRequest(id);
   if (!r) { await answer("So‘rov topilmadi"); await markup({ inline_keyboard: [] }); return; }
-  if (act === "r") { await markup(requestReasonButtons(id)); await answer(); return; }
-  if (act === "b") { await markup(requestModButtons(id)); await answer(); return; }
   const done = (text: string) => markup({ inline_keyboard: [[{ text, url: `${SITE.url}/sorovlar/${id}` }]] });
   if (r.status !== "pending") { await answer(`Allaqachon ko‘rib chiqilgan: ${r.status}`); await done(`Holati: ${r.status}`); return; }
-  if (act === "a") {
+  if (act === "r") { await markup(requestReasonButtons(id)); await answer(); return; }
+  if (act === "b") { await markup(requestModButtons(id)); await answer(); return; }
+  if (act === "p") { await markup(await requestProfessionButtons(id)); await answer("Kimlarga yuborilsin? Belgilang va “Yuborish”ni bosing"); return; }
+  if (act === "t") {
+    await toggleRequestProfession(id, Number(n));
+    await markup(await requestProfessionButtons(id));
+    await answer();
+    return;
+  }
+  if (act === "v") {
+    await takeByAdverto(id);
+    await markup({ inline_keyboard: [[{ text: "🏢 Adverto oldi — mijozga qo‘ng‘iroq qiling", url: `${SITE.url}/admin/sorovlar` }]] });
+    await answer("Adverto oldi. Mutaxassislarga yuborilmaydi.");
+    return;
+  }
+  if (act === "s" || act === "a") {
     // Telegram callback'ga tez javob kutadi; yuborish uzoq cho'zilishi mumkin
-    await answer("E’lon qilinmoqda…");
+    if (!r.professionIds.length && !r.professionId) { await answer("Kamida bitta kasbni belgilang"); return; }
+    await answer("Yuborilmoqda…");
     const sent = await approveRequest(id);
-    await done(`✓ E’lon qilindi · ${sent} ta mutaxassisga yuborildi`);
+    await done(`✓ Yuborildi · ${sent ?? 0} ta mutaxassisga`);
     return;
   }
   const reason = REQUEST_REJECT_REASONS[Number(n)];
   if (!reason) { await answer(); return; }
   await rejectRequest(id, reason);
   await done(`✕ Rad etildi: ${reason}`);
-  await answer("Rad etildi, egasiga sababi yuborildi");
+  await answer("Rad etildi");
+}
+
+/** Biznes egasi raqamini tasdiqlagach: mutaxassis kontaktlari botda, lid yoziladi, saytga qaytish tugmalari. */
+async function sendProfileContacts(chatId: string, slug: string, phone: string, tgId: string, username: string | undefined, finish: string) {
+  const db = await getDb();
+  const [p] = await db.select({ id: s.profiles.id, name: s.profiles.fullName, prof: s.professions.nameUz, profSlug: s.professions.slug })
+    .from(s.profiles).innerJoin(s.professions, eq(s.professions.id, s.profiles.professionId))
+    .where(and(eq(s.profiles.slug, slug), eq(s.profiles.status, "approved"))).limit(1);
+  const c = p && (await getContacts(p.id));
+  if (!p || !c) return false;
+  const userId = await upsertUserByPhone(phone, { telegramId: tgId });
+  if (username) await db.update(s.users).set({ telegramUsername: username.slice(0, 64) }).where(eq(s.users.id, userId));
+  const [u] = await db.select().from(s.users).where(eq(s.users.id, userId));
+  if (u) await recordContactLead(u, p.id, "telegram_gate").catch(() => {});
+  const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const lines = [`✓ Raqamingiz tasdiqlandi. <b>${esc(p.name)}</b> — ${esc(p.prof)} kontaktlari:`, ""];
+  for (const a of c.admins) lines.push(`👤 ${esc(a.name)} (${esc(a.role)}): ${prettyPhone(a.phone)}${a.telegram ? ` · ${esc(a.telegram)}` : ""}`);
+  if (c.phone) lines.push(`📞 ${prettyPhone(c.phone)}`);
+  if (c.telegram) lines.push(`✈️ ${esc(c.telegram)}`);
+  if (c.instagram) lines.push(`📷 instagram.com/${esc(c.instagram.replace(/^@/, ""))}`);
+  lines.push("", "Murojaat qilganda “Xorazm Digital HUB orqali topdim” deb yozing.");
+  await send(chatId, lines.join("\n"), {
+    parse_mode: "HTML", disable_web_page_preview: true,
+    reply_markup: { inline_keyboard: [
+      [{ text: "↩ Saytga qaytish", url: finish }],
+      [appBtn("Boshqa mutaxassislarni ko‘rish", `/mutaxassislar/${p.profSlug}`)],
+    ] },
+  });
+  return true;
 }
 
 /** Bot xabarlarini qayta ishlaydi (webhook'dan). Faqat shaxsiy chatlar. */
@@ -112,6 +161,12 @@ export async function handleUpdate(u: Update): Promise<void> {
   if (!m || m.chat.type !== "private" || !m.from) return;
   const chatId = String(m.chat.id);
   const tgId = String(m.from.id);
+  // @username haftalik lidlar hisoboti uchun (foydalanuvchi uni o'zgartirishi mumkin — har safar yangilanadi)
+  if (m.from.username) {
+    const db = await getDb();
+    await db.update(s.users).set({ telegramUsername: m.from.username.slice(0, 64) })
+      .where(and(eq(s.users.telegramId, tgId), or(isNull(s.users.telegramUsername), ne(s.users.telegramUsername, m.from.username))));
+  }
 
   if (m.contact) {
     if (m.contact.user_id !== m.from.id) {
@@ -132,6 +187,9 @@ export async function handleUpdate(u: Update): Promise<void> {
       return;
     }
     await confirmToken(t.token, { phone });
+    // Mutaxassis sahifasidan "Raqamni ko'rish" orqali kelgan bo'lsa — kontaktlar shu yerda ham beriladi
+    const fromProfile = t.returnPath?.match(/^\/m\/([a-z0-9-]{3,80})/);
+    if (fromProfile && (await sendProfileContacts(chatId, fromProfile[1], phone, tgId, m.from.username, finishUrl(t.token)))) return;
     await send(chatId, "✓ Raqamingiz tasdiqlandi. Pastdagi tugma orqali saytga qayting va to‘ldirishni davom ettiring.\n\nProfil tasdiqlanishi va statistika shu yerga keladi.", {
       reply_markup: { inline_keyboard: [[{ text: "↩ Saytga qaytish", url: finishUrl(t.token) }]] },
     });

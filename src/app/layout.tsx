@@ -36,8 +36,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : ownProfile || hasRequests ? { href: "/kabinet", label: "Kabinet" } : { href: "/qoshilish", label: "Portfolio qo‘shish" };
   const url = (await headers()).get("x-url");
   const adCtx = await adContextFromUrl(url, profs);
-  // Profil sahifasi mutaxassisning shaxsiy sahifasi (landing): tepada banner yo'q
-  const landing = !!url?.startsWith("/m/");
+  // Profil sahifasi mutaxassisning shaxsiy sahifasi (landing, "focus mode"): reklama bannerlari yo'q
+  const landing = !!url?.startsWith("/m/") || !!url?.startsWith("/u/");
   return (
     <html lang="uz" suppressHydrationWarning>
       <head>
@@ -61,7 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
         <footer>
           <div className="wrap">
-            <PublicOnly><div style={{ marginBottom: 36 }}><Ad slot="A6" variant="banner" ctx={adCtx} /></div></PublicOnly>
+            {!landing && <PublicOnly><div style={{ marginBottom: 36 }}><Ad slot="A6" variant="banner" ctx={adCtx} /></div></PublicOnly>}
             <div className="foot">
               <div>
                 <Logo />

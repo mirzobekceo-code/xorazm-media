@@ -1,29 +1,13 @@
 import { ImageResponse } from "next/og";
-import fs from "node:fs/promises";
-import path from "node:path";
-import sharp from "sharp";
 import { getProfile } from "@/lib/queries";
 import { initials, money } from "@/lib/format";
 import { SITE } from "@/lib/site";
+import { coverData } from "@/lib/og";
 
 export const alt = "Xorazm Digital HUB profili";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const runtime = "nodejs";
-
-/** Muqova rasmini (webp) satori o'qiy oladigan JPEG data URL'ga aylantiradi. */
-async function coverData(url: string | undefined): Promise<string | null> {
-  if (!url) return null;
-  try {
-    const buf = url.startsWith("/")
-      ? await fs.readFile(path.join(process.cwd(), "public", url))
-      : Buffer.from(await (await fetch(url)).arrayBuffer());
-    const jpg = await sharp(buf).resize(480, 630, { fit: "cover", position: "attention" }).jpeg({ quality: 82 }).toBuffer();
-    return `data:image/jpeg;base64,${jpg.toString("base64")}`;
-  } catch {
-    return null;
-  }
-}
 
 /** Havola ulashilganda chiqadigan rasm: foto, ism, kasb, hudud va narx. */
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
@@ -35,7 +19,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
       size,
     );
   }
-  const cover = await coverData(p.media.find((m) => m.type === "image")?.url);
+  const cover = await coverData(p.media.find((m) => m.type === "image")?.url, 480, 630);
   const where = p.districts.map((d) => d.nameUz).slice(0, 2).join(", ") || "Xorazm";
   const price = p.price ? `${money(p.price)} so‘m / ${p.profession.unit}` : "Narx kelishiladi";
   return new ImageResponse(

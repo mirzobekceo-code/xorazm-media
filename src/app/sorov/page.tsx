@@ -1,37 +1,27 @@
 import type { Metadata } from "next";
 import { getUser } from "@/lib/auth";
-import { getDistricts, getProfessions } from "@/lib/queries";
-import { REQUEST_DEADLINES } from "@/lib/requests";
+import { getDistricts } from "@/lib/queries";
 import { prettyPhone } from "@/lib/format";
-import RequestForm from "./RequestForm";
+import QuickRequest from "@/components/QuickRequest";
 
 export const metadata: Metadata = {
   title: "So‘rov qoldirish — mutaxassis topish",
-  description: "Nima kerakligini yozing — Xorazmdagi mos mutaxassislar o‘zi Telegram orqali bog‘lanadi. Bepul.",
+  description: "Kimni tanlashni bilmayapsizmi? Muammoni yozing — Xorazmdagi mos mutaxassislar o‘zi bog‘lanadi. Bepul.",
 };
 export const dynamic = "force-dynamic";
 
-export default async function NewRequest({ searchParams }: { searchParams: Promise<{ kasb?: string }> }) {
-  const [{ kasb }, user, profs, dists] = await Promise.all([searchParams, getUser(), getProfessions(), getDistricts()]);
-  const auth = !user ? "none" : !user.telegramId ? "nolink" : "ok";
+export default async function NewRequest() {
+  const [user, dists] = await Promise.all([getUser(), getDistricts()]);
   return (
-    <div className="view" style={{ gap: 24 }}>
-      <div>
-        <p className="eyebrow">Bizneslar uchun · bepul</p>
-        <h1 style={{ fontSize: "clamp(30px,4vw,44px)" }}>So‘rov qoldiring — mutaxassislar o‘zi yozadi</h1>
-        <ol className="muted" style={{ margin: "10px 0 0", paddingLeft: 20, lineHeight: 1.7 }}>
-          <li>Nima kerakligini yozing</li>
-          <li>Moderator tekshiradi va mos mutaxassislarga Telegram orqali yuboradi</li>
-          <li>Qiziqqanlar profili va portfoliosi bilan sizga botda keladi — eng mosini tanlaysiz</li>
-        </ol>
-      </div>
-      {/* key: kirgandan keyin forma yangi qiymatlar (raqam) bilan qayta quriladi */}
-      <RequestForm key={auth}
-        professions={profs.map((p) => ({ slug: p.slug, nameUz: p.nameUz }))}
-        districts={dists.map((d) => ({ slug: d.slug, nameUz: d.nameUz }))}
-        deadlines={REQUEST_DEADLINES} auth={auth} phone={user ? prettyPhone(user.phone) : ""}
-        initialProfession={profs.some((p) => p.slug === kasb) ? kasb! : ""}
-      />
+    <div className="view" style={{ gap: 20 }}>
+      <section className="qr-wrap">
+        <QuickRequest districts={dists.map((d) => ({ slug: d.slug, nameUz: d.nameUz }))} phone={user ? prettyPhone(user.phone) : ""} />
+      </section>
+      <ol className="muted" style={{ margin: "0 auto", maxWidth: 560, paddingLeft: 20, lineHeight: 1.7 }}>
+        <li>Muammoingizni yozasiz — kirish va ro‘yxatdan o‘tish shart emas</li>
+        <li>Jamoamiz ko‘rib chiqadi va mos mutaxassislarga Telegram orqali yuboradi</li>
+        <li>Qiziqqan mutaxassislar sizga o‘zi qo‘ng‘iroq qiladi yoki yozadi</li>
+      </ol>
     </div>
   );
 }

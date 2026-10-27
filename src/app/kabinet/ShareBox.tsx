@@ -38,12 +38,13 @@ export default function ShareBox({ site, slug, name, approved, bot }: { site: st
     }
   }
 
-  function downloadQr() {
+  function downloadFile(path: string, name: string) {
     const wa = webApp();
-    const file = `${location.origin}/api/v1/me/qr?download=1`;
-    if (wa?.initData && wa.downloadFile && wa.isVersionAtLeast?.("8.0")) wa.downloadFile({ url: file, file_name: `${slug}-qr.png` });
+    const file = `${location.origin}${path}`;
+    if (wa?.initData && wa.downloadFile && wa.isVersionAtLeast?.("8.0")) wa.downloadFile({ url: file, file_name: name });
     else location.href = file;
   }
+  const downloadQr = () => downloadFile("/api/v1/me/qr?download=1", `${slug}-qr.png`);
 
   return (
     <section className="box share" id="ulashish">
@@ -102,7 +103,10 @@ export default function ShareBox({ site, slug, name, approved, bot }: { site: st
           <div className="stack" style={{ gap: 6 }}>
             <b>QR-kod</b>
             <p className="muted small">Vizitka, banner yoki studiya eshigiga. Skanerlashlar alohida hisoblanadi.</p>
-            <button type="button" className="btn ghost sm" onClick={downloadQr}>PNG yuklab olish</button>
+            <div className="row" style={{ gap: 6 }}>
+              <button type="button" className="btn ghost sm" onClick={downloadQr}>PNG yuklab olish</button>
+              {approved && <button type="button" className="btn ghost sm" onClick={() => downloadFile(`/m/${slug}/vizitka?download=1`, `${slug}-vizitka.png`)}>📱 QR-vizitka (Story)</button>}
+            </div>
           </div>
         </div>
       </div>

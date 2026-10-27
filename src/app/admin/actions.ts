@@ -11,7 +11,8 @@ import { redirect } from "next/navigation";
 import { SLOTS } from "@/lib/reference";
 import { recomputeRanks } from "@/lib/rank";
 import { approveProfileCore, logModeration, rejectProfileCore } from "@/lib/moderation";
-import { approveRequest, rejectRequest } from "@/lib/requests";
+import { approveRequest, rejectRequest, takeByAdverto } from "@/lib/requests";
+import { sendWeeklyLeadReport } from "@/lib/leads";
 
 const log = logModeration;
 
@@ -152,8 +153,12 @@ export async function setupTelegramBot() {
   redirect("/admin/sozlamalar?ok=1");
 }
 
-export async function approveRequestAdmin(id: number) {
+export async function approveRequestAdmin(id: number, form: FormData) {
   await requireStaff();
+  const ids = form.getAll("prof").map(Number).filter((n) => Number.isInteger(n) && n > 0);
+  if (!ids.length) return;
+  const db = await getDb();
+  await db.update(s.requests).set({ professionIds: ids }).where(eq(s.requests.id, id));
   await approveRequest(id);
   revalidatePath("/admin/sorovlar");
 }
@@ -164,4 +169,16 @@ export async function rejectRequestAdmin(id: number, form: FormData) {
   if (!reason) return;
   await rejectRequest(id, reason);
   revalidatePath("/admin/sorovlar");
+}
+
+export async function advertoRequestAdmin(id: number) {
+  await requireStaff();
+  await takeByAdverto(id);
+  revalidatePath("/admin/sorovlar");
+}
+
+export async function sendLeadReportNow() {
+  await requireStaff("admin");
+  const r = await sendWeeklyLeadReport();
+  redirect(`/admin/lidlar?yuborildi=${encodeURIComponent(`${r.rows} qator · ${r.admins} ta adminga Telegram’da${r.sheets ? " · Google Sheets ✓" : process.env.GOOGLE_SHEETS_WEBHOOK_URL ? " · Google Sheets xato" : " · Google Sheets ulanmagan"}`)}`);
 }

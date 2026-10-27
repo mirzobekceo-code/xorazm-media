@@ -36,9 +36,9 @@ export default async function Requests({ searchParams }: { searchParams: Promise
         <div className="req-list">
           {rows.map((r) => (
             <Link key={r.id} href={`/sorovlar/${r.id}`} className="box req-card">
-              <p className="eyebrow">{r.profession} · {r.district}</p>
+              <p className="eyebrow">{r.profession ? `${r.profession} · ` : ""}{r.district}</p>
               <h3>{r.title}</h3>
-              <p className="muted small">{budgetText(r.budget)} · {r.deadline} · {ago(r.approvedAt)}{r.responses ? ` · ${r.responses} ta javob` : ""}</p>
+              <p className="muted small">{budgetText(r)} · {ago(r.approvedAt)}{r.responses ? ` · ${r.responses} ta javob` : ""}</p>
             </Link>
           ))}
         </div>

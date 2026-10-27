@@ -17,7 +17,9 @@ export const creativeTypeEnum = pgEnum("creative_type", ["text", "image", "video
 export const tgPurposeEnum = pgEnum("tg_token_purpose", ["login", "link"]);
 export const tgStatusEnum = pgEnum("tg_token_status", ["pending", "confirmed", "used"]);
 export const campaignStatusEnum = pgEnum("campaign_status", ["draft", "active", "paused", "ended"]);
-export const requestStatusEnum = pgEnum("request_status", ["pending", "open", "closed", "rejected", "expired"]);
+/** adverto — so'rovni Adverto agentligi o'zi oldi (mutaxassislarga yuborilmaydi) */
+export const requestStatusEnum = pgEnum("request_status", ["pending", "open", "closed", "rejected", "expired", "adverto"]);
+export const leadKindEnum = pgEnum("lead_kind", ["contact", "order"]);
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -31,6 +33,8 @@ export const users = pgTable("users", {
   role: roleEnum("role").notNull().default("specialist"),
   /** Birinchi kirishdagi manba (utm_source yoki qaysi saytdan kelgani) — e'lonlar samarasi uchun */
   signupSource: varchar("signup_source", { length: 80 }),
+  /** @username (botga yozganda yangilanadi) — haftalik lidlar hisoboti uchun */
+  telegramUsername: varchar("telegram_username", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
 });
@@ -280,10 +284,16 @@ export const adEvents = pgTable("ad_events", {
 /** Biznes egasining so'rovi: moderatsiyadan keyin mos mutaxassislarga botda yuboriladi. */
 export const requests = pgTable("requests", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  professionId: integer("profession_id").notNull().references(() => professions.id),
-  /** null — butun Xorazm */
+  /** null — kirmasdan qoldirilgan so'rov (faqat raqam) */
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  professionId: integer("profession_id").references(() => professions.id),
+  /** Moderator botda tanlagan kasblar — so'rov shularga yuboriladi */
+  professionIds: integer("profession_ids").array().notNull().default([]),
+  /** null — butun Xorazm (yoki masofaviy) */
   districtId: integer("district_id").references(() => districts.id),
+  remote: boolean("remote").notNull().default(false),
+  /** Biznes tanlagan yoki yozgan budjet: "100$", "100$ – 300$", "2 mln so'm" */
+  budgetLabel: varchar("budget_label", { length: 40 }),
   title: varchar("title", { length: 120 }).notNull(),
   description: text("description").notNull().default(""),
   /** so'm; null — kelishiladi */
@@ -300,6 +310,24 @@ export const requests = pgTable("requests", {
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   closedAt: timestamp("closed_at", { withTimezone: true }),
 }, (t) => [index("requests_status_idx").on(t.status, t.createdAt), index("requests_user_idx").on(t.userId)]);
+
+/**
+ * Lid: biznes egasi mutaxassis kontaktini Telegram orqali ochdi (contact) yoki portfolio sahifasidan
+ * buyurtma qoldirdi (order). Haftalik hisobot (Google Sheets) va Adverto takliflari uchun.
+ */
+export const leads = pgTable("leads", {
+  id: serial("id").primaryKey(),
+  kind: leadKindEnum("kind").notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  profileId: integer("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 80 }),
+  phone: varchar("phone", { length: 20 }),
+  telegramUsername: varchar("telegram_username", { length: 64 }),
+  message: text("message"),
+  /** direct_portfolio_link, catalog, telegram_gate, … */
+  source: varchar("source", { length: 60 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("leads_created_idx").on(t.createdAt), index("leads_profile_idx").on(t.profileId)]);
 
 /** Mutaxassisning "Qiziqaman" javobi. */
 export const requestResponses = pgTable("request_responses", {
