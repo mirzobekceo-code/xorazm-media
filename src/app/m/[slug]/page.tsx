@@ -16,7 +16,7 @@ import ViewBeacon from "./ViewBeacon";
 import ShareKit from "./ShareKit";
 import OrderButton from "./OrderButton";
 import { parsePriceList } from "@/lib/portfolio-rules";
-import Gallery from "./Gallery";
+import Gallery from "@/components/Gallery";
 import { isCfVideo } from "@/lib/cloudflare";
 import ExtraValue from "@/components/ExtraValue";
 import { isBusiness, portfolioRule } from "@/lib/portfolio-rules";
@@ -64,6 +64,8 @@ export default async function ProfilePage({ params, searchParams }: Props) {
   }
   const isBlogger = p.profession.slug === "bloger";
   const cover = p.media.find((m) => m.type === "image");
+  // Portfolio: profil rasmi (birinchi rasm) tepada ko'rsatilgani uchun galereyaga kirmaydi
+  const works = p.media.length > 1 && p.media[0].type === "image" ? p.media.slice(1) : p.media;
   const b = p.blogger;
   const plats = b ? Object.entries(b.followers).filter(([, v]) => v > 0) : [];
   const age = isBusiness(p.profession.slug) ? null : ageFrom(p.birthYear);
@@ -174,10 +176,13 @@ export default async function ProfilePage({ params, searchParams }: Props) {
             </>
           )}
 
-          {p.media.length > 0 && (
+          {works.length > 0 && (
             <section className="box">
-              <h3>{isBlogger ? "Reklama namunalari" : "Portfolio"}</h3>
-              <Gallery title={p.fullName} items={(p.media.length > 1 && p.media[0].type === "image" ? p.media.slice(1) : p.media).map((m) => ({ id: m.id, type: m.type, url: m.url, thumbUrl: m.thumbUrl, stream: isCfVideo(m.url) }))} />
+              <div className="row" style={{ justifyContent: "space-between" }}>
+                <h3>{isBlogger ? "Reklama namunalari" : "Portfolio"}</h3>
+                <span className="muted small num">{works.length} ta ish</span>
+              </div>
+              <Gallery title={p.fullName} items={works.map((m) => ({ id: m.id, type: m.type, url: m.url, thumbUrl: m.thumbUrl, stream: isCfVideo(m.url) }))} />
             </section>
           )}
 

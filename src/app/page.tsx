@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { getDistricts, getProfessions, searchProfiles } from "@/lib/queries";
+import { getDistricts, getProfessions, recentWorks, searchProfiles } from "@/lib/queries";
+import Gallery from "@/components/Gallery";
+import { isCfVideo } from "@/lib/cloudflare";
 import ProfileCard from "@/components/ProfileCard";
 import ServiceGrid from "@/components/ServiceGrid";
 import ServiceStrip from "@/components/ServiceStrip";
@@ -24,7 +26,7 @@ const HERO: FanItem[] = [
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [profs, dists, top, user] = await Promise.all([getProfessions(), getDistricts(), searchProfiles({ sort: "top" }), getUser()]);
+  const [profs, dists, top, user, works] = await Promise.all([getProfessions(), getDistricts(), searchProfiles({ sort: "top" }), getUser(), recentWorks({ limit: 8, perProfile: 2 })]);
   const total = profs.reduce((a, p) => a + p.count, 0);
   const items = top.items.slice(0, 7);
   return (
@@ -84,6 +86,19 @@ export default async function Home() {
           </div>
         ) : <div className="empty">Hozircha tasdiqlangan profil yo‘q. Birinchi bo‘ling — <Link className="link" href="/qoshilish">portfolio qo‘shing</Link>.</div>}
       </section>
+
+      {works.length > 0 && (
+        <section className="works home-works">
+          <div className="sec-head">
+            <div><p className="eyebrow">Galereya</p><h2>So‘nggi portfolio ishlar</h2></div>
+            <Link className="link" href="/mutaxassislar">Barcha bo‘limlar</Link>
+          </div>
+          <Gallery feature={false} title="So‘nggi portfolio ishlar" items={works.map((w) => ({
+            id: w.id, type: w.type, url: w.url, thumbUrl: w.thumbUrl, stream: isCfVideo(w.url),
+            caption: w.fullName, sub: w.profession, href: `/m/${w.slug}`,
+          }))} />
+        </section>
+      )}
 
       <section>
         <div className="sec-head"><h2>Qanday ishlaydi</h2></div>

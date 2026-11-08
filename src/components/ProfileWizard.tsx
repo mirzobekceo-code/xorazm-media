@@ -29,6 +29,10 @@ const DRAFT_KEY = "xm-signup-draft";
 const STEP_KEY = "xm-signup-step";
 const MOD_LABEL: Record<string, string> = { pending: "Tekshiruvda", approved: "Tasdiqlangan", rejected: "Rad etilgan" };
 
+/** Yo'nalishni almashtirish: kasbga xos maydonlar tozalanadi (radio tugmadagi bilan bir xil) */
+const withProfession = (x: ProfileInputT, slug: string | undefined): ProfileInputT =>
+  slug ? { ...x, profession: slug, extra: {}, blogger: slug === "bloger" ? x.blogger ?? emptyBlogger() : undefined } : x;
+
 export default function ProfileWizard(props: {
   mode: "signup" | "edit";
   professions: Prof[];
@@ -46,10 +50,13 @@ export default function ProfileWizard(props: {
   submitOnFinish?: boolean;
   /** Tahrirlashda qaysi qadamdan ochilsin (kabinetdagi "tuzatish" havolalari) */
   startStep?: number;
+  /** Ro'yxatdan o'tishda oldindan tanlangan yo'nalish (katalog bo'limidagi "Portfolio qo'shish" → /qoshilish?kasb=...) */
+  preselect?: string;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(props.mode === "edit" ? Math.min(4, Math.max(1, props.startStep ?? 1)) : 0);
-  const [v, setV] = useState<ProfileInputT>(props.initial ?? emptyInput());
+  const preselect = props.mode === "signup" && props.professions.some((p) => p.slug === props.preselect) ? props.preselect : undefined;
+  const [v, setV] = useState<ProfileInputT>(props.initial ?? withProfession(emptyInput(), preselect));
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [pending, start] = useTransition();
@@ -72,13 +79,15 @@ export default function ProfileWizard(props: {
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) {
-        setV({ ...emptyInput(), ...JSON.parse(raw) });
-        // Botdan "Saytga qaytish" bilan kelinganda to'ldirgan qadamidan davom etadi (portfolio qadami saqlashdan keyin)
         const st = Number(localStorage.getItem(STEP_KEY) ?? 0);
+        const draft: ProfileInputT = { ...emptyInput(), ...JSON.parse(raw) };
+        // Bo'limdan kelinganda: qoralama hali yo'nalish tanlash qadamida bo'lsa, o'sha bo'lim tanlanadi
+        setV(preselect && st === 0 && draft.profession !== preselect ? withProfession(draft, preselect) : draft);
+        // Botdan "Saytga qaytish" bilan kelinganda to'ldirgan qadamidan davom etadi (portfolio qadami saqlashdan keyin)
         if (st > 0) setStep(Math.min(3, st));
       }
     } catch {}
-  }, [props.mode, props.initial]);
+  }, [props.mode, props.initial, preselect]);
   useEffect(() => {
     if (props.mode !== "signup") return;
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(v)); } catch {}
@@ -278,7 +287,7 @@ export default function ProfileWizard(props: {
             {props.professions.map((p) => (
               <label key={p.slug} htmlFor={`k-${p.slug}`}>
                 <input type="radio" name="kasb" id={`k-${p.slug}`} value={p.slug} checked={v.profession === p.slug}
-                  onChange={() => setV((x) => ({ ...x, profession: p.slug, extra: {}, blogger: p.slug === "bloger" ? x.blogger ?? emptyBlogger() : undefined }))} />
+                  onChange={() => setV((x) => withProfession(x, p.slug))} />
                 <ProfIcon svg={p.icon} />
                 <div><b>{p.nameUz}</b><br /><small>{p.description}</small></div>
               </label>

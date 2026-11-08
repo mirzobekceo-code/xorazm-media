@@ -332,20 +332,57 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical }
 .act { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); padding-top: 20px }
 .err { color: var(--bad); font-size: 14px }
 .ok { color: var(--good); font-size: 14px }
-/* Portfolio galereyasi: katta ko'rinish va kichik ko'rinishlar */
-.gal { display: flex; flex-direction: column; gap: 10px }
-.gal-stage { position: relative; aspect-ratio: 4 / 5; max-height: 78vh; border-radius: 16px; overflow: hidden; background: #0a100f }
-.gal-stage img, .gal-stage video, .gal-stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; object-fit: contain; display: block }
+/* Portfolio galereyasi: to'r (grid) va to'liq ekranli ko'rish */
+.gal-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 190px; grid-auto-flow: dense; gap: 8px }
+.gal-grid.few-1 { grid-template-columns: minmax(0, 420px); grid-auto-rows: 420px }
+.gal-grid.few-2 { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 300px }
+.gal-tile { position: relative; padding: 0; border: 0; border-radius: 12px; overflow: hidden; background: var(--soft); cursor: zoom-in; color: inherit; font: inherit; text-align: left }
+.gal-tile.feature { grid-column: span 2; grid-row: span 2 }
+.gal-grid > .gal-tile.last { grid-column: span var(--s3) }
+.works .gal-grid > .gal-tile.last { grid-column: span var(--s4) }
+.gal-tile img, .gal-tile video { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s ease }
+.gal-tile:hover img, .gal-tile:hover video { transform: scale(1.04) }
+.gal-tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px #ffffff14; pointer-events: none }
+.gal-cap { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 1px; padding: 26px 10px 9px; background: linear-gradient(transparent, #050a09e6); color: #fff; font-size: 13px; line-height: 1.25 }
+.gal-cap b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.gal-cap span { font-size: 11.5px; color: #ffffffb3 }
 .gal-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; border: 0; background: #0b1312cc; color: #fff; font-size: 28px; line-height: 1; cursor: pointer; display: grid; place-items: center; backdrop-filter: blur(6px); z-index: 2 }
 .gal-nav.prev { left: 10px } .gal-nav.next { right: 10px }
 .gal-nav:hover { background: #0b1312 }
-.gal-count { position: absolute; left: 12px; top: 12px; z-index: 2; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: #0b1312cc; color: #fff }
-.gal-thumbs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin }
-.gal-thumbs button { position: relative; flex: 0 0 auto; width: 72px; aspect-ratio: 3 / 4; padding: 0; border-radius: 10px; overflow: hidden; border: 2px solid transparent; background: var(--soft); cursor: pointer; opacity: .7 }
-.gal-thumbs button.on { border-color: var(--accent); opacity: 1 }
-.gal-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block }
+.lb { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 16px; background: #050a09f2; backdrop-filter: blur(6px); color: #fff }
+.lb-top { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: #ffffffcc }
+.lb-x { width: 44px; height: 44px; border-radius: 50%; border: 0; background: #ffffff14; color: #fff; font-size: 28px; line-height: 1; cursor: pointer }
+.lb-x:hover { background: #ffffff26 }
+.lb-stage { position: relative; flex: 1; min-height: 0 }
+.lb-stage img, .lb-stage video { position: absolute; inset: 0; margin: auto; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px; display: block }
+.lb-stage iframe { position: absolute; inset: 0; margin: auto; width: min(100%, 1100px); height: 100%; border: 0; border-radius: 10px }
+.lb-cap { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; max-width: 1100px; width: 100%; margin: 0 auto; font-size: 14px }
+.lb-cap .muted { color: #ffffffa6 }
+.lb-thumbs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; justify-content: safe center; scrollbar-width: thin }
+.lb-thumbs button { position: relative; flex: 0 0 auto; width: 56px; height: 70px; padding: 0; border-radius: 8px; overflow: hidden; border: 2px solid transparent; background: #ffffff14; cursor: pointer; opacity: .55 }
+.lb-thumbs button.on { border-color: var(--accent); opacity: 1 }
+.lb-thumbs img, .lb-thumbs video { width: 100%; height: 100%; object-fit: cover; display: block }
+@media (max-width: 760px) {
+  .gal-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; gap: 6px }
+  .gal-grid > .gal-tile.last, .works .gal-grid > .gal-tile.last { grid-column: span var(--s2) }
+  .gal-grid.few-1 { grid-template-columns: 1fr; grid-auto-rows: 340px }
+  .gal-grid.few-2 { grid-auto-rows: 220px }
+  .lb { padding: 8px 8px 12px }
+  .lb .gal-nav { width: 38px; height: 38px; font-size: 24px; background: #0b131299 }
+  .lb .gal-nav.prev { left: 4px } .lb .gal-nav.next { right: 4px }
+}
+/* Bo'lim galereyasi (katalog): sarlavha va "Portfolio qo'shish" */
+.works { display: flex; flex-direction: column; gap: 14px; margin-top: 36px; padding-top: 28px; border-top: 1px solid var(--line) }
+.works-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap }
+.works-head h2 { font-size: 24px }
+.works-head p { margin: 4px 0 0 }
+.works .gal-grid { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 210px }
+.home-works { margin-top: 0; padding-top: 0; border-top: 0 }
+@media (max-width: 1000px) { .works .gal-grid { grid-template-columns: repeat(3, 1fr) } .works .gal-grid > .gal-tile.last { grid-column: span var(--s3) } }
+@media (max-width: 760px) { .works .gal-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 170px } }
 .gal-v { display: grid; place-items: center; height: 100%; font-size: 11px; color: var(--muted) }
 .vplay { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; color: #fff; background: #0b1312b3; pointer-events: none }
+.gal-tile .vplay { width: 44px; height: 44px; font-size: 15px }
 .vproc { display: grid; place-items: center; height: 100%; font-size: 13px; font-weight: 600; color: var(--accent-strong) }
 /* Portfolio qadami */
 .pstep { display: flex; flex-direction: column; gap: 10px; padding-top: 18px; border-top: 1px solid var(--line) }

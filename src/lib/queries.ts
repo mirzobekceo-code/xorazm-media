@@ -152,6 +152,36 @@ export async function getProfile(slug: string, opts: { includeUnapproved?: boole
   };
 }
 
+/**
+ * Bo'lim galereyasi: tasdiqlangan profillarning so'nggi portfolio ishlari (profil rasmi — muqova — kirmaydi).
+ * Navbat bilan: avval har profilning 1-ishi, keyin 2-ishi… Har profildan ko'pi bilan `perProfile` ta.
+ */
+export async function recentWorks(f: { profession?: string; district?: string; limit?: number; perProfile?: number } = {}) {
+  const db = await getDb();
+  const limit = Math.min(f.limit ?? 12, 48);
+  const per = f.perProfile ?? 3;
+  const res = await db.execute(sql`
+    select id, type, url, thumb_url, slug, full_name, profession from (
+      select m.id, m.type, m.url, m.thumb_url, m.created_at, p.slug, p.full_name, pr.name_uz as profession, p.rank_score,
+        row_number() over (partition by p.id order by m.sort_order asc, m.id asc) as rn
+      from ${s.media} m
+      join ${s.profiles} p on p.id = m.profile_id
+      join ${s.professions} pr on pr.id = p.profession_id
+      where p.status = 'approved' and m.moderation_status = 'approved' and not m.is_stat_screenshot
+        and m.id <> coalesce((select m2.id from ${s.media} m2 where m2.profile_id = p.id and m2.type = 'image'
+          and m2.moderation_status = 'approved' and not m2.is_stat_screenshot order by m2.is_cover desc, m2.sort_order asc limit 1), 0)
+        ${f.profession ? sql`and pr.slug = ${f.profession}` : sql``}
+        ${f.district ? sql`and exists (select 1 from ${s.profileDistricts} pd join ${s.districts} d on d.id = pd.district_id where pd.profile_id = p.id and d.slug = ${f.district})` : sql``}
+    ) w
+    where rn <= ${per}
+    order by rn asc, rank_score desc, created_at desc, id desc
+    limit ${limit}`);
+  const rows = ((res as unknown as { rows?: unknown[] }).rows ?? (res as unknown as unknown[])) as {
+    id: number; type: "image" | "video"; url: string; thumb_url: string | null; slug: string; full_name: string; profession: string;
+  }[];
+  return rows.map((r) => ({ id: r.id, type: r.type, url: r.url, thumbUrl: r.thumb_url, slug: r.slug, fullName: r.full_name, profession: r.profession }));
+}
+
 export async function getSimilar(profileId: number, professionSlug: string, limit = 6) {
   const res = await searchProfiles({ profession: professionSlug, sort: "top" });
   return res.items.filter((x) => x.id !== profileId).slice(0, limit);

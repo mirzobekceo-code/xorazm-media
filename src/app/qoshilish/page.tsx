@@ -8,12 +8,12 @@ import ProfileWizard from "@/components/ProfileWizard";
 export const metadata: Metadata = { title: "Portfolio qo‘shish — bepul", description: "Xorazm Digital HUB’da portfoliongizni 5 qadamda qo‘shing. Bepul." };
 export const dynamic = "force-dynamic";
 
-export default async function Join() {
+export default async function Join({ searchParams }: { searchParams: Promise<{ kasb?: string }> }) {
   const user = await getUser();
   const profile = user ? await getOwnProfile(user.id) : null;
   // Yuborilgan profil tahrirlash sahifasida; qoralama shu yerda davom etadi
   // (4-qadamda saqlash sahifani qayta render qiladi, forma holati saqlanishi kerak)
   if (profile && profile.status !== "draft") redirect("/kabinet/tahrir");
-  const [refs, existing] = await Promise.all([wizardRefs(), profile ? profileToInput(profile.id) : null]);
-  return <ProfileWizard mode="signup" {...refs} initial={existing?.input ?? null} loggedIn={!!user} media={existing?.media ?? []} />;
+  const [refs, existing, { kasb }] = await Promise.all([wizardRefs(), profile ? profileToInput(profile.id) : null, searchParams]);
+  return <ProfileWizard mode="signup" {...refs} initial={existing?.input ?? null} loggedIn={!!user} media={existing?.media ?? []} preselect={kasb} />;
 }

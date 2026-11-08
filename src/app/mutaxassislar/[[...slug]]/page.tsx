@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getDistricts, getProfessions, searchProfiles, type CatalogFilters } from "@/lib/queries";
+import { getDistricts, getProfessions, recentWorks, searchProfiles, type CatalogFilters } from "@/lib/queries";
+import Gallery from "@/components/Gallery";
+import { isCfVideo } from "@/lib/cloudflare";
 import ProfileCard from "@/components/ProfileCard";
 import Ad from "@/components/Ad";
 import { professionFromQuery } from "@/lib/ads";
@@ -52,7 +54,11 @@ export default async function Catalog(props: Props) {
   const r = await resolve(props);
   if (!r) notFound();
   const { prof, dist, profs, dists, filters, sp } = r;
-  const res = await searchProfiles(filters);
+  const [res, works] = await Promise.all([
+    searchProfiles(filters),
+    // Bo'lim galereyasi faqat 1-sahifada: shu yo'nalish (va tuman) bo'yicha so'nggi portfolio ishlar
+    (filters.page ?? 1) === 1 ? recentWorks({ profession: prof?.slug, district: dist?.slug, limit: 12 }) : Promise.resolve(null),
+  ]);
   const adCtx = { profession: prof?.slug ?? professionFromQuery(filters.q, profs), district: dist?.slug };
 
   // Filtr havolalari: joriy holatni saqlab, bitta qiymatni almashtiradi
@@ -135,6 +141,25 @@ export default async function Catalog(props: Props) {
           </>
         )}
         <p className="muted small" style={{ marginTop: 16 }}>Tanlash qiyinmi? <Link className="link" href={`/sorov${prof ? `?kasb=${prof.slug}` : ""}`}>So‘rov qoldiring</Link> — mos mutaxassislar o‘zi Telegram’da yozadi.</p>
+        {works && (
+          <section className="works" aria-labelledby="works-h">
+            <div className="works-head">
+              <div>
+                <h2 id="works-h">{prof ? `${prof.nameUz}: portfolio ishlar` : "Portfolio ishlar"}</h2>
+                <p className="muted small">{works.length ? "Rasmni bosing — kattalashadi, profilga o‘tish mumkin" : "Bu bo‘limda hali portfolio ishlar yo‘q"}</p>
+              </div>
+              <Link className="btn ghost sm" href={`/qoshilish${prof ? `?kasb=${prof.slug}` : ""}`}>+ Portfolio qo‘shish</Link>
+            </div>
+            {works.length > 0 ? (
+              <Gallery feature={false} title={prof ? `${prof.nameUz} — portfolio` : "Portfolio ishlar"} items={works.map((w) => ({
+                id: w.id, type: w.type, url: w.url, thumbUrl: w.thumbUrl, stream: isCfVideo(w.url),
+                caption: w.fullName, sub: prof ? undefined : w.profession, href: `/m/${w.slug}`,
+              }))} />
+            ) : (
+              <div className="empty">{prof ? `${prof.nameUz} bo‘limida` : "Bu yerda"} birinchi bo‘lib ishlaringizni ko‘rsating — portfolio sahifa bepul. <Link className="link" href={`/qoshilish${prof ? `?kasb=${prof.slug}` : ""}`}>Portfolio qo‘shish →</Link></div>
+            )}
+          </section>
+        )}
         {res.pages > 1 && (
           <nav className="pager" aria-label="Sahifalar">
             {Array.from({ length: res.pages }, (_, i) => i + 1).map((n) =>
