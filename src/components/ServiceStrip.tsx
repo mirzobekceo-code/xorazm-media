@@ -46,10 +46,10 @@ export default function ServiceStrip({ profs }: { profs: Prof[] }) {
     };
   }, []);
   const item = (p: Prof, dup: boolean) => (
-    <Link key={(dup ? "d-" : "") + p.slug} className="strip-item" href={`/mutaxassislar/${p.slug}`} tabIndex={dup ? -1 : undefined} aria-hidden={dup || undefined}>
+    <Link key={(dup ? "d-" : "") + p.slug} className="strip-item" href={p.count ? `/mutaxassislar/${p.slug}` : `/sorov?kasb=${p.slug}`} tabIndex={dup ? -1 : undefined} aria-hidden={dup || undefined}>
       <ProfIcon svg={p.icon} />
       <b>{p.nameUz.replace(/ \(.*\)/, "")}</b>
-      <span className="num">{p.count} ta</span>
+      <span className="num">{p.count ? `${p.count} ta` : "So‘rov →"}</span>
     </Link>
   );
   return (

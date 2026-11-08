@@ -171,3 +171,46 @@ export const VIDEO_LIMITS: Record<string, number> = {
 };
 export const VIDEO_SECONDS = 60;
 export const videoLimit = (slug: string | undefined) => (slug ? VIDEO_LIMITS[slug] ?? 1 : 1);
+
+/**
+ * Profil sahifasida (mijoz o'qiydi) forma savoli o'rniga ko'rsatiladigan sarlavhalar.
+ * Forma (mutaxassis to'ldiradi) asl savol matnini ishlatadi.
+ */
+const PUBLIC_FIELD_LABELS: Record<string, string> = {
+  case: "Tajriba va eng yirik keyslar",
+  editing: "Montaj",
+  team: "Jamoasi",
+  device: "Telefon va jihozlar",
+  portfolio: "Portfolio",
+};
+export const publicFieldLabel = (key: string, label: string) => PUBLIC_FIELD_LABELS[key] ?? label;
+
+/** Profildagi havolalar bloki sarlavhasi (mijoz uchun). Video kasblarda — "Video ishlar namunalari". */
+const PUBLIC_LINK_TITLES: Record<string, string> = {
+  marketolog: "Keyslar va taqdimotlar",
+  targetolog: "Keyslar",
+  smm: "Yuritgan sahifalari",
+  bloger: "Reklama namunalari",
+  fotograf: "Portfolio albomlari",
+  dizayner: "Qo‘shimcha ishlar",
+  suhandon: "Ovoz namunalari",
+  studiya: "Studiyada olingan ishlar",
+  "texnika-ijarasi": "Qo‘shimcha ma’lumot",
+};
+export const publicLinkTitle = (slug: string) => PUBLIC_LINK_TITLES[slug] ?? "Video ishlar namunalari";
+
+/** Paket nomi faqat raqam bo'lsa ("15") — kasbga mos birlik qo'shiladi: "15 ta ssenariy". */
+const PACKAGE_UNITS: Record<string, string> = { ssenarist: "ta ssenariy", montajor: "ta video/Reels", mobilograf: "ta video/Reels" };
+export function packageName(name: string, professionSlug: string): string {
+  const n = name.trim();
+  return /^\d+$/.test(n) ? `${n} ${PACKAGE_UNITS[professionSlug] ?? "ta ish / paket"}` : n;
+}
+
+/** Profil kartochkasidagi hudud: 1–2 ta tuman — nomi bilan, ko'pi — "Urganch sh. +3 ta", hammasi — "Butun Xorazm". */
+export function districtSummary(names: string[], total: number): string {
+  const short = (s: string) => s.replace(/ shahri$/, " sh.").replace(/ tumani$/, " t.");
+  if (!names.length) return "—";
+  if (total > 0 && names.length >= total) return "Butun Xorazm";
+  if (names.length <= 2) return names.map(short).join(", ");
+  return `${short(names[0])} +${names.length - 1} ta`;
+}

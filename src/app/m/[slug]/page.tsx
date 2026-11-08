@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { getProfile, movedSlug } from "@/lib/queries";
+import { getDistricts, getProfile, movedSlug } from "@/lib/queries";
 import { getUser } from "@/lib/auth";
 import { ageFrom, kfmt, money, PLATFORM_LABELS, totalFollowers } from "@/lib/format";
 import { LANGUAGES } from "@/lib/reference";
@@ -19,7 +19,7 @@ import { parsePriceList } from "@/lib/portfolio-rules";
 import Gallery from "@/components/Gallery";
 import { isCfVideo } from "@/lib/cloudflare";
 import ExtraValue from "@/components/ExtraValue";
-import { isBusiness, portfolioRule } from "@/lib/portfolio-rules";
+import { districtSummary, isBusiness, packageName, publicFieldLabel, publicLinkTitle } from "@/lib/portfolio-rules";
 
 export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string>> };
@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProfilePage({ params, searchParams }: Props) {
-  const [p, sp] = await Promise.all([load((await params).slug), searchParams]);
+  const [p, sp, allDistricts] = await Promise.all([load((await params).slug), searchParams, getDistricts()]);
   if (!p) {
     // Manzil o'zgargan bo'lsa, eski ulashilgan havola yangisiga o'tadi
     const moved = await movedSlug((await params).slug);
@@ -64,8 +64,13 @@ export default async function ProfilePage({ params, searchParams }: Props) {
   }
   const isBlogger = p.profession.slug === "bloger";
   const cover = p.media.find((m) => m.type === "image");
-  // Portfolio: profil rasmi (birinchi rasm) tepada ko'rsatilgani uchun galereyaga kirmaydi
-  const works = p.media.length > 1 && p.media[0].type === "image" ? p.media.slice(1) : p.media;
+  // Portfolio: profil rasmi tepada ko'rsatilgani uchun galereyaga kirmaydi; boshqa ish bo'lmasa blok chiqmaydi
+  const works = p.media.filter((m) => m !== cover);
+  const linkItems = p.videoLinks.flatMap((url, i) => {
+    const e = embedFor(url);
+    return e ? [{ id: -(i + 1), type: "embed" as const, url: e.src, thumbUrl: e.thumb, stream: false, embed: { label: e.label, shape: e.shape, external: url, preview: e.preview } }] : [];
+  });
+  const outLinks = p.videoLinks.filter((u) => !embedFor(u));
   const b = p.blogger;
   const plats = b ? Object.entries(b.followers).filter(([, v]) => v > 0) : [];
   const age = isBusiness(p.profession.slug) ? null : ageFrom(p.birthYear);
@@ -150,14 +155,14 @@ export default async function ProfilePage({ params, searchParams }: Props) {
                 <div><span>Narx</span><b className="num">{p.price ? money(p.price) : "Kelishiladi"}</b><span>{p.price ? `so‘m / ${p.profession.unit}${p.priceNegotiable ? ", kelishiladi" : ""}` : ""}</span></div>
                 <div><span>Tajriba</span><b className="num">{p.experienceYears} yil</b><span>{age ? `${age} yosh` : ""}</span></div>
                 <div><span>Tillar</span><b style={{ fontSize: 16 }}>{langs || "—"}</b><span /></div>
-                <div><span>Hudud</span><b style={{ fontSize: 16 }}>{p.districts.length} ta tuman</b><span /></div>
+                <div><span>Hudud</span><b style={{ fontSize: 16 }} title={p.districts.map((d) => d.nameUz).join(", ")}>{districtSummary(p.districts.map((d) => d.nameUz), allDistricts.length)}</b><span /></div>
               </div>
               {priceFields.map((f) => (
                 <section className="box" key={f.key}>
                   <h3>{f.key === "packages" ? "Xizmat paketlari (Narxlar)" : f.label}</h3>
                   <div className="pkgs">
                     {parsePriceList(p.extra[f.key]).map((r, i) => (
-                      <div className="pkg" key={i}><span>{r.name}</span><b className="num">{r.price ? `${money(r.price)} so‘m` : "Kelishiladi"}</b></div>
+                      <div className="pkg" key={i}><span>{f.key === "packages" ? packageName(r.name, p.profession.slug) : r.name}</span><b className="num">{r.price ? `${money(r.price)} so‘m` : "Kelishiladi"}</b></div>
                     ))}
                   </div>
                 </section>
@@ -167,7 +172,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
                   <h3>Ma’lumotlar</h3>
                   <dl className="spec">
                     {infoFields.map((f) => (
-                      [<dt key={f.key + "t"}>{f.label}</dt>,
+                      [<dt key={f.key + "t"}>{publicFieldLabel(f.key, f.label)}</dt>,
                        <dd key={f.key + "d"}><ExtraValue f={f} value={p.extra[f.key]} /></dd>]
                     ))}
                   </dl>
@@ -186,17 +191,14 @@ export default async function ProfilePage({ params, searchParams }: Props) {
             </section>
           )}
 
-          {p.videoLinks.length > 0 && (
+          {(linkItems.length > 0 || outLinks.length > 0) && (
             <section className="box">
-              <h3>{portfolioRule(p.profession.slug).linkLabel}</h3>
+              <h3>{publicLinkTitle(p.profession.slug)}</h3>
               {/* Instagram, TikTok, Telegram, YouTube… videolari sayt ichida ochiladi; joylab bo'lmaydiganlari — tashqi tugma */}
-              <Gallery feature={false} title={p.fullName} items={p.videoLinks.flatMap((url, i) => {
-                const e = embedFor(url);
-                return e ? [{ id: -(i + 1), type: "embed" as const, url: e.src, thumbUrl: e.thumb, stream: false, embed: { label: e.label, shape: e.shape, external: url, preview: e.preview } }] : [];
-              })} />
-              {p.videoLinks.some((u) => !embedFor(u)) && (
+              {linkItems.length > 0 && <Gallery feature={false} title={p.fullName} items={linkItems} />}
+              {outLinks.length > 0 && (
                 <div className="row">
-                  {p.videoLinks.filter((u) => !embedFor(u)).map((url) => (
+                  {outLinks.map((url) => (
                     <a key={url} className="btn ghost sm" href={url} target="_blank" rel="noopener nofollow">{linkLabel(url)}da ochish ↗</a>
                   ))}
                 </div>

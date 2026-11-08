@@ -7,7 +7,7 @@ import { track } from "@/lib/client/analytics";
 export default function ShareKit({ url, slug, title }: { url: string; slug: string; title: string }) {
   const [toast, setToast] = useState("");
   const [qr, setQr] = useState(false);
-  const say = (m: string) => { setToast(m); setTimeout(() => setToast(""), 1800); };
+  const say = (m: string) => { setToast(m); setTimeout(() => setToast(""), 2600); };
   useEffect(() => {
     if (!qr) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setQr(false);
@@ -18,7 +18,7 @@ export default function ShareKit({ url, slug, title }: { url: string; slug: stri
   const card = `/m/${slug}/vizitka`;
   async function copy() {
     track("share", { method: "copy" });
-    say((await copyText(`${url}?s=link`)) ? "Bio uchun link nusxalandi!" : "Nusxa olinmadi — manzilni belgilab oling");
+    say((await copyText(`${url}?s=link`)) ? "Instagram bio uchun shaxsiy havola nusxalandi!" : "Nusxa olinmadi — manzilni belgilab oling");
   }
   async function shareCard() {
     track("share", { method: "qr_card" });
@@ -39,7 +39,7 @@ export default function ShareKit({ url, slug, title }: { url: string; slug: stri
 
   return (
     <>
-      <button type="button" className="btn ghost" onClick={copy}>🔗 Linkni nusxalash</button>
+      <button type="button" className="btn ghost" onClick={copy}>🔗 Bio uchun linkni nusxalash</button>
       <button type="button" className="btn ghost" onClick={() => setQr(true)}>📱 QR-vizitka</button>
       {qr && (
         <div className="modal-back" onClick={(e) => e.target === e.currentTarget && setQr(false)}>

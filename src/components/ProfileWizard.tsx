@@ -587,7 +587,7 @@ function Thumbs({ items, onDelete }: { items: MediaItem[]; onDelete: (id: number
 /** Narxli ro'yxat yozuvlari: texnika ijarasi (kunlik narx) yoki xizmat paketlari. */
 const PRICE_LIST_TEXT = {
   items: { name: "Texnika nomi", namePh: "Sony FX3", price: "Kunlik narxi, so‘m", pricePh: "so‘m / kun", add: "+ Texnika qo‘shish" },
-  packages: { name: "Paket nomi", namePh: "Masalan: 4 ta reels + ssenariy", price: "Paket narxi, so‘m", pricePh: "so‘m", add: "+ Paket qo‘shish" },
+  packages: { name: "Paket nomi", namePh: "Masalan: 10 ta Reels paketi", price: "Paket narxi, so‘m", pricePh: "so‘m", add: "+ Paket qo‘shish" },
 };
 
 function PriceListInput({ idPrefix, value, onChange, kind }: { idPrefix: string; value: string; onChange: (v: string) => void; kind: string }) {

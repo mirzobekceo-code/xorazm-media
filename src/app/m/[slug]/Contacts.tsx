@@ -23,7 +23,8 @@ function track(profileId: number, channel: string) {
 export default function Contacts({ profileId, name, src }: { profileId: number; name: string; src?: string }) {
   const router = useRouter();
   const [data, setData] = useState<Data | null>(null);
-  const [gated, setGated] = useState(false);
+  // Javob kelguncha "Kontaktlarni ko'rish" tugmasi darhol turadi ("Yuklanmoqda…" o'rniga); kirgan bo'lsa kontaktlar bilan almashadi
+  const [gated, setGated] = useState(true);
   const [modal, setModal] = useState(false);
   const [err, setErr] = useState(false);
   const [toast, setToast] = useState("");
@@ -53,7 +54,7 @@ export default function Contacts({ profileId, name, src }: { profileId: number; 
   if (gated) {
     return (
       <>
-        <button type="button" className="btn gate-btn" onClick={() => { setModal(true); trackGa("contact_gate_open", { profile: profileId }); }}>📞 Bog‘lanish / Raqamni ko‘rish</button>
+        <button type="button" className="btn gate-btn" onClick={() => { setModal(true); trackGa("contact_gate_open", { profile: profileId }); }}>🔒 Kontaktlarni ko‘rish (Bepul)</button>
         <p className="muted small">Raqam va Telegram bir marta Telegram orqali tasdiqlangach ochiladi — bot kontaktlarni sizga ham yuboradi.</p>
         {modal && (
           <div className="modal-back" onClick={(e) => e.target === e.currentTarget && setModal(false)}>
@@ -69,7 +70,7 @@ export default function Contacts({ profileId, name, src }: { profileId: number; 
       </>
     );
   }
-  if (!data) return <p className="muted small">Yuklanmoqda…</p>;
+  if (!data) return <div className="c-skel" aria-label="Yuklanmoqda"><span /><span /></div>;
 
   const row = (label: string, value: string, channel: string, link?: string) => (
     <div className="crow" key={label + value}>
@@ -80,7 +81,9 @@ export default function Contacts({ profileId, name, src }: { profileId: number; 
       </div>
     </div>
   );
-  const tg = (h: string) => `https://t.me/${h.replace(/^@/, "")}`;
+  // Telegram tayyor xabar bilan ochiladi — mijoz faqat "Yuborish"ni bosadi
+  const hello = `Assalomu alaykum ${name}! Xorazm Digital HUB (xorazmdigital.uz) saytidan portfoliongizni ko‘rib yozyapman. Xizmatingiz bo‘yicha gaplashsak bo‘ladimi?`;
+  const tg = (h: string) => `https://t.me/${h.replace(/^@/, "")}?text=${encodeURIComponent(hello)}`;
   const ig = (h: string) => `https://instagram.com/${h.replace(/^@/, "")}`;
 
   return (

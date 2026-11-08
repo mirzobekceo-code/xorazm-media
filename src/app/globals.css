@@ -652,3 +652,17 @@ dialog::backdrop { background: rgb(0 0 0 / .4) }
 .pkg { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--soft) }
 .pkg span { font-size: 14px }
 .pkg b { font-size: 18px; color: var(--accent-strong) }
+
+/* Kontaktlar yuklanayotganda */
+.c-skel { display: flex; flex-direction: column; gap: 8px }
+.c-skel span { height: 44px; border-radius: 12px; background: linear-gradient(90deg, var(--soft), var(--line), var(--soft)); background-size: 200% 100%; animation: skel 1.2s linear infinite }
+@keyframes skel { to { background-position: -200% 0 } }
+/* Katalog: yo'nalishda profil yo'q */
+.empty-cta { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; padding: 32px; border: 1px solid var(--accent); border-radius: var(--r); background: var(--surface); box-shadow: 0 0 0 5px #3cc2cb1a }
+.empty-cta h2 { font-size: clamp(22px, 3vw, 28px); max-width: 30ch }
+.empty-cta p { max-width: 62ch; margin: 0 }
+/* So'rovlar: namuna kartochkalar */
+.req-card.sample { position: relative; border-style: dashed; opacity: .85 }
+.req-card.sample .eyebrow { padding-right: 84px }
+.sample-tag { position: absolute; right: 14px; top: 14px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 9px; border-radius: 99px; background: var(--sand); color: var(--warn) }
+@media (max-width: 560px) { .empty-cta { padding: 22px 18px } }

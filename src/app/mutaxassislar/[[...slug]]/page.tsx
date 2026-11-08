@@ -8,6 +8,7 @@ import ProfileCard from "@/components/ProfileCard";
 import Ad from "@/components/Ad";
 import { professionFromQuery } from "@/lib/ads";
 import SortSelect from "./SortSelect";
+import { SITE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -134,6 +135,18 @@ export default async function Catalog(props: Props) {
             })}
             {items.length <= 4 && <Ad slot="A2" variant="card" ctx={adCtx} />}
           </div>
+        ) : prof && prof.count === 0 ? (
+          // Yo'nalishda umuman tasdiqlangan profil yo'q: bo'sh sahifa o'rniga so'rov qoldirishga undash
+          <div className="empty-cta">
+            <span className="qr-badge">⏳ Tekshiruvda</span>
+            <h2>Bu yo‘nalishdagi mutaxassislar hozir moderator tekshiruvida</h2>
+            <p className="muted">Vaqtingizni yo‘qotmang! Vazifangizni yozib qoldiring — Adverto jamoasi yoki yopiq bazamizdagi tekshirilgan mutaxassislar 15 daqiqa ichida siz bilan bog‘lanadi.</p>
+            <div className="row">
+              <Link className="btn" href={`/sorov?kasb=${prof.slug}`}>⚡ So‘rov qoldirish</Link>
+              <a className="btn ghost" href={SITE.advertoTelegram} target="_blank" rel="noopener">🔥 Adverto jamoasi bilan bog‘lanish</a>
+            </div>
+            <p className="muted small">{prof.nameUz} sifatida ishlaysizmi? <Link className="link" href={`/qoshilish?kasb=${prof.slug}`}>Portfolio qo‘shing — bepul</Link></p>
+          </div>
         ) : (
           <>
             <div className="empty">Bu filtr bo‘yicha hozircha profil yo‘q. Tumanni “Butun Xorazm” qilib ko‘ring yoki <Link className="link" href={`/sorov${prof ? `?kasb=${prof.slug}` : ""}`}>so‘rov qoldiring</Link> — mos mutaxassislar o‘zi yozadi.</div>
@@ -141,7 +154,7 @@ export default async function Catalog(props: Props) {
           </>
         )}
         <p className="muted small" style={{ marginTop: 16 }}>Tanlash qiyinmi? <Link className="link" href={`/sorov${prof ? `?kasb=${prof.slug}` : ""}`}>So‘rov qoldiring</Link> — mos mutaxassislar o‘zi Telegram’da yozadi.</p>
-        {works && (
+        {works && !(works.length === 0 && prof?.count === 0) && (
           <section className="works" aria-labelledby="works-h">
             <div className="works-head">
               <div>
