@@ -511,7 +511,7 @@ export default function ProfileWizard(props: {
                 <label htmlFor="s-vlinks">{rule.linkLabel}</label>
                 <textarea className="inp" id="s-vlinks" rows={3} value={String(v.videoLinks ?? "")} onChange={(e) => set("videoLinks", e.target.value)}
                   placeholder={"https://instagram.com/reel/...\nhttps://youtube.com/watch?v=..."} />
-                <small>{rule.linkHint}. Har qatorda bitta havola, {props.limits.videoLinks} tagacha. YouTube videolari profilda shu yerning o‘zida ochiladi.</small>
+                <small>{rule.linkHint}. Har qatorda bitta havola, {props.limits.videoLinks} tagacha. YouTube, Instagram Reels, TikTok va Telegram post videolari profilda saytning o‘zida ochiladi.</small>
               </div>
             </section>
           </div>

@@ -58,3 +58,51 @@ export function linkLabel(raw: string): string {
     return raw;
   }
 }
+
+/** Sayt ichida ochiladigan video (iframe). `vertical` — Reels/TikTok kabi tik format, `audio` — faqat pleyer qatori. */
+export type Embed = { label: string; src: string; thumb: string | null; shape: "wide" | "vertical" | "post" | "audio" };
+
+/**
+ * Havoladan sayt ichida ochiladigan pleyer manzili: YouTube, Instagram (Reels/post), TikTok, Telegram post,
+ * Vimeo, Google Drive fayl, SoundCloud. Profil, kanal yoki qisqa (vm.tiktok.com) havolalar uchun null —
+ * ular tashqi tugma bo'lib qoladi.
+ */
+export function embedFor(raw: string): Embed | null {
+  let u: URL;
+  try { u = new URL(raw); } catch { return null; }
+  if (u.protocol !== "https:") return null;
+  const h = u.hostname.replace(/^(www|m)\./, "");
+  const label = linkLabel(raw);
+  const yt = youtubeId(raw);
+  if (yt) {
+    const shorts = u.pathname.startsWith("/shorts/");
+    return { label, src: `https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&rel=0`, thumb: `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`, shape: shorts ? "vertical" : "wide" };
+  }
+  if (h === "instagram.com") {
+    const m = u.pathname.match(/^\/(?:[\w.]+\/)?(reel|reels|p|tv)\/([\w-]+)/);
+    if (!m) return null;
+    const kind = m[1] === "reels" ? "reel" : m[1];
+    return { label, src: `https://www.instagram.com/${kind}/${m[2]}/embed/`, thumb: null, shape: kind === "p" ? "post" : "vertical" };
+  }
+  if (h === "tiktok.com") {
+    const m = u.pathname.match(/\/video\/(\d+)/);
+    return m ? { label, src: `https://www.tiktok.com/embed/v2/${m[1]}`, thumb: null, shape: "vertical" } : null;
+  }
+  if (h === "t.me") {
+    // Ochiq kanal posti: t.me/kanal/86 (yoki t.me/s/kanal/86)
+    const m = u.pathname.match(/^\/(?:s\/)?([A-Za-z]\w{3,})\/(\d+)\/?$/);
+    return m ? { label, src: `https://t.me/${m[1]}/${m[2]}?embed=1&mode=tme`, thumb: null, shape: "post" } : null;
+  }
+  if (h === "vimeo.com" || h === "player.vimeo.com") {
+    const m = u.pathname.match(/(?:^|\/)(\d{5,})(?:\/|$)/);
+    return m ? { label, src: `https://player.vimeo.com/video/${m[1]}?autoplay=1`, thumb: null, shape: "wide" } : null;
+  }
+  if (h === "drive.google.com") {
+    const m = u.pathname.match(/\/file\/d\/([\w-]{10,})/) ?? (u.pathname === "/open" ? [null, u.searchParams.get("id")] : null);
+    return m?.[1] ? { label, src: `https://drive.google.com/file/d/${m[1]}/preview`, thumb: null, shape: "wide" } : null;
+  }
+  if (h === "soundcloud.com" && u.pathname.split("/").filter(Boolean).length >= 2) {
+    return { label, src: `https://w.soundcloud.com/player/?url=${encodeURIComponent(raw)}&auto_play=true&visual=true`, thumb: null, shape: "audio" };
+  }
+  return null;
+}

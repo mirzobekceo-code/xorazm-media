@@ -2,7 +2,9 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 
 export type GalleryItem = {
-  id: number; type: "image" | "video"; url: string; thumbUrl: string | null; stream: boolean;
+  /** embed — Instagram, TikTok, Telegram, YouTube… havolasi: sayt ichida iframe'da ochiladi */
+  id: number; type: "image" | "video" | "embed"; url: string; thumbUrl: string | null; stream: boolean;
+  embed?: { label: string; shape: "wide" | "vertical" | "post" | "audio"; external: string };
   /** Bo'lim galereyasida: ish kimniki va profil havolasi */
   caption?: string; sub?: string; href?: string;
 };
@@ -30,9 +32,9 @@ export default function Gallery({ items, title, feature = true }: { items: Galle
         {items.map((m, k) => (
           <button key={m.id} type="button" className={`gal-tile${big && k === 0 ? " feature" : ""}${k === n - 1 && n >= 3 ? " last" : ""}`}
             style={k === n - 1 && n >= 3 ? lastStyle : undefined} onClick={() => setOpen(k)}
-            aria-label={`${m.type === "video" ? "Video" : "Rasm"} ${k + 1} — kattalashtirish${m.caption ? `, ${m.caption}` : ""}`}>
+            aria-label={`${kindLabel(m)} ${k + 1} — ochish${m.caption ? `, ${m.caption}` : ""}`}>
             <Thumb m={m} />
-            {m.type === "video" && <span className="vplay" aria-hidden="true">▶</span>}
+            {m.type !== "image" && <span className="vplay" aria-hidden="true">▶</span>}
             {m.caption && <span className="gal-cap"><b>{m.caption}</b>{m.sub && <span>{m.sub}</span>}</span>}
           </button>
         ))}
@@ -42,8 +44,12 @@ export default function Gallery({ items, title, feature = true }: { items: Galle
   );
 }
 
+const kindLabel = (m: GalleryItem) => (m.type === "embed" ? `${m.embed?.label ?? ""} video` : m.type === "video" ? "Video" : "Rasm");
+
 function Thumb({ m }: { m: GalleryItem }) {
   if (m.thumbUrl) return <img src={m.thumbUrl} alt="" loading="lazy" />;
+  // Muqovasi yo'q havola (Instagram, TikTok, Telegram…): platforma nomi yozilgan kartochka
+  if (m.type === "embed") return <span className={`gal-embed e-${(m.embed?.label ?? "").toLowerCase().replace(/\W/g, "")}`}><b>{m.embed?.label}</b></span>;
   if (m.type === "image") return <img src={m.url} alt="" loading="lazy" />;
   // Muqovasi yo'q video: birinchi kadr ko'rsatiladi
   if (!m.stream) return <video src={`${m.url}#t=0.1`} muted playsInline preload="metadata" tabIndex={-1} />;
@@ -99,6 +105,9 @@ function Lightbox({ items, start, title, onClose }: { items: GalleryItem[]; star
       <div className="lb-stage" onClick={(e) => e.target === e.currentTarget && onClose()}>
         {cur.type === "image" ? (
           <img key={cur.id} src={cur.url} alt={`${cur.caption ?? title} — ${i + 1}`} />
+        ) : cur.type === "embed" ? (
+          <iframe key={cur.id} className={`lb-embed ${cur.embed?.shape ?? "wide"}`} src={cur.url} title={`${cur.caption ?? title} — ${cur.embed?.label ?? ""} video`}
+            allow="autoplay; encrypted-media; picture-in-picture; clipboard-write; fullscreen" allowFullScreen />
         ) : cur.stream ? (
           <iframe key={cur.id} src={`${cur.url}?autoplay=true&poster=${encodeURIComponent(cur.thumbUrl ?? "")}`} title={`${cur.caption ?? title} — video`}
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen />
@@ -112,19 +121,23 @@ function Lightbox({ items, start, title, onClose }: { items: GalleryItem[]; star
           </>
         )}
       </div>
-      {(cur.caption || cur.href) && (
+      {(cur.caption || cur.href || cur.embed) && (
         <div className="lb-cap">
           <div>{cur.caption && <b>{cur.caption}</b>}{cur.sub && <span className="muted"> · {cur.sub}</span>}</div>
-          {cur.href && <a className="btn sm" href={cur.href}>Profilni ko‘rish →</a>}
+          <div className="row" style={{ gap: 8 }}>
+            {/* Platforma video ko'rsatmasa (yopiq akkaunt va h.k.) — asl sahifada ochish */}
+            {cur.embed && <a className="btn ghost sm lb-ext" href={cur.embed.external} target="_blank" rel="noopener nofollow">{cur.embed.label}da ochish ↗</a>}
+            {cur.href && <a className="btn sm" href={cur.href}>Profilni ko‘rish →</a>}
+          </div>
         </div>
       )}
       {n > 1 && (
         <div className="lb-thumbs" ref={thumbsRef}>
           {items.map((m, k) => (
-            <button key={m.id} type="button" className={k === i ? "on" : ""} aria-label={`${m.type === "video" ? "Video" : "Rasm"} ${k + 1}`}
+            <button key={m.id} type="button" className={k === i ? "on" : ""} aria-label={`${kindLabel(m)} ${k + 1}`}
               aria-current={k === i ? "true" : undefined} onClick={() => setI(k)}>
               <Thumb m={m} />
-              {m.type === "video" && <span className="vplay" aria-hidden="true">▶</span>}
+              {m.type !== "image" && <span className="vplay" aria-hidden="true">▶</span>}
             </button>
           ))}
         </div>

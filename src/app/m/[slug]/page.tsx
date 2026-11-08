@@ -6,7 +6,7 @@ import { getUser } from "@/lib/auth";
 import { ageFrom, kfmt, money, PLATFORM_LABELS, totalFollowers } from "@/lib/format";
 import { LANGUAGES } from "@/lib/reference";
 import { SITE } from "@/lib/site";
-import { linkLabel, youtubeId } from "@/lib/limits";
+import { embedFor, linkLabel } from "@/lib/limits";
 import { Placeholder } from "@/components/ProfileCard";
 import Bars from "@/components/Bars";
 import { Verified } from "@/components/Icons";
@@ -189,20 +189,18 @@ export default async function ProfilePage({ params, searchParams }: Props) {
           {p.videoLinks.length > 0 && (
             <section className="box">
               <h3>{portfolioRule(p.profession.slug).linkLabel}</h3>
-              <div className="vids">
-                {p.videoLinks.map((url) => {
-                  const yt = youtubeId(url);
-                  return yt ? (
-                    <iframe key={url} src={`https://www.youtube-nocookie.com/embed/${yt}`} title="YouTube video" loading="lazy"
-                      allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-                  ) : null;
-                })}
-              </div>
-              <div className="row">
-                {p.videoLinks.filter((u) => !youtubeId(u)).map((url) => (
-                  <a key={url} className="btn ghost sm" href={url} target="_blank" rel="noopener nofollow">{linkLabel(url)}da ochish ↗</a>
-                ))}
-              </div>
+              {/* Instagram, TikTok, Telegram, YouTube… videolari sayt ichida ochiladi; joylab bo'lmaydiganlari — tashqi tugma */}
+              <Gallery feature={false} title={p.fullName} items={p.videoLinks.flatMap((url, i) => {
+                const e = embedFor(url);
+                return e ? [{ id: -(i + 1), type: "embed" as const, url: e.src, thumbUrl: e.thumb, stream: false, embed: { label: e.label, shape: e.shape, external: url } }] : [];
+              })} />
+              {p.videoLinks.some((u) => !embedFor(u)) && (
+                <div className="row">
+                  {p.videoLinks.filter((u) => !embedFor(u)).map((url) => (
+                    <a key={url} className="btn ghost sm" href={url} target="_blank" rel="noopener nofollow">{linkLabel(url)}da ochish ↗</a>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
