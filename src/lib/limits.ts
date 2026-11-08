@@ -69,7 +69,7 @@ export type Embed = {
 };
 
 /** Server orqali olinadigan muqova manzili */
-const proxyThumb = (raw: string) => `/api/v1/thumb?u=${encodeURIComponent(raw)}`;
+const proxyThumb = (raw: string) => `/api/v1/thumb?v=2&u=${encodeURIComponent(raw)}`;
 
 /**
  * Havoladan sayt ichida ochiladigan pleyer manzili: YouTube, Instagram (Reels/post), TikTok, Telegram post,
@@ -101,9 +101,9 @@ export function embedFor(raw: string): Embed | null {
     } : null;
   }
   if (h === "t.me") {
-    // Ochiq kanal posti: t.me/kanal/86 (yoki t.me/s/kanal/86)
+    // Ochiq kanal posti: t.me/kanal/86 (yoki t.me/s/kanal/86); single=1 — albomdan faqat shu post
     const m = u.pathname.match(/^\/(?:s\/)?([A-Za-z]\w{3,})\/(\d+)\/?$/);
-    return m ? { label, src: `https://t.me/${m[1]}/${m[2]}?embed=1&mode=tme`, thumb: proxyThumb(raw), shape: "post" } : null;
+    return m ? { label, src: `https://t.me/${m[1]}/${m[2]}?embed=1&mode=tme&single=1`, thumb: proxyThumb(raw), shape: "post" } : null;
   }
   if (h === "vimeo.com" || h === "player.vimeo.com") {
     const m = u.pathname.match(/(?:^|\/)(\d{5,})(?:\/|$)/);
