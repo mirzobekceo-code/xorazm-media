@@ -8,7 +8,7 @@ test("embedFor: sayt ichida ochiladigan havolalar", () => {
   assert.equal(embedFor("https://www.instagram.com/p/XYZ/")?.shape, "post");
   assert.equal(embedFor("https://t.me/Maksadbek_portolio/86")?.src, "https://t.me/Maksadbek_portolio/86?embed=1&mode=tme");
   assert.equal(embedFor("https://www.tiktok.com/@user.name/video/7106594312292453675?lang=uz")?.src, "https://www.tiktok.com/embed/v2/7106594312292453675");
-  assert.equal(embedFor("https://youtu.be/dQw4w9WgXcQ")?.thumb, "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg");
+  assert.equal(embedFor("https://youtu.be/dQw4w9WgXcQ")?.thumb, "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg");
   assert.equal(embedFor("https://www.youtube.com/shorts/dQw4w9WgXcQ")?.shape, "vertical");
   assert.equal(embedFor("https://vimeo.com/76979871")?.src, "https://player.vimeo.com/video/76979871?autoplay=1");
   assert.equal(embedFor("https://drive.google.com/file/d/1AbCdEfGhIjKlMn/view?usp=sharing")?.src, "https://drive.google.com/file/d/1AbCdEfGhIjKlMn/preview");

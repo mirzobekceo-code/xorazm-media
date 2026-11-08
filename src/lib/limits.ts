@@ -60,7 +60,16 @@ export function linkLabel(raw: string): string {
 }
 
 /** Sayt ichida ochiladigan video (iframe). `vertical` — Reels/TikTok kabi tik format, `audio` — faqat pleyer qatori. */
-export type Embed = { label: string; src: string; thumb: string | null; shape: "wide" | "vertical" | "post" | "audio" };
+export type Embed = {
+  label: string; src: string; shape: "wide" | "vertical" | "post" | "audio";
+  /** Muqova rasmi. Instagram va Telegram — saytning o'z serveri orqali (/api/v1/thumb), chunki ularning rasmlari boshqa saytda to'g'ridan-to'g'ri ochilmaydi */
+  thumb: string | null;
+  /** Muqova o'rniga kichik ko'rinishda ko'rsatiladigan pleyer (TikTok: rasmiy muqova rasmi yo'q, pleyer birinchi kadrni ko'rsatadi) */
+  preview?: string;
+};
+
+/** Server orqali olinadigan muqova manzili */
+const proxyThumb = (raw: string) => `/api/v1/thumb?u=${encodeURIComponent(raw)}`;
 
 /**
  * Havoladan sayt ichida ochiladigan pleyer manzili: YouTube, Instagram (Reels/post), TikTok, Telegram post,
@@ -76,22 +85,25 @@ export function embedFor(raw: string): Embed | null {
   const yt = youtubeId(raw);
   if (yt) {
     const shorts = u.pathname.startsWith("/shorts/");
-    return { label, src: `https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&rel=0`, thumb: `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`, shape: shorts ? "vertical" : "wide" };
+    return { label, src: `https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&rel=0`, thumb: `https://i.ytimg.com/vi/${yt}/mqdefault.jpg`, shape: shorts ? "vertical" : "wide" };
   }
   if (h === "instagram.com") {
     const m = u.pathname.match(/^\/(?:[\w.]+\/)?(reel|reels|p|tv)\/([\w-]+)/);
     if (!m) return null;
     const kind = m[1] === "reels" ? "reel" : m[1];
-    return { label, src: `https://www.instagram.com/${kind}/${m[2]}/embed/`, thumb: null, shape: kind === "p" ? "post" : "vertical" };
+    return { label, src: `https://www.instagram.com/${kind}/${m[2]}/embed/`, thumb: proxyThumb(raw), shape: kind === "p" ? "post" : "vertical" };
   }
   if (h === "tiktok.com") {
     const m = u.pathname.match(/\/video\/(\d+)/);
-    return m ? { label, src: `https://www.tiktok.com/embed/v2/${m[1]}`, thumb: null, shape: "vertical" } : null;
+    return m ? {
+      label, src: `https://www.tiktok.com/embed/v2/${m[1]}`, thumb: null, shape: "vertical",
+      preview: `https://www.tiktok.com/player/v1/${m[1]}?controls=0&autoplay=0&music_info=0&description=0&rel=0&native_context_menu=0`,
+    } : null;
   }
   if (h === "t.me") {
     // Ochiq kanal posti: t.me/kanal/86 (yoki t.me/s/kanal/86)
     const m = u.pathname.match(/^\/(?:s\/)?([A-Za-z]\w{3,})\/(\d+)\/?$/);
-    return m ? { label, src: `https://t.me/${m[1]}/${m[2]}?embed=1&mode=tme`, thumb: null, shape: "post" } : null;
+    return m ? { label, src: `https://t.me/${m[1]}/${m[2]}?embed=1&mode=tme`, thumb: proxyThumb(raw), shape: "post" } : null;
   }
   if (h === "vimeo.com" || h === "player.vimeo.com") {
     const m = u.pathname.match(/(?:^|\/)(\d{5,})(?:\/|$)/);
@@ -104,5 +116,15 @@ export function embedFor(raw: string): Embed | null {
   if (h === "soundcloud.com" && u.pathname.split("/").filter(Boolean).length >= 2) {
     return { label, src: `https://w.soundcloud.com/player/?url=${encodeURIComponent(raw)}&auto_play=true&visual=true`, thumb: null, shape: "audio" };
   }
+  return null;
+}
+
+/** Muqova rasmi joylashgan sahifa: server shu manzildan rasmni topadi (faqat Instagram va Telegram) */
+export function thumbSource(raw: string): { kind: "instagram" | "telegram"; url: string } | null {
+  const e = embedFor(raw);
+  if (!e) return null;
+  const ig = e.src.match(/^https:\/\/www\.instagram\.com\/(?:reel|p|tv)\/([\w-]+)\/embed\/$/);
+  if (ig) return { kind: "instagram", url: `https://www.instagram.com/p/${ig[1]}/media/?size=m` };
+  if (e.src.startsWith("https://t.me/")) return { kind: "telegram", url: e.src };
   return null;
 }

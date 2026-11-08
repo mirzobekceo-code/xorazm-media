@@ -192,7 +192,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
               {/* Instagram, TikTok, Telegram, YouTube… videolari sayt ichida ochiladi; joylab bo'lmaydiganlari — tashqi tugma */}
               <Gallery feature={false} title={p.fullName} items={p.videoLinks.flatMap((url, i) => {
                 const e = embedFor(url);
-                return e ? [{ id: -(i + 1), type: "embed" as const, url: e.src, thumbUrl: e.thumb, stream: false, embed: { label: e.label, shape: e.shape, external: url } }] : [];
+                return e ? [{ id: -(i + 1), type: "embed" as const, url: e.src, thumbUrl: e.thumb, stream: false, embed: { label: e.label, shape: e.shape, external: url, preview: e.preview } }] : [];
               })} />
               {p.videoLinks.some((u) => !embedFor(u)) && (
                 <div className="row">

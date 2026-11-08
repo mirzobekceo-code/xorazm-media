@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 export type GalleryItem = {
   /** embed — Instagram, TikTok, Telegram, YouTube… havolasi: sayt ichida iframe'da ochiladi */
   id: number; type: "image" | "video" | "embed"; url: string; thumbUrl: string | null; stream: boolean;
-  embed?: { label: string; shape: "wide" | "vertical" | "post" | "audio"; external: string };
+  embed?: { label: string; shape: "wide" | "vertical" | "post" | "audio"; external: string; preview?: string };
   /** Bo'lim galereyasida: ish kimniki va profil havolasi */
   caption?: string; sub?: string; href?: string;
 };
@@ -47,9 +47,17 @@ export default function Gallery({ items, title, feature = true }: { items: Galle
 const kindLabel = (m: GalleryItem) => (m.type === "embed" ? `${m.embed?.label ?? ""} video` : m.type === "video" ? "Video" : "Rasm");
 
 function Thumb({ m }: { m: GalleryItem }) {
+  const [broken, setBroken] = useState(false);
+  if (m.type === "embed") {
+    const label = m.embed?.label ?? "";
+    const badge = <span className="gal-badge">{label}</span>;
+    // Muqova rasmi (YouTube, Instagram, Telegram); ochilmasa — rangli kartochka
+    if (m.thumbUrl && !broken) return <><img src={m.thumbUrl} alt="" loading="lazy" onError={() => setBroken(true)} />{badge}</>;
+    // TikTok: pleyerning o'zi birinchi kadrni ko'rsatadi (bosish galereyaga o'tadi)
+    if (m.embed?.preview) return <><iframe className="gal-preview" src={m.embed.preview} title="" tabIndex={-1} loading="lazy" aria-hidden="true" />{badge}</>;
+    return <span className={`gal-embed e-${label.toLowerCase().replace(/\W/g, "")}`}><b>{label}</b></span>;
+  }
   if (m.thumbUrl) return <img src={m.thumbUrl} alt="" loading="lazy" />;
-  // Muqovasi yo'q havola (Instagram, TikTok, Telegram…): platforma nomi yozilgan kartochka
-  if (m.type === "embed") return <span className={`gal-embed e-${(m.embed?.label ?? "").toLowerCase().replace(/\W/g, "")}`}><b>{m.embed?.label}</b></span>;
   if (m.type === "image") return <img src={m.url} alt="" loading="lazy" />;
   // Muqovasi yo'q video: birinchi kadr ko'rsatiladi
   if (!m.stream) return <video src={`${m.url}#t=0.1`} muted playsInline preload="metadata" tabIndex={-1} />;
