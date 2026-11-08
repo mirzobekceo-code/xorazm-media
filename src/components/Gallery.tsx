@@ -18,7 +18,9 @@ export default function Gallery({ items, title, feature = true }: { items: Galle
   const [open, setOpen] = useState<number | null>(null);
   const n = items.length;
   if (!n) return null;
-  const big = feature && n >= 3;
+  // Faqat tik videolar (Reels, TikTok, Telegram): tik kartochkalar, cho'zilmaydi
+  const portrait = items.every((m) => m.type === "embed" && m.embed?.shape !== "wide" && m.embed?.shape !== "audio");
+  const big = feature && n >= 3 && !portrait;
   // Oxirgi qatorda bo'sh katak qolmasin: oxirgi ish qolgan joyni egallaydi (har bir ekran kengligi uchun alohida)
   const fill = (cols: number) => {
     const cells = n + (big ? 3 : 0); // katta ish 2×2 = 4 katak
@@ -28,10 +30,10 @@ export default function Gallery({ items, title, feature = true }: { items: Galle
   const lastStyle = { "--s4": fill(4), "--s3": fill(3), "--s2": fill(2) } as CSSProperties;
   return (
     <>
-      <div className={`gal-grid${big ? " has-feature" : ""}${n < 3 ? ` few-${n}` : ""}`}>
+      <div className={`gal-grid${big ? " has-feature" : ""}${portrait ? " portrait" : n < 3 ? ` few-${n}` : ""}`}>
         {items.map((m, k) => (
-          <button key={m.id} type="button" className={`gal-tile${big && k === 0 ? " feature" : ""}${k === n - 1 && n >= 3 ? " last" : ""}`}
-            style={k === n - 1 && n >= 3 ? lastStyle : undefined} onClick={() => setOpen(k)}
+          <button key={m.id} type="button" className={`gal-tile${big && k === 0 ? " feature" : ""}${k === n - 1 && n >= 3 && !portrait ? " last" : ""}`}
+            style={k === n - 1 && n >= 3 && !portrait ? lastStyle : undefined} onClick={() => setOpen(k)}
             aria-label={`${kindLabel(m)} ${k + 1} — ochish${m.caption ? `, ${m.caption}` : ""}`}>
             <Thumb m={m} />
             {m.type !== "image" && <span className="vplay" aria-hidden="true">▶</span>}

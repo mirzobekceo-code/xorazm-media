@@ -335,6 +335,8 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical }
 .gal-grid.few-2 { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 300px }
 .gal-tile { position: relative; padding: 0; border: 0; border-radius: 12px; overflow: hidden; background: var(--soft); cursor: zoom-in; color: inherit; font: inherit; text-align: left }
 .gal-tile.feature { grid-column: span 2; grid-row: span 2 }
+.gal-grid.portrait { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); grid-auto-rows: auto }
+.gal-grid.portrait .gal-tile { aspect-ratio: 9 / 16 }
 .gal-grid > .gal-tile.last { grid-column: span var(--s3) }
 .works .gal-grid > .gal-tile.last { grid-column: span var(--s4) }
 .gal-tile img, .gal-tile video { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s ease }
@@ -378,6 +380,7 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical }
 .lb-thumbs img, .lb-thumbs video { width: 100%; height: 100%; object-fit: cover; display: block }
 @media (max-width: 760px) {
   .gal-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; gap: 6px }
+  .gal-grid.portrait { grid-template-columns: repeat(2, 1fr); grid-auto-rows: auto }
   .gal-grid > .gal-tile.last, .works .gal-grid > .gal-tile.last { grid-column: span var(--s2) }
   .gal-grid.few-1 { grid-template-columns: 1fr; grid-auto-rows: 340px }
   .gal-grid.few-2 { grid-auto-rows: 220px }
