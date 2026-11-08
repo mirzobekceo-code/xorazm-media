@@ -154,7 +154,7 @@ export async function getProfile(slug: string, opts: { includeUnapproved?: boole
 
 /**
  * Bo'lim galereyasi: tasdiqlangan profillarning so'nggi portfolio ishlari (profil rasmi — muqova — kirmaydi).
- * Navbat bilan: avval har profilning 1-ishi, keyin 2-ishi… Har profildan ko'pi bilan `perProfile` ta.
+ * Katalog kabi qo'shimcha kasb ham hisobga olinadi. Navbat bilan: avval har profilning 1-ishi, keyin 2-ishi… Har profildan ko'pi bilan `perProfile` ta.
  */
 export async function recentWorks(f: { profession?: string; district?: string; limit?: number; perProfile?: number } = {}) {
   const db = await getDb();
@@ -170,7 +170,7 @@ export async function recentWorks(f: { profession?: string; district?: string; l
       where p.status = 'approved' and m.moderation_status = 'approved' and not m.is_stat_screenshot
         and m.id <> coalesce((select m2.id from ${s.media} m2 where m2.profile_id = p.id and m2.type = 'image'
           and m2.moderation_status = 'approved' and not m2.is_stat_screenshot order by m2.is_cover desc, m2.sort_order asc limit 1), 0)
-        ${f.profession ? sql`and pr.slug = ${f.profession}` : sql``}
+        ${f.profession ? sql`and (pr.slug = ${f.profession} or p.extra_profession_id = (select x.id from ${s.professions} x where x.slug = ${f.profession}))` : sql``}
         ${f.district ? sql`and exists (select 1 from ${s.profileDistricts} pd join ${s.districts} d on d.id = pd.district_id where pd.profile_id = p.id and d.slug = ${f.district})` : sql``}
     ) w
     where rn <= ${per}
