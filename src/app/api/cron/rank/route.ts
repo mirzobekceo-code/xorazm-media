@@ -3,6 +3,7 @@ import { recomputeRanks } from "@/lib/rank";
 import { remindStaleBloggerStats, sendWeeklyDigest } from "@/lib/digest";
 import { sendBackupToAdmins } from "@/lib/backup";
 import { expireRequests } from "@/lib/requests";
+import { remindMetaExpiry } from "@/lib/meta-token";
 
 export const maxDuration = 60;
 
@@ -11,7 +12,7 @@ const safe = <T,>(f: () => Promise<T>) => f().catch((e) => ({ error: e instanceo
 
 /**
  * Kunlik vazifalar (Vercel Cron yoki tashqi cron): TOP reytingi, bloger statistikasi eslatmasi,
- * dushanba kunlari haftalik statistika, muddati o'tgan so'rovlar va adminlarga zaxira nusxa.
+ * dushanba kunlari haftalik statistika, muddati o'tgan so'rovlar, adminlarga zaxira nusxa va Meta Ads ulanishi eslatmasi.
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -25,5 +26,6 @@ export async function GET(req: Request) {
   const digests = isMonday ? await safe(sendWeeklyDigest) : 0;
   const expired = await safe(expireRequests);
   const backup = await safe(sendBackupToAdmins);
-  return NextResponse.json({ ok: true, ranks, reminders, digests, expired, backup });
+  const metaAds = await safe(remindMetaExpiry);
+  return NextResponse.json({ ok: true, ranks, reminders, digests, expired, backup, metaAds });
 }

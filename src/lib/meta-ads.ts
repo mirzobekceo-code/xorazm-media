@@ -1,24 +1,19 @@
 import "server-only";
 
+import { getToken, GRAPH as BASE, META_VERSION as VERSION } from "./meta-token";
+
 /**
  * Meta (Facebook) Marketing API — faqat O'QISH. Claude connector (/api/mcp/[key]) shu funksiyalarni chaqiradi.
  * Bu faylda faqat GET so'rovlari bor: reklama, budjet yoki akkauntni o'zgartiradigan kod yo'q va bo'lmasligi kerak.
- *
- * Muhit o'zgaruvchilari:
- *   META_ACCESS_TOKEN  — Business Manager tizim foydalanuvchisi tokeni (faqat ads_read ruxsati)
- *   META_API_VERSION   — ixtiyoriy, masalan "v23.0"
- *   META_GRAPH_URL     — ixtiyoriy, faqat sinov uchun (soxta server)
+ * Token: meta-token.ts ("Facebook orqali ulash" yoki META_ACCESS_TOKEN). META_GRAPH_URL — faqat sinov uchun.
  */
-const VERSION = () => process.env.META_API_VERSION || "v23.0";
-const BASE = () => (process.env.META_GRAPH_URL || "https://graph.facebook.com").replace(/\/$/, "");
-export const metaConfigured = () => !!process.env.META_ACCESS_TOKEN;
 
 export class MetaError extends Error {}
 
 /** Meta xato kodlari → tushunarli o'zbekcha sabab */
 function explain(code: number | undefined, message: string): string {
-  if (code === 190) return "Meta tokeni yaroqsiz yoki muddati o'tgan. Business Manager'da tizim foydalanuvchisi uchun yangi token yarating va Vercel'dagi META_ACCESS_TOKEN ni almashtiring.";
-  if (code === 10 || code === 200 || code === 294) return "Tokenda bu ma'lumot uchun ruxsat yo'q. Tokenda ads_read ruxsati borligini va tizim foydalanuvchisiga shu reklama akkaunti biriktirilganini tekshiring.";
+  if (code === 190) return "Meta ulanishi eskirgan yoki bekor qilingan. connection_status asbobidagi havola orqali Facebook bilan qayta ulaning.";
+  if (code === 10 || code === 200 || code === 294) return "Bu ma'lumot uchun ruxsat yo'q: ulangan Facebook profilida shu reklama akkauntiga kirish huquqi yo'q yoki ulashda ads_read ruxsati berilmagan.";
   if (code === 2635) return "Meta API versiyasi eskirgan. Vercel'da META_API_VERSION ni yangi versiyaga (masalan v24.0) o'zgartiring.";
   if (code === 100) return `Noto'g'ri so'rov: ${message}`;
   if (code === 4 || code === 17 || code === 613 || code === 80004) return "Meta so'rovlar limiti tugadi. Bir necha daqiqadan keyin qayta so'rang.";
@@ -29,8 +24,8 @@ type Paged<T> = { data?: T[]; paging?: { next?: string } };
 
 /** Graph API GET. Sahifali javoblarda barcha sahifalarni yig'adi (maxItems gacha). */
 async function graph<T>(path: string, params: Record<string, string>, opts: { all?: boolean; maxItems?: number } = {}): Promise<T> {
-  const token = process.env.META_ACCESS_TOKEN;
-  if (!token) throw new MetaError("Connector sozlanmagan: Vercel'da META_ACCESS_TOKEN o'zgaruvchisi yo'q.");
+  const token = (await getToken())?.token;
+  if (!token) throw new MetaError("Meta hali ulanmagan. connection_status asbobidagi havola orqali Facebook bilan ulaning.");
   const url = new URL(`${BASE()}/${VERSION()}/${path.replace(/^\//, "")}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   const items: unknown[] = [];
@@ -142,11 +137,39 @@ function account(a: RawAccount) {
 
 const ACCOUNT_FIELDS = "id,account_id,name,account_status,disable_reason,currency,balance,amount_spent,spend_cap,business{name},timezone_name";
 
+/**
+ * Ulangan profil ko'radigan BARCHA reklama akkauntlari: o'ziga biriktirilganlari (me/adaccounts) va
+ * admin bo'lgan har bir biznes portfelining o'z va mijoz akkauntlari. Yangi ochilgan akkauntlar ham shu yerda o'zi chiqadi.
+ * Biror portfelga ruxsat bo'lmasa, u o'tkazib yuboriladi (xato butun ro'yxatni to'xtatmaydi).
+ */
+async function allAccounts<T extends { id: string }>(fields: string): Promise<{ rows: T[]; skipped: string[] }> {
+  const byId = new Map<string, T>();
+  const skipped: string[] = [];
+  const add = (list: T[]) => { for (const a of list) if (!byId.has(a.id)) byId.set(a.id, a); };
+  add((await graph<{ data: T[] }>("me/adaccounts", { fields, limit: "100" }, { all: true, maxItems: 1000 })).data);
+  let businesses: { id: string; name: string }[] = [];
+  try {
+    businesses = (await graph<{ data: { id: string; name: string }[] }>("me/businesses", { fields: "id,name", limit: "100" }, { all: true, maxItems: 200 })).data;
+  } catch {
+    skipped.push("Biznes portfellar ro'yxati (business_management ruxsati berilmagan bo'lishi mumkin)");
+  }
+  for (let i = 0; i < businesses.length; i += 5) {
+    await Promise.all(businesses.slice(i, i + 5).flatMap((b) => ["owned_ad_accounts", "client_ad_accounts"].map(async (edge) => {
+      try {
+        add((await graph<{ data: T[] }>(`${b.id}/${edge}`, { fields, limit: "100" }, { all: true, maxItems: 1000 })).data);
+      } catch {
+        if (edge === "owned_ad_accounts") skipped.push(b.name);
+      }
+    })));
+  }
+  return { rows: [...byId.values()], skipped };
+}
+
 /** Barcha reklama akkauntlari: holat, bloklanish sababi, qarz, limit va tanlangan davrdagi sarf. */
 export async function listAdAccounts(input: { date_preset?: string; search?: string; only_problems?: boolean }) {
   const p = preset(input.date_preset);
-  const res = await graph<{ data: RawAccount[] }>("me/adaccounts", { fields: `${ACCOUNT_FIELDS},insights.date_preset(${p}){spend}`, limit: "100" }, { all: true, maxItems: 500 });
-  let rows = res.data.map(account);
+  const res = await allAccounts<RawAccount>(`${ACCOUNT_FIELDS},insights.date_preset(${p}){spend}`);
+  let rows = res.rows.map(account);
   if (input.search) {
     const q = input.search.toLowerCase();
     rows = rows.filter((r) => r.name.toLowerCase().includes(q) || r.id.includes(q) || (r.biznes ?? "").toLowerCase().includes(q));
@@ -162,6 +185,7 @@ export async function listAdAccounts(input: { date_preset?: string; search?: str
     faol: rows.filter((r) => r.holat_kodi === 1).length,
     muammoli: rows.filter(problem).length,
     akkauntlar: rows,
+    ...(res.skipped.length ? { korilmagan_portfellar: res.skipped } : {}),
   };
 }
 
@@ -220,7 +244,7 @@ type RawAd = {
 
 /** Rad etilgan, muammoli va tekshiruvdagi reklamalar (bitta akkaunt yoki hammasi). */
 export async function problemAds(input: { account_id?: string }) {
-  const ids = input.account_id ? [ACT(input.account_id)] : (await graph<{ data: { id: string; account_status: number }[] }>("me/adaccounts", { fields: "id,account_status", limit: "100" }, { all: true, maxItems: 500 })).data.filter((x) => x.account_status === 1).map((x) => x.id);
+  const ids = input.account_id ? [ACT(input.account_id)] : (await allAccounts<{ id: string; account_status: number }>("id,account_status")).rows.filter((x) => x.account_status === 1).map((x) => x.id);
   const filtering = JSON.stringify([{ field: "effective_status", operator: "IN", value: ["DISAPPROVED", "WITH_ISSUES", "PENDING_REVIEW"] }]);
   const out: { akkaunt: string; reklama: string; holat: string; kampaniya: string | null; sabab: string[] }[] = [];
   const errors: string[] = [];
@@ -271,10 +295,8 @@ export async function spendReport(input: { account_id?: string; date_preset?: st
     }, { all: true, maxItems: 300 });
     return { davr: p, akkaunt: id, qatorlar: res.data.map((r) => ({ ...(r.campaign_name ? { kampaniya: r.campaign_name } : {}), ...insight(r) })) };
   }
-  const res = await graph<{ data: (RawAccount & { insights?: { data?: InsightRow[] } })[] }>("me/adaccounts", {
-    fields: `id,name,currency,account_status,insights.date_preset(${p}){${INSIGHT_FIELDS}}`, limit: "100",
-  }, { all: true, maxItems: 500 });
-  const rows = res.data.filter((a) => a.insights?.data?.length).map((a) => ({ akkaunt: a.name, id: a.id, ...insight(a.insights!.data![0], a.currency) }))
+  const res = await allAccounts<RawAccount & { insights?: { data?: InsightRow[] } }>(`id,name,currency,account_status,insights.date_preset(${p}){${INSIGHT_FIELDS}}`);
+  const rows = res.rows.filter((a) => a.insights?.data?.length).map((a) => ({ akkaunt: a.name, id: a.id, ...insight(a.insights!.data![0], a.currency) }))
     .sort((a, b) => b.sarf - a.sarf);
   return { davr: p, sarf_qilgan_akkauntlar: rows.length, qatorlar: rows };
 }

@@ -1,5 +1,6 @@
-import crypto from "node:crypto";
-import { accountDetails, DATE_PRESETS, listAdAccounts, listCampaigns, metaConfigured, MetaError, problemAds, spendReport } from "@/lib/meta-ads";
+import { accountDetails, DATE_PRESETS, listAdAccounts, listCampaigns, MetaError, problemAds, spendReport } from "@/lib/meta-ads";
+import { daysLeft, getToken, loginConfigured } from "@/lib/meta-token";
+import { mcpAuthorized } from "@/lib/mcp-auth";
 
 /**
  * Claude uchun "custom connector" (MCP, Streamable HTTP, holatsiz): Meta reklama akkauntlarini FAQAT O'QISH.
@@ -12,18 +13,38 @@ export const maxDuration = 60;
 const PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 const SERVER = { name: "adverto-meta-ads", title: "Meta Ads (faqat o'qish)", version: "1.0.0" };
 
-function authorized(key: string): boolean {
-  const secret = process.env.MCP_SECRET ?? "";
-  if (secret.length < 24) return false;
-  const a = Buffer.from(key), b = Buffer.from(secret);
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
 
 const datePreset = { type: "string", enum: [...DATE_PRESETS], description: "Davr: today (bugun), yesterday, last_7d, last_14d, last_30d, this_month, last_month, maximum. Standart: last_7d." };
 const accountId = { type: "string", description: "Reklama akkaunt ID, masalan act_1234567890 (list_ad_accounts natijasidagi id)" };
 const ro = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
 
+/** Ulanish holati: kim ulangan, qachon tugaydi, qayta ulash havolasi */
+async function connectionStatus(_: unknown, ctx: Ctx2) {
+  const t = await getToken();
+  const left = daysLeft(t);
+  return {
+    ulangan: !!t,
+    usul: t?.source === "login" ? "Facebook orqali ulash" : t?.source === "env" ? "META_ACCESS_TOKEN (Vercel)" : null,
+    profil: t?.userName ?? null,
+    ulangan_sana: t?.connectedAt?.toISOString().slice(0, 10) ?? null,
+    tugash_sanasi: t?.expiresAt?.toISOString().slice(0, 10) ?? null,
+    qolgan_kun: left,
+    ulash_havolasi: loginConfigured() ? ctx.connectUrl : null,
+    eslatma: !t ? "Meta hali ulanmagan — ulash_havolasi orqali Facebook bilan ulaning."
+      : left !== null && left <= 10 ? `Ulanish ${left} kundan keyin tugaydi — ulash_havolasi orqali qayta ulaning.` : "Ulanish ishlayapti.",
+  };
+}
+type Ctx2 = { connectUrl: string };
+
 const TOOLS = [
+  {
+    name: "connection_status",
+    title: "Meta ulanish holati",
+    description: "Meta (Facebook) ulanishi: qaysi profil ulangan, qachon tugaydi, necha kun qoldi va qayta ulash havolasi. Ulanish xatosi bo'lsa yoki foydalanuvchi qayta ulamoqchi bo'lsa — shuni chaqiring va havolani bering.",
+    inputSchema: { type: "object", properties: {} },
+    annotations: { title: "Meta ulanish holati", ...ro },
+    run: connectionStatus,
+  },
   {
     name: "list_ad_accounts",
     title: "Reklama akkauntlari holati",
@@ -81,14 +102,14 @@ const TOOLS = [
 ] as const;
 
 const INSTRUCTIONS =
-  "Meta (Facebook/Instagram) reklama akkauntlarini faqat o'qish uchun connector. Avval list_ad_accounts bilan akkauntlar va ID'larni oling. " +
+  "Meta (Facebook/Instagram) reklama akkauntlarini faqat o'qish uchun connector. Avval list_ad_accounts bilan akkauntlar va ID'larni oling. Ulanish xatosi bo'lsa connection_status bilan qayta ulash havolasini bering. " +
   "Pul summalari akkaunt valyutasida. Bu connector reklamani o'zgartira olmaydi — o'zgartirish so'ralsa, Ads Manager'da qo'lda qilishni tavsiya qiling.";
 
 type Rpc = { jsonrpc?: string; id?: string | number | null; method?: string; params?: Record<string, unknown> };
 const ok = (id: Rpc["id"], result: unknown) => ({ jsonrpc: "2.0", id, result });
 const fail = (id: Rpc["id"], code: number, message: string) => ({ jsonrpc: "2.0", id: id ?? null, error: { code, message } });
 
-async function handle(msg: Rpc) {
+async function handle(msg: Rpc, ctx: Ctx2) {
   const id = msg.id;
   switch (msg.method) {
     case "initialize": {
@@ -108,13 +129,13 @@ async function handle(msg: Rpc) {
       const name = String(msg.params?.name ?? "");
       const tool = TOOLS.find((t) => t.name === name);
       if (!tool) return fail(id, -32602, `Noma'lum asbob: ${name}`);
-      if (!metaConfigured()) {
-        return ok(id, { isError: true, content: [{ type: "text", text: "Connector sozlanmagan: Vercel'da META_ACCESS_TOKEN o'zgaruvchisi yo'q." }] });
-      }
       try {
         const args = (msg.params?.arguments ?? {}) as Record<string, unknown>;
-        const data = await (tool.run as (a: Record<string, unknown>) => Promise<unknown>)(args);
-        return ok(id, { content: [{ type: "text", text: JSON.stringify(data) }] });
+        const data = await (tool.run as (a: Record<string, unknown>, c: Ctx2) => Promise<unknown>)(args, ctx);
+        // Ulanish tugashiga oz qolgan bo'lsa — har javobda ogohlantirish
+        const left = tool.name === "connection_status" ? null : daysLeft(await getToken());
+        const warn = left !== null && left <= 10 ? { ogohlantirish: `Meta ulanishi ${left} kundan keyin tugaydi. Qayta ulash: ${ctx.connectUrl}` } : {};
+        return ok(id, { content: [{ type: "text", text: JSON.stringify({ ...warn, ...(data as object) }) }] });
       } catch (e) {
         const text = e instanceof MetaError ? e.message : "Meta'dan ma'lumot olishda kutilmagan xato. Birozdan keyin qayta urinib ko'ring.";
         if (!(e instanceof MetaError)) console.error("mcp tool", name, e);
@@ -130,7 +151,9 @@ type Ctx = { params: Promise<{ key: string }> };
 const notFound = () => new Response("Not found", { status: 404 });
 
 export async function POST(req: Request, { params }: Ctx) {
-  if (!authorized((await params).key)) return notFound();
+  const key = (await params).key;
+  if (!mcpAuthorized(key)) return notFound();
+  const ctx: Ctx2 = { connectUrl: `${new URL(req.url).origin}/api/mcp/${key}/connect` };
   let body: Rpc | Rpc[];
   try {
     body = await req.json();
@@ -139,14 +162,14 @@ export async function POST(req: Request, { params }: Ctx) {
   }
   const list = Array.isArray(body) ? body : [body];
   // Bildirishnomalar (id yo'q) javob talab qilmaydi
-  const replies = (await Promise.all(list.map((m) => (m && m.id !== undefined && m.id !== null ? handle(m) : null)))).filter(Boolean);
+  const replies = (await Promise.all(list.map((m) => (m && m.id !== undefined && m.id !== null ? handle(m, ctx) : null)))).filter(Boolean);
   if (!replies.length) return new Response(null, { status: 202 });
   return Response.json(Array.isArray(body) ? replies : replies[0], { headers: { "cache-control": "no-store" } });
 }
 
 /** Holatsiz server: SSE oqimi va sessiyalar yo'q */
 export async function GET(_req: Request, { params }: Ctx) {
-  if (!authorized((await params).key)) return notFound();
+  if (!mcpAuthorized((await params).key)) return notFound();
   return new Response("Method Not Allowed", { status: 405, headers: { allow: "POST" } });
 }
 export const DELETE = GET;
