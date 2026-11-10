@@ -147,13 +147,25 @@ const ACCOUNT_FIELDS = "id,account_id,name,account_status,disable_reason,currenc
  * admin bo'lgan har bir biznes portfelining o'z va mijoz akkauntlari. Yangi ochilgan akkauntlar ham shu yerda o'zi chiqadi.
  * Biror portfelga ruxsat bo'lmasa, u o'tkazib yuboriladi (xato butun ro'yxatni to'xtatmaydi).
  */
-const accountCache = new Map<string, { at: number; value: { rows: unknown[]; skipped: string[] } }>();
-async function allAccounts<T extends { id: string }>(fields: string): Promise<{ rows: T[]; skipped: string[] }> {
-  // Bir suhbatda ketma-ket savollar Meta limitini yemasligi uchun ro'yxat 2 daqiqa eslab qolinadi
-  const hit = accountCache.get(fields);
-  if (hit && Date.now() - hit.at < 120_000) return hit.value as { rows: T[]; skipped: string[] };
+/**
+ * Akkauntlar ro'yxati bazada 15 daqiqa saqlanadi: har bir skan 20+ portfel bo'yicha o'nlab so'rov,
+ * Development rejimidagi Meta ilovasining soatlik limiti esa ~200 so'rov. Ro'yxatda maxfiy ma'lumot yo'q (nom, holat, summalar).
+ */
+const CACHE_KEY = "meta_ads_accounts_cache";
+const CACHE_MS = 15 * 60_000;
+type CacheValue = { at: number; fields: string; rows: unknown[]; skipped: string[] };
+async function allAccounts<T extends { id: string }>(fields: string): Promise<{ rows: T[]; skipped: string[]; cachedAt?: string }> {
+  const { getDb, schema: s } = await import("@/db");
+  const { eq } = await import("drizzle-orm");
+  const db = await getDb();
+  try {
+    const [row] = await db.select().from(s.settings).where(eq(s.settings.key, CACHE_KEY)).limit(1);
+    const v = row?.value as CacheValue | undefined;
+    if (v && v.fields === fields && Date.now() - v.at < CACHE_MS) return { rows: v.rows as T[], skipped: v.skipped, cachedAt: new Date(v.at).toISOString() };
+  } catch { /* kesh ishlamasa — to'g'ridan-to'g'ri so'raymiz */ }
   const value = await scanAccounts<T>(fields);
-  accountCache.set(fields, { at: Date.now(), value });
+  const save: CacheValue = { at: Date.now(), fields, ...value };
+  await db.insert(s.settings).values({ key: CACHE_KEY, value: save }).onConflictDoUpdate({ target: s.settings.key, set: { value: save } }).catch(() => {});
   return value;
 }
 async function scanAccounts<T extends { id: string }>(fields: string): Promise<{ rows: T[]; skipped: string[] }> {
@@ -223,6 +235,7 @@ export async function listAdAccounts(input: { date_preset?: string; search?: str
     muammoli: rows.filter(problem).length,
     akkauntlar: rows,
     ...(res.skipped.length ? { korilmagan_portfellar: res.skipped } : {}),
+    ...(res.cachedAt ? { holatlar_olingan_vaqt: res.cachedAt } : {}),
     ...(spend.limited ? { eslatma: "Meta statistika limiti tufayli ba'zi akkauntlar sarfi olinmadi (davr_sarfi: null). Holatlar to'liq; sarfni keyinroq spend_report bilan so'rang." } : {}),
   };
 }
