@@ -58,6 +58,17 @@ Sozlash:
 
 Xavfsizlik: webhook `secret_token` bilan himoyalangan (tokendan hosil qilinadi). Kirish tokeni 10 daqiqa amal qiladi, bir martalik va faqat uni yaratgan brauzer ishlata oladi. Kontakt faqat yuboruvchining o'z raqami bo'lsa qabul qilinadi. Mini App `initData` imzosi tekshiriladi (`src/lib/tg-verify.ts`).
 
+### Reklama akkauntlari holati (faqat adminlar)
+
+Admin rolidagi foydalanuvchi botga `/reklama` deb yozsa, Meta reklama akkauntlari holati keladi: muammolilar (qarz, bloklangan, to'lov muddati o'tgan), davr sarfi va jami qarz. Ma'lumot Claude connector bilan bir xil funksiyadan olinadi (`src/lib/meta-ads.ts`, faqat o'qish), qo'shimcha xizmat yoki obuna kerak emas.
+
+- `/reklama qarz` — faqat qarzdor akkauntlar
+- `/reklama bugun` (`kecha`, `14`, `30`, `oy`) — boshqa davr
+- `/reklama <nom>` — akkaunt nomi, ID yoki biznes nomi bo'yicha qidiruv
+- Oddiy matn ham ishlaydi: "reklama akkauntlarim holatini ko'rsat"
+
+Admin bo'lmaganlarga buyruq javob bermaydi (oddiy menyu qaytadi).
+
 ## Yuklash limitlari
 
 `.env` orqali sozlanadi, kodni o'zgartirish shart emas:

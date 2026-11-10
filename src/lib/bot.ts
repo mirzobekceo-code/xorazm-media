@@ -1,4 +1,5 @@
 import "server-only";
+import { after } from "next/server";
 import { and, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import { getDb, schema as s } from "@/db";
 import { normalizePhone } from "./format";
@@ -11,6 +12,8 @@ import { upsertUserByPhone } from "./auth";
 import { getContacts } from "./queries";
 import { recordContactLead } from "./leads";
 import { prettyPhone } from "./format";
+import { listAdAccounts, MetaError } from "./meta-ads";
+import { formatAdsReport, isAdsQuestion, parseAdsQuery, splitMessage, type ReportData } from "./ads-report";
 import { approveRequest, getRequest, rejectRequest, REQUEST_REJECT_REASONS, requestModButtons, requestProfessionButtons, requestReasonButtons, takeByAdverto, toggleRequestProfession } from "./requests";
 
 type TgUser = { id: number; first_name?: string; username?: string };
@@ -154,6 +157,35 @@ async function sendProfileContacts(chatId: string, slug: string, phone: string, 
   return true;
 }
 
+/**
+ * /reklama — Meta reklama akkauntlari holati (faqat adminlar). Ma'lumot Claude connector bilan bir xil
+ * funksiyadan olinadi (listAdAccounts), faqat o'qish. Meta sekin javob berishi mumkin, shuning uchun
+ * hisobot webhook javobidan keyin yuboriladi — aks holda Telegram xabarni qayta jo'natadi.
+ */
+async function isAdmin(tgId: string): Promise<boolean> {
+  const db = await getDb();
+  const [r] = await db.select({ id: s.users.id }).from(s.users)
+    .where(and(eq(s.users.telegramId, tgId), eq(s.users.role, "admin"))).limit(1);
+  return !!r;
+}
+
+export async function sendAdsReport(chatId: string, text: string): Promise<void> {
+  const q = parseAdsQuery(text);
+  let out: string;
+  try {
+    const data = await listAdAccounts({ date_preset: q.datePreset, search: q.mode === "search" ? q.search : undefined });
+    out = formatAdsReport(data as ReportData, q);
+  } catch (e) {
+    if (!(e instanceof MetaError)) console.error("bot /reklama", e);
+    // Meta xabarlari Claude connector uchun yozilgan — botda asbob nomi o'rniga tushunarli yo'l ko'rsatiladi
+    await send(chatId, e instanceof MetaError
+      ? e.message.replace("connection_status asbobidagi havola orqali", "Claude'dagi Meta Ads connectorining ulash havolasi orqali")
+      : "Meta'dan ma'lumot olishda kutilmagan xato. Birozdan keyin qayta urinib ko'ring.");
+    return;
+  }
+  for (const part of splitMessage(out)) await send(chatId, part, { parse_mode: "HTML" });
+}
+
 /** Bot xabarlarini qayta ishlaydi (webhook'dan). Faqat shaxsiy chatlar. */
 export async function handleUpdate(u: Update): Promise<void> {
   if (u.callback_query) return handleCallback(u.callback_query);
@@ -222,6 +254,12 @@ export async function handleUpdate(u: Update): Promise<void> {
     await send(chatId, "✓ Telegram ulandi. Profil tasdiqlanishi va haftalik statistika shu yerga keladi.", {
       reply_markup: { inline_keyboard: [[{ text: "↩ Kabinetga qaytish", url: `${SITE.url}/kabinet` }]] },
     });
+    return;
+  }
+  // Adminlar uchun: reklama akkauntlari holati. Boshqalarga buyruq ko'rinmaydi (oddiy menyu qaytadi).
+  if (isAdsQuestion(text) && (await isAdmin(tgId))) {
+    await send(chatId, "Meta reklama akkauntlari tekshirilmoqda…");
+    after(() => sendAdsReport(chatId, text).catch((e) => console.error("bot /reklama", e)));
     return;
   }
   if (text === "/kabinet") {

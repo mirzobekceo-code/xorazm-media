@@ -4,6 +4,9 @@ import { handleUpdate, type Update } from "@/lib/bot";
 import { botEnabled, ensureBotMenu, ensureWebhook, webhookSecret } from "@/lib/telegram";
 import { SITE } from "@/lib/site";
 
+// /reklama hisoboti javobdan keyin (after) yuboriladi — Meta sekin bo'lsa ham ulgursin
+export const maxDuration = 60;
+
 /** Telegram bot webhook. setWebhook paytida berilgan secret_token bilan himoyalangan. */
 export async function POST(req: Request) {
   if (!botEnabled()) return new NextResponse(null, { status: 404 });
