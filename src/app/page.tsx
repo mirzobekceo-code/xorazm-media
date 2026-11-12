@@ -103,9 +103,9 @@ export default async function Home() {
       <section>
         <div className="sec-head"><h2>Qanday ishlaydi</h2></div>
         <div className="how">
-          <div><span className="n">1-qadam</span><h3>Toping</h3><p>Yo‘nalish, tuman va narx bo‘yicha saralang. Ro‘yxatdan o‘tish shart emas.</p></div>
+          <div><span className="n">1-qadam</span><h3>Toping</h3><p>Yo‘nalish, tuman va narx bo‘yicha saralang. Portfolio va narxlarni ko‘rish uchun ro‘yxatdan o‘tish shart emas.</p></div>
           <div><span className="n">2-qadam</span><h3>Ishlarini ko‘ring</h3><p>Portfolio, auditoriya statistikasi va narxlar profilda.</p></div>
-          <div><span className="n">3-qadam</span><h3>Bog‘laning</h3><p>Telefon, Telegram va Instagram ochiq. Kelishuv to‘g‘ridan-to‘g‘ri siz bilan.</p></div>
+          <div><span className="n">3-qadam</span><h3>Bog‘laning</h3><p>Kontaktlar Telegram orqali bir marta tasdiqlangach ochiladi — bepul. Kelishuv to‘g‘ridan-to‘g‘ri mutaxassis bilan.</p></div>
         </div>
       </section>
 

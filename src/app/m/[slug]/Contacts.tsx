@@ -62,7 +62,7 @@ export default function Contacts({ profileId, name, src }: { profileId: number; 
               <button type="button" className="modal-x" aria-label="Yopish" onClick={() => setModal(false)}>×</button>
               <span className="qr-badge">Bepul · 10 soniya</span>
               <h2 id="gate-h">Mutaxassis bilan bog‘lanish va kontaktlarni ochish uchun Telegram orqali davom eting</h2>
-              <p className="muted small">Botga o‘tib “📱 Raqamni ulashish”ni bosasiz — {name} kontaktlari shu yerda ochiladi va Telegram’ga ham keladi. Parol kerak emas.</p>
+              <p className="muted small">Botga o‘tib “📱 Raqamni ulashish”ni bosasiz — {name} kontaktlari shu yerda ochiladi va Telegram’ga ham keladi. Parol kerak emas. Davom etish orqali <a className="link" href="/maxfiylik" target="_blank">maxfiylik siyosati</a>ga rozisiz.</p>
               <TelegramButton mode="login" label="Telegram orqali ochish" onDone={() => { trackGa("contact_gate_done", { profile: profileId }); load(); router.refresh(); }} />
             </div>
           </div>

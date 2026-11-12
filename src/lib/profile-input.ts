@@ -52,7 +52,7 @@ export const ProfileInput = z.object({
     .refine((a) => a.every(isVideoLink), "Havola YouTube, Instagram, TikTok, Vimeo, Telegram, Google Drive yoki SoundCloud’dan bo‘lsin (https://...)"),
   contacts: z.object({ phone: z.string().trim().optional().default(""), telegram: handle.default(""), instagram: handle.default("") }),
   blogger: BloggerInput.optional(),
-  consent: z.literal(true, { error: "Kontaktlar ochiq ko‘rinishiga rozilik kerak" }),
+  consent: z.literal(true, { error: "Kontaktlar ko‘rinishiga rozilik kerak" }),
 });
 
 export type ProfileInputT = z.input<typeof ProfileInput>;

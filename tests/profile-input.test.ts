@@ -36,7 +36,7 @@ test("kompaniya uchun tug'ilgan yil bo'sh bo'lishi mumkin", () => {
 
 test("xato xabarlari o'zbekcha qoladi", () => {
   const msg = (patch: object) => { const r = ProfileInput.safeParse({ ...base, ...patch }); return r.success ? "" : firstError(r.error); };
-  assert.equal(msg({ consent: false }), "Kontaktlar ochiq ko‘rinishiga rozilik kerak");
+  assert.equal(msg({ consent: false }), "Kontaktlar ko‘rinishiga rozilik kerak");
   assert.match(msg({ videoLinks: "https://example.com/x" }), /YouTube, Instagram/);
   assert.equal(msg({ fullName: "Ab" }), "To‘liq ismni yozing");
   assert.equal(msg({ districts: [] }), "Kamida bitta tuman tanlang");

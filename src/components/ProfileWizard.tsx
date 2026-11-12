@@ -115,7 +115,7 @@ export default function ProfileWizard(props: {
     }
     if (step === 3) {
       if (!isBlogger && (v.contacts?.phone ?? "").replace(/\D/g, "").length < 9) return "Mijozlar bog‘lanadigan telefon raqamini kiriting";
-      if (!v.consent) return "Kontaktlar ochiq ko‘rinishiga rozilik bering";
+      if (!v.consent) return "Kontaktlar ko‘rinishiga rozilik bering";
       if (isBlogger && !b.admins.every((a) => a.name && a.phone)) return "Admin ismi va telefonini yozing";
       if (!loggedIn) return "Profilingizni Telegram orqali tasdiqlang";
     }
@@ -429,7 +429,7 @@ export default function ProfileWizard(props: {
               </div>
             )}
             <div className="checks">
-              <label><input type="checkbox" id="c-consent" checked={!!v.consent} onChange={(e) => set("consent", e.target.checked as true)} /> Kontaktlarim profilda hammaga ochiq ko‘rinishiga roziman. <a className="link" href="/shartlar" target="_blank">Shartlar</a></label>
+              <label><input type="checkbox" id="c-consent" checked={!!v.consent} onChange={(e) => set("consent", e.target.checked as true)} /> Kontaktlarim profilimda mijozlarga ko‘rinishiga va mos so‘rovlar Telegram’ga kelishiga roziman. <a className="link" href="/shartlar" target="_blank">Shartlar</a></label>
             </div>
             {!loggedIn && (
               <div className="box" style={{ background: "var(--bg)" }}>

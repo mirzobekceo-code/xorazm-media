@@ -84,6 +84,7 @@ export default function QuickRequest({ districts, phone = "" }: { districts: Opt
         <button className="btn" disabled={busy}>{busy ? "Yuborilmoqda…" : "Yuborish"}</button>
       </div>
       {error && <p className="err" role="alert">{error}</p>}
+      <p className="muted small qr-legal">Yuborish orqali raqamingiz mos mutaxassislar va Adverto jamoasiga berilishiga rozisiz. <a className="link" href="/maxfiylik">Maxfiylik</a></p>
     </form>
   );
 }
