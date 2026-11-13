@@ -15,7 +15,7 @@ export default async function NewRequest() {
   return (
     <div className="view" style={{ gap: 20 }}>
       <section className="qr-wrap">
-        <QuickRequest districts={dists.map((d) => ({ slug: d.slug, nameUz: d.nameUz }))} phone={user ? prettyPhone(user.phone) : ""} />
+        <QuickRequest districts={dists.map((d) => ({ slug: d.slug, nameUz: d.nameUz }))} phone={user?.role === "specialist" ? prettyPhone(user.phone) : ""} />
       </section>
       <ol className="muted" style={{ margin: "0 auto", maxWidth: 560, paddingLeft: 20, lineHeight: 1.7 }}>
         <li>Muammoingizni yozasiz — kirish va ro‘yxatdan o‘tish shart emas</li>

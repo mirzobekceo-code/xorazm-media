@@ -70,7 +70,7 @@ export default async function Home() {
       </section>
 
       <section className="qr-wrap" id="sorov">
-        <QuickRequest districts={dists.map((d) => ({ slug: d.slug, nameUz: d.nameUz }))} phone={user ? prettyPhone(user.phone) : ""} />
+        <QuickRequest districts={dists.map((d) => ({ slug: d.slug, nameUz: d.nameUz }))} phone={user?.role === "specialist" ? prettyPhone(user.phone) : ""} />
       </section>
 
       <section>
