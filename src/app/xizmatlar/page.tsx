@@ -3,7 +3,7 @@ import { getProfessions } from "@/lib/queries";
 import ServiceGrid from "@/components/ServiceGrid";
 import Ad from "@/components/Ad";
 
-export const metadata: Metadata = { title: "Xizmatlar", description: "Xorazmdagi digital va media xizmatlar: brand face, operator, montajor, targetolog, SMM, bloger, fotograf, dizayner, suhandon, studiya va texnika ijarasi." };
+export const metadata: Metadata = { title: "Xizmatlar", description: "Xorazmdagi digital va media xizmatlar: brand face, operator, montajor, ssenarist, targetolog, SMM, bloger, fotograf, dizayner, AI video, AI chatbot, sayt va bot tayyorlash, suhandon, studiya va texnika ijarasi." };
 export const dynamic = "force-dynamic";
 
 export default async function Services() {

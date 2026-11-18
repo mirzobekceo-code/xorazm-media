@@ -3,7 +3,7 @@ import Link from "next/link";
 export const metadata = { title: "Savollar", description: "Xorazm Digital HUB haqida ko‘p so‘raladigan savollar." };
 
 const FAQ: [string, string][] = [
-  ["Xorazm Digital HUB nima?", "Xorazmdagi digital va media mutaxassislari katalogi: brand face, operator, mobilograf, montajor, ssenarist, marketolog, targetolog, SMM manager, bloger, fotograf, grafik dizayner, suhandon, shuningdek studiya va texnika ijarasi. Bizneslar ularni topib, to‘g‘ridan-to‘g‘ri bog‘lanadi."],
+  ["Xorazm Digital HUB nima?", "Xorazmdagi digital va media mutaxassislari katalogi: brand face, operator, mobilograf, montajor, ssenarist, marketolog, targetolog, SMM manager, bloger, fotograf, grafik dizayner, AI video, AI chatbot, sayt va bot tayyorlash, suhandon, shuningdek studiya va texnika ijarasi. Bizneslar ularni topib, to‘g‘ridan-to‘g‘ri bog‘lanadi."],
   ["Kontakt ochish pullikmi?", "Yo‘q, bepul. Katalog, portfolio va narxlarni hamma ko‘radi. Mutaxassisning raqami va Telegram’i esa “Raqamni ko‘rish” tugmasi orqali, raqamingizni Telegram botda bir marta tasdiqlaganingizdan keyin ochiladi — bu mutaxassislarni spam va soxta qo‘ng‘iroqlardan himoya qiladi."],
   ["Kimni tanlashni bilmasam-chi?", "“So‘rov qoldirish” bo‘limida muammoingizni yozing, hudud va budjetni belgilang, raqamingizni qoldiring. Jamoamiz so‘rovni ko‘rib chiqadi va mos mutaxassislarga yuboradi — ular sizga o‘zi bog‘lanadi. Bepul."],
   ["Mutaxassisga buyurtma qanday beraman?", "Mutaxassis sahifasidagi “Bog‘lanish / Buyurtma berish” tugmasini bosib, ismingiz va raqamingizni qoldiring — mutaxassis o‘zi qo‘ng‘iroq qiladi. Yoki kontaktlarini ochib, to‘g‘ridan-to‘g‘ri yozing."],

@@ -81,6 +81,26 @@ export const PORTFOLIO: Record<string, PortfolioRule> = {
     minVideos: 0, videoLabel: "Video",
     linkLabel: "Qo‘shimcha ishlar havolasi", linkHint: "Behance, Instagram yoki Drive",
   },
+  "ai-video": {
+    minWorks: 0, worksHint: "AI bilan tayyorlagan videolaringiz",
+    minVideos: 2, videoLabel: "AI bilan tayyorlagan videolar (video yoki havola)",
+    linkLabel: "Videolaringiz havolalari", linkHint: "Instagram, TikTok, YouTube yoki Telegram",
+  },
+  "ai-chatbot": {
+    minWorks: 2, worksHint: "Bot suhbatlari skrinshotlari yoki ishlash videosi",
+    minVideos: 0, videoLabel: "Video",
+    linkLabel: "Botlaringiz havolalari", linkHint: "Ishlab turgan bot yoki demo havolasi (t.me/...)",
+  },
+  "sayt-tayyorlash": {
+    minWorks: 2, worksHint: "Tayyorlagan saytlaringiz skrinshotlari",
+    minVideos: 1, videoLabel: "Tayyorlagan saytingiz havolasi (yoki video)",
+    linkLabel: "Tayyorlagan saytlaringiz", linkHint: "Ishlab turgan saytlar havolalari",
+  },
+  "bot-tayyorlash": {
+    minWorks: 2, worksHint: "Botlaringiz skrinshotlari yoki ishlash videosi",
+    minVideos: 1, videoLabel: "Botingiz havolasi yoki demo video",
+    linkLabel: "Botlaringiz havolalari", linkHint: "Ishlab turgan bot havolasi (t.me/...)",
+  },
   suhandon: {
     minWorks: 0, worksHint: "Ovozingiz yangragan videolar",
     minVideos: 1, videoLabel: "Ovoz namunasi (video yoki havola)",
@@ -167,7 +187,7 @@ export function countPortfolio(media: { type: string; isCover: boolean; isStatSc
 
 /** Cloudflare Stream'ga yuklanadigan videolar soni (60 soniyagacha). Ro'yxatda yo'q kasblarga 1 ta. */
 export const VIDEO_LIMITS: Record<string, number> = {
-  "brand-face": 2, operator: 3, mobilograf: 3, montajor: 3, ssenarist: 3, fotograf: 2, studiya: 2, bloger: 2, "texnika-ijarasi": 1,
+  "brand-face": 2, operator: 3, mobilograf: 3, montajor: 3, ssenarist: 3, "ai-video": 3, "ai-chatbot": 2, "bot-tayyorlash": 2, "sayt-tayyorlash": 1, fotograf: 2, studiya: 2, bloger: 2, "texnika-ijarasi": 1,
 };
 export const VIDEO_SECONDS = 60;
 export const videoLimit = (slug: string | undefined) => (slug ? VIDEO_LIMITS[slug] ?? 1 : 1);
@@ -196,11 +216,14 @@ const PUBLIC_LINK_TITLES: Record<string, string> = {
   suhandon: "Ovoz namunalari",
   studiya: "Studiyada olingan ishlar",
   "texnika-ijarasi": "Qo‘shimcha ma’lumot",
+  "ai-chatbot": "Ishlab turgan botlar",
+  "sayt-tayyorlash": "Tayyorlagan saytlari",
+  "bot-tayyorlash": "Ishlab turgan botlar",
 };
 export const publicLinkTitle = (slug: string) => PUBLIC_LINK_TITLES[slug] ?? "Video ishlar namunalari";
 
 /** Paket nomi faqat raqam bo'lsa ("15") — kasbga mos birlik qo'shiladi: "15 ta ssenariy". */
-const PACKAGE_UNITS: Record<string, string> = { ssenarist: "ta ssenariy", montajor: "ta video/Reels", mobilograf: "ta video/Reels" };
+const PACKAGE_UNITS: Record<string, string> = { "ai-video": "ta video", ssenarist: "ta ssenariy", montajor: "ta video/Reels", mobilograf: "ta video/Reels" };
 export function packageName(name: string, professionSlug: string): string {
   const n = name.trim();
   return /^\d+$/.test(n) ? `${n} ${PACKAGE_UNITS[professionSlug] ?? "ta ish / paket"}` : n;
